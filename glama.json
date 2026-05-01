@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "opencode-cli-mcp": {
+      "command": "uv",
+      "args": ["run", "-m", "opencode_cli_mcp.server"],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      },
+      "capabilities": {
+        "tools": { "enabled": true },
+        "prompts": { "enabled": true }
+      },
+      "metadata": {
+        "version": "0.1.0",
+        "tags": ["opencode", "coding-agent", "orchestration"],
+        "homepage": "https://github.com/sandra/opencode-cli-mcp"
+      }
+    }
+  }
+}

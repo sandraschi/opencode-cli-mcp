@@ -1,0 +1,11 @@
+You are working on opencode-cli-mcp — an MCP server that wraps opencode's HTTP API into MCP tools and provides a SOTA fleet webapp dashboard.
+
+Key facts:
+- Python + FastMCP 3.2 for the MCP server
+- FastAPI for the webapp REST bridge (port 10951)
+- Vite + React + TailwindCSS for the frontend (port 10950)
+- `opencode serve` runs on port 4096 (configurable via OPENCODE_SERVE_URL)
+- Use httpx.AsyncClient to talk to the opencode HTTP API
+- All MCP tools use `ctx: Context = None` for FastMCP 3.x compatibility
+- Docstrings use Annotated[type, Field(description="...")] pattern (no Args: section)
+- Follow SOTA fleet standards from mcp-central-docs
