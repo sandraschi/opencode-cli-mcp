@@ -110,6 +110,7 @@ FLEET_LABELS: dict[int, str] = {
     10742: "filesystem-mcp",
     10756: "discord-mcp",
     10768: "openmanus-mcp",
+    10769: "openmanus-mcp-dashboard",
     10770: "arxiv-mcp",
     10774: "bumi-mcp",
     10776: "glance-mcp",
