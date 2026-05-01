@@ -32,3 +32,6 @@ Thumbs.db
 
 # Build
 *.mcpb
+
+# Assessment artifacts (Dark App Factory)
+docs/ASSESSMENT*.md

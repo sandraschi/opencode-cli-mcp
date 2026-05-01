@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Monitor, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import {
+  ExternalLink, Monitor, Wifi, WifiOff, RefreshCw, ShieldCheck,
+  FlaskConical, AlertTriangle,
+} from "lucide-react";
 import { api, type FleetApp } from "../services/api";
 
 export function AppsHub() {
   const [apps, setApps] = useState<FleetApp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUntrusted, setShowUntrusted] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -23,7 +27,8 @@ export function AppsHub() {
     load();
   }, []);
 
-  const alive = apps.filter((a) => a.alive);
+  const registeredAlive = apps.filter((a) => a.alive && a.known);
+  const unregisteredAlive = apps.filter((a) => a.alive && !a.known);
   const dead = apps.filter((a) => !a.alive);
 
   return (
@@ -31,7 +36,9 @@ export function AppsHub() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Apps Hub</h1>
-          <p className="text-sm text-zinc-500 mt-1">Fleet Discovery — other active MCP webapps on this machine</p>
+          <p className="text-sm text-zinc-500 mt-1">
+            Fleet Discovery — MCP webapps on this machine
+          </p>
         </div>
         <button
           onClick={load}
@@ -52,11 +59,14 @@ export function AppsHub() {
         </div>
       ) : (
         <>
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-            Online ({alive.length})
-          </h2>
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-green-400" />
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+              Registered ({registeredAlive.length})
+            </h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {alive.map((app) => (
+            {registeredAlive.map((app, i) => (
               <motion.a
                 key={app.port}
                 href={`http://127.0.0.1:${app.port}`}
@@ -64,6 +74,7 @@ export function AppsHub() {
                 rel="noopener noreferrer"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
                 className="flex items-center gap-3 bg-surface-light border border-green-500/20 rounded-xl p-4 hover:border-green-500/40 transition-colors group"
               >
                 <div className="p-2 bg-green-500/10 rounded-lg">
@@ -79,12 +90,47 @@ export function AppsHub() {
                 <ExternalLink className="w-4 h-4 text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
               </motion.a>
             ))}
-            {alive.length === 0 && (
-              <div className="col-span-full text-zinc-500 text-sm">No other fleet apps detected</div>
+            {registeredAlive.length === 0 && (
+              <div className="col-span-full text-zinc-500 text-sm">No registered fleet apps detected</div>
             )}
           </div>
 
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+          {unregisteredAlive.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowUntrusted(!showUntrusted)}
+                className="flex items-center gap-2 mb-3 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <FlaskConical className="w-4 h-4" />
+                <h2 className="text-sm font-semibold uppercase tracking-wider">
+                  Experimental/Untrusted ({unregisteredAlive.length})
+                </h2>
+              </button>
+              {showUntrusted && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                  {unregisteredAlive.map((app, i) => (
+                    <motion.div
+                      key={app.port}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="flex items-center gap-3 bg-zinc-800/30 border border-yellow-500/20 rounded-xl p-4"
+                    >
+                      <div className="p-2 bg-yellow-500/10 rounded-lg">
+                        <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-zinc-400 truncate block">{app.label}</span>
+                        <div className="text-xs text-zinc-600">port {app.port} (not in registry)</div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          <h2 className="text-sm font-semibold text-zinc-600 uppercase tracking-wider mb-3">
             Offline ({dead.length})
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

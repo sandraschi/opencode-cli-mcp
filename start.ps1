@@ -1,9 +1,17 @@
 param(
+    [switch]$Headless = $false,
     [switch]$Automated = $false
 )
 
+# ── Recursive Self-Hiding (FLEET_EXECUTION.md §2) ──
+if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch "Hidden")) {
+    Start-Process pwsh -ArgumentList "-NoProfile", "-File", $PSCommandPath, "-Headless" -WindowStyle Hidden
+    exit
+}
+
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSCommandPath
+$WindowStyle = if ($Headless) { "Hidden" } else { "Normal" }
 
 $BackendPort = 10951
 $FrontendPort = 10950
@@ -19,18 +27,29 @@ function Clear-Port($Port) {
     }
 }
 
-Write-Host " Clearing ports..." -ForegroundColor Yellow
+function Wait-For-TCP($Port, $TimeoutSeconds = 60) {
+    $timer = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($timer.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        try {
+            $tcp = New-Object System.Net.Sockets.TcpClient
+            $tcp.Connect("127.0.0.1", $Port)
+            $tcp.Close()
+            return $true
+        } catch {
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    Write-Error "Backend failed to bind port $Port within ${TimeoutSeconds}s"
+    exit 1
+}
+
+Write-Host " Clearing zombie ports..." -ForegroundColor Yellow
 Clear-Port $BackendPort
 Clear-Port $FrontendPort
 Clear-Port $OpencodePort
 
 Write-Host " Starting opencode serve..." -ForegroundColor Yellow
-$opencodeJob = Start-Job -ScriptBlock {
-    param($dir)
-    Set-Location $dir
-    opencode serve --port 4096
-} -ArgumentList $RepoRoot
-
+Start-Process pwsh -ArgumentList "-NoProfile", "-Command", "opencode serve --port $OpencodePort" -WindowStyle $WindowStyle
 Start-Sleep -Seconds 2
 
 Write-Host " Starting API backend on port $BackendPort..." -ForegroundColor Yellow
@@ -40,14 +59,27 @@ $backendJob = Start-Job -ScriptBlock {
     uv run python -m api.main
 } -ArgumentList $RepoRoot
 
-Start-Sleep -Seconds 3
+Wait-For-TCP -Port $BackendPort -TimeoutSeconds 90
+Write-Host " Backend ready on port $BackendPort" -ForegroundColor Green
 
-Write-Host " Starting frontend on port $FrontendPort..." -ForegroundColor Yellow
-$frontendJob = Start-Job -ScriptBlock {
-    param($dir)
-    Set-Location "$dir\web_sota"
-    npm run dev
-} -ArgumentList $RepoRoot
+Start-Sleep -Seconds 1
+
+if ($Headless) {
+    Write-Host " Starting frontend headlessly..." -ForegroundColor Yellow
+    $frontendJob = Start-Job -ScriptBlock {
+        param($dir)
+        Set-Location "$dir\web_sota"
+        npm run dev
+    } -ArgumentList $RepoRoot
+    Write-Host " [SOTA] opencode-cli-mcp started headlessly." -ForegroundColor Cyan
+} else {
+    Write-Host " Starting frontend on port $FrontendPort..." -ForegroundColor Yellow
+    $frontendJob = Start-Job -ScriptBlock {
+        param($dir)
+        Set-Location "$dir\web_sota"
+        npm run dev
+    } -ArgumentList $RepoRoot
+}
 
 Write-Host ""
 Write-Host " [opencode-cli-mcp] All services starting:" -ForegroundColor Green
@@ -56,16 +88,16 @@ Write-Host "   Backend  : http://localhost:$BackendPort" -ForegroundColor Cyan
 Write-Host "   API Docs : http://localhost:$BackendPort/docs" -ForegroundColor Cyan
 Write-Host "   opencode : http://localhost:$OpencodePort" -ForegroundColor Cyan
 Write-Host ""
-Write-Host " Press Ctrl+C to stop all services" -ForegroundColor Gray
 
-if ($Automated) {
+if ($Automated -or !$Headless) {
     Start-Process "http://localhost:$FrontendPort"
 }
 
 try {
     while ($true) { Start-Sleep -Seconds 10 }
 } finally {
-    $opencodeJob | Stop-Job | Remove-Job
-    $backendJob | Stop-Job | Remove-Job
-    $frontendJob | Stop-Job | Remove-Job
+    $opencodeJob = Get-Job | Where-Object { $_.Name -notlike "*backend*" -and $_.Name -notlike "*frontend*" }
+    $opencodeJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
+    $backendJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
+    $frontendJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
 }

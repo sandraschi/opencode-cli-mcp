@@ -43,6 +43,7 @@ export interface FleetApp {
   name: string;
   alive: boolean;
   label?: string;
+  known?: boolean;
 }
 
 export interface OllamaStatus {

@@ -53,6 +53,26 @@ web:
 start:
     powershell -ExecutionPolicy Bypass -File start.ps1
 
+# Start headless (for fleet/production)
+start-headless:
+    powershell -ExecutionPolicy Bypass -File start.ps1 -Headless
+
+# ── Fleet ──────────────────────────────────────────────
+# Fleet health check (probe our own ports)
+fleet-health:
+    powershell -NoLogo -Command " \
+        $ports = @(10950, 10951); \
+        foreach ($p in $ports) { \
+            try { \
+                $t = [System.Net.Sockets.TcpClient]::new(); \
+                $t.Connect('127.0.0.1', $p); \
+                $t.Close(); \
+                Write-Host \"  Port $p : OK\" -ForegroundColor Green; \
+            } catch { \
+                Write-Host \"  Port $p : DOWN\" -ForegroundColor Red; \
+            } \
+        }"
+
 # ── Quality ─────────────────────────────────────────────
 # Run lint + format check
 check:

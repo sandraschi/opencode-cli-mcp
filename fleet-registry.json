@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "opencode-cli-mcp": {
+      "command": "uv",
+      "args": ["run", "-m", "opencode_cli_mcp.server"],
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "OPENCODE_SERVE_URL": "http://127.0.0.1:4096"
+      },
+      "capabilities": {
+        "tools": { "enabled": true },
+        "prompts": { "enabled": true }
+      },
+      "metadata": {
+        "version": "0.1.0",
+        "tags": ["opencode", "coding-agent", "orchestration"],
+        "homepage": "https://github.com/sandraschi/opencode-cli-mcp"
+      }
+    }
+  },
+  "webapp": {
+    "frontend": {
+      "port": 10950,
+      "label": "opencode-cli-mcp",
+      "start_command": "powershell ./start.ps1"
+    },
+    "backend": {
+      "port": 10951,
+      "label": "opencode-cli-mcp API",
+      "start_command": "uv run python -m api.main"
+    }
+  }
+}
