@@ -12,6 +12,22 @@ export default defineConfig({
         target: `http://127.0.0.1:${BACKEND_PORT}`,
         changeOrigin: true,
       },
+      "/README.md": {
+        target: "http://127.0.0.1:10950",
+        changeOrigin: true,
+      },
+      "/docs": {
+        target: `http://127.0.0.1:${BACKEND_PORT}`,
+        changeOrigin: true,
+      },
+      "/openapi.json": {
+        target: `http://127.0.0.1:${BACKEND_PORT}`,
+        changeOrigin: true,
+      },
+      "/redoc": {
+        target: `http://127.0.0.1:${BACKEND_PORT}`,
+        changeOrigin: true,
+      },
     },
   },
 });
