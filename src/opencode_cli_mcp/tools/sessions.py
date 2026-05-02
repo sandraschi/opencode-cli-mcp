@@ -72,6 +72,44 @@ async def opencode_send_message(
         await client.close()
 
 
+async def opencode_session_diff(
+    session_id: Annotated[str, Field(description="Session ID to diff")],
+) -> dict:
+    """Show files created, modified, and deleted in a session. Returns a diff summary with file paths and change types."""  # noqa: E501
+
+    client = OpencodeClient()
+    try:
+        diff = await client.get_session_diff(session_id)
+        return {
+            "success": True,
+            "message": f"Session {session_id} diff retrieved",
+            "data": {"diff": diff},
+        }
+    except Exception as e:
+        return {"success": False, "message": f"Diff failed: {e}", "data": {}}
+    finally:
+        await client.close()
+
+
+async def opencode_session_files(
+    session_id: Annotated[str, Field(description="Session ID to list files for")],
+) -> dict:
+    """List all files touched (read, created, modified) in a session."""  # noqa: E501
+
+    client = OpencodeClient()
+    try:
+        files = await client.get_session_files(session_id)
+        return {
+            "success": True,
+            "message": f"Session {session_id}: {len(files)} files",
+            "data": {"files": files},
+        }
+    except Exception as e:
+        return {"success": False, "message": f"Files failed: {e}", "data": {}}
+    finally:
+        await client.close()
+
+
 async def opencode_get_messages(
     session_id: Annotated[str, Field(description="Session ID to retrieve messages from")],
     limit: Annotated[int, Field(description="Maximum number of messages to retrieve")] = 50,

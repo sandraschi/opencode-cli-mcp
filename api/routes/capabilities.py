@@ -18,9 +18,9 @@ async def get_capabilities():
             "fastmcp": "3.2",
         },
         "tool_surface": {
-            "total": 9,
+            "total": 14,
             "portmanteau_count": 0,
-            "atomic_count": 9,
+            "atomic_count": 14,
             "portmanteau_tools": [],
             "atomic_tools": [
                 "opencode_run_agent",
@@ -29,9 +29,14 @@ async def get_capabilities():
                 "opencode_export_session",
                 "opencode_send_message",
                 "opencode_get_messages",
+                "opencode_session_diff",
+                "opencode_session_files",
                 "opencode_server_status",
                 "opencode_list_providers",
                 "opencode_get_project",
+                "opencode_get_run_status",
+                "opencode_list_runs",
+                "opencode_cancel_run",
             ],
         },
         "features": {

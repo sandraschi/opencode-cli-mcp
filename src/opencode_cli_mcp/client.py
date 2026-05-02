@@ -94,6 +94,16 @@ class OpencodeClient:
         r.raise_for_status()
         return r.json()
 
+    async def get_session_diff(self, session_id: str) -> dict[str, Any]:
+        r = await self._http.get(f"/session/{session_id}/diff")
+        r.raise_for_status()
+        return r.json()
+
+    async def get_session_files(self, session_id: str) -> list[dict[str, Any]]:
+        r = await self._http.get(f"/session/{session_id}/files")
+        r.raise_for_status()
+        return r.json()
+
     async def get_server_status(self) -> dict[str, Any]:
         result = {}
         try:

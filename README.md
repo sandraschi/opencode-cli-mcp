@@ -1,54 +1,55 @@
 # opencode-cli-mcp
 
-MCP server that wraps [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into MCP tools, plus a SOTA fleet webapp dashboard.
-
-## Architecture
-
-```
-Clients (MCP hosts)  →  opencode-cli-mcp (FastMCP 3.2)
-                             ↕ HTTP
-                         opencode serve (port 4096)
-```
-
-- **MCP Server** (stdio): Exposes 9 tools for agent run, session management, and server status
-- **FastAPI Bridge** (port 10951): REST API for the webapp + capability introspection
-- **Vite Webapp** (port 10950): SOTA fleet-standard dashboard
-
-## Prerequisites
-
-- [opencode](https://opencode.ai/install) — `npm i -g opencode-ai`
-- Python 3.12+ with `uv`
-- Node.js 18+ with npm
+MCP server that wraps [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into MCP tools, plus a SOTA fleet-standard webapp dashboard.
 
 ## Quick Start
 
 ```powershell
-.\start.ps1
+.\start.ps1                  # OpenCode serve + API + frontend
+uv run -m opencode_cli_mcp.server    # MCP server only (stdio)
 ```
 
-This starts opencode serve, the API backend, and the webapp frontend.
+Requires: `opencode` CLI (`npm i -g opencode-ai`), Python 3.12+, Node.js 18+.
 
-Or run individually:
+## MCP Tools (14 atomic)
 
-```powershell
-uv run -m opencode_cli_mcp.server    # MCP server (stdio)
-uv run -m api.main                   # API backend (port 10951)
-cd web_sota && npm run dev           # Frontend (port 10950)
-```
-
-## MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| `opencode_run_agent` | Run an agent non-interactively with a prompt |
-| `opencode_list_sessions` | List all active/recent sessions |
-| `opencode_get_session` | Get detailed session info |
+| Tool | Purpose |
+|------|---------|
+| `opencode_run_agent` | Launch agent (background or blocking) |
+| `opencode_get_run_status` | Poll running agent for progress |
+| `opencode_list_runs` | List all agent runs |
+| `opencode_cancel_run` | Cancel a stuck run |
+| `opencode_list_sessions` | List opencode sessions |
+| `opencode_get_session` | Session details |
+| `opencode_session_diff` | What files changed in a session |
+| `opencode_session_files` | Files touched in a session |
 | `opencode_export_session` | Export session as JSON |
-| `opencode_send_message` | Send message to a running session |
-| `opencode_get_messages` | Retrieve session transcript |
-| `opencode_server_status` | Check server health and status |
-| `opencode_list_providers` | List configured LLM providers |
-| `opencode_get_project` | Get current project context |
+| `opencode_send_message` | Continue a running session |
+| `opencode_get_messages` | Session transcript |
+| `opencode_server_status` | Server health + config |
+| `opencode_list_providers` | Configured LLM providers |
+| `opencode_get_project` | Active project context |
+
+### Async Workflow (recommended)
+
+```
+opencode_run_agent(prompt="refactor main.py", wait=false)
+    → { job_id: "abc123" }
+
+opencode_get_run_status("abc123")       # poll until completed
+    → { status: "completed", stdout: "...", exit_code: 0 }
+
+opencode_session_diff("session-xyz")     # review changes
+    → { diff: { created: [...], modified: [...], deleted: [...] } }
+```
+
+## Architecture
+
+```
+MCP hosts  →  opencode-cli-mcp (FastMCP 3.2, stdio)
+                   ↕ httpx
+              opencode serve (HTTP :4096)
+```
 
 ## Ports
 
@@ -58,6 +59,14 @@ cd web_sota && npm run dev           # Frontend (port 10950)
 | 10951 | Backend (FastAPI) |
 | 4096  | opencode serve |
 
-## License
+## Security
 
-MIT
+This MCP server runs arbitrary shell commands (`opencode run`) from LLM prompts.
+Only install and use in environments where you trust your MCP client (Claude Desktop,
+Cursor, etc.) and the models it uses.
+
+## Fleet
+
+- Registered in `mcp-central-docs`: ports 10950/10951
+- Start script: `.\start.ps1` (supports `-Headless`)
+- Glama: `glama.json` in repo root
