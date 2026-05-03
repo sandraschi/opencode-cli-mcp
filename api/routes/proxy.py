@@ -6,9 +6,15 @@ from opencode_cli_mcp.job_store import get_job, list_jobs
 router = APIRouter(tags=["proxy"])
 
 
+async def _get_client() -> OpencodeClient:
+    client = OpencodeClient()
+    await client.ensure_server()
+    return client
+
+
 @router.get("/opencode/status")
 async def proxy_status():
-    client = OpencodeClient()
+    client = await _get_client()
     try:
         status = await client.get_server_status()
         return {"success": True, "data": status}
@@ -20,7 +26,7 @@ async def proxy_status():
 
 @router.get("/opencode/sessions")
 async def proxy_sessions():
-    client = OpencodeClient()
+    client = await _get_client()
     try:
         sessions = await client.list_sessions()
         return {"success": True, "data": {"sessions": sessions}}
@@ -32,36 +38,36 @@ async def proxy_sessions():
 
 @router.get("/opencode/sessions/{session_id}")
 async def proxy_session(session_id: str):
-    client = OpencodeClient()
+    client = await _get_client()
     try:
         session = await client.get_session(session_id)
         return {"success": True, "data": {"session": session}}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=404, detail=f"Session not found: {e}")
     finally:
         await client.close()
 
 
 @router.get("/opencode/sessions/{session_id}/diff")
 async def proxy_session_diff(session_id: str):
-    client = OpencodeClient()
+    client = await _get_client()
     try:
         diff = await client.get_session_diff(session_id)
         return {"success": True, "data": {"diff": diff}}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=404, detail=f"Session diff failed: {e}")
     finally:
         await client.close()
 
 
 @router.get("/opencode/sessions/{session_id}/files")
 async def proxy_session_files(session_id: str):
-    client = OpencodeClient()
+    client = await _get_client()
     try:
         files = await client.get_session_files(session_id)
         return {"success": True, "data": {"files": files}}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=404, detail=f"Session files failed: {e}")
     finally:
         await client.close()
 

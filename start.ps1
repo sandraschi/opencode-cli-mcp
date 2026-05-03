@@ -3,7 +3,6 @@ param(
     [switch]$Automated = $false
 )
 
-# ── Recursive Self-Hiding (FLEET_EXECUTION.md §2) ──
 if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch "Hidden")) {
     Start-Process pwsh -ArgumentList "-NoProfile", "-File", $PSCommandPath, "-Headless" -WindowStyle Hidden
     exit
@@ -23,6 +22,7 @@ Write-Host ""
 function Clear-Port($Port) {
     $procs = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
     foreach ($p in $procs) {
+        Write-Host "  Killing PID $($p.OwningProcess) on port $Port" -ForegroundColor Yellow
         try { Stop-Process -Id $p.OwningProcess -Force } catch {}
     }
 }
@@ -48,8 +48,14 @@ Clear-Port $BackendPort
 Clear-Port $FrontendPort
 Clear-Port $OpencodePort
 
+$env:OPENCODE_SERVE_URL = "http://127.0.0.1:$OpencodePort"
+
 Write-Host " Starting opencode serve..." -ForegroundColor Yellow
-Start-Process pwsh -ArgumentList "-NoProfile", "-Command", "opencode serve --port $OpencodePort" -WindowStyle $WindowStyle
+$opencodeJob = Start-Job -ScriptBlock {
+    param($port)
+    opencode serve --port $port
+} -ArgumentList $OpencodePort
+
 Start-Sleep -Seconds 2
 
 Write-Host " Starting API backend on port $BackendPort..." -ForegroundColor Yellow
@@ -96,7 +102,6 @@ if ($Automated -or !$Headless) {
 try {
     while ($true) { Start-Sleep -Seconds 10 }
 } finally {
-    $opencodeJob = Get-Job | Where-Object { $_.Name -notlike "*backend*" -and $_.Name -notlike "*frontend*" }
     $opencodeJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
     $backendJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
     $frontendJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue

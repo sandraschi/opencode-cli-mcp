@@ -28,6 +28,14 @@ HARDCODED_TOOLS = [
         "description": "Retrieve message history from an opencode session.",
     },
     {
+        "name": "opencode_session_diff",
+        "description": "Show files created, modified, and deleted in a session.",
+    },
+    {
+        "name": "opencode_session_files",
+        "description": "List all files touched (read, created, modified) in a session.",
+    },
+    {
         "name": "opencode_server_status",
         "description": "Check the status and health of the opencode server.",
     },
@@ -38,6 +46,18 @@ HARDCODED_TOOLS = [
     {
         "name": "opencode_get_project",
         "description": "Get the current project context from opencode.",
+    },
+    {
+        "name": "opencode_get_run_status",
+        "description": "Poll the status of a background agent run.",
+    },
+    {
+        "name": "opencode_list_runs",
+        "description": "List all recent agent runs.",
+    },
+    {
+        "name": "opencode_cancel_run",
+        "description": "Cancel a running or queued agent run.",
     },
 ]
 

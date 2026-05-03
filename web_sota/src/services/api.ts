@@ -1,14 +1,22 @@
 const API_BASE = "/api";
+const FETCH_TIMEOUT = 15000;
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const res = await fetch(`${API_BASE}${url}`, {
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      ...init,
+    });
+    if (!res.ok) {
+      throw new Error(`API error: ${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  } finally {
+    clearTimeout(timer);
   }
-  return res.json();
 }
 
 export interface CapabilitiesResponse {
@@ -48,8 +56,8 @@ export interface FleetApp {
 
 export interface OllamaStatus {
   running: boolean;
-  models?: string[];
-  error?: string;
+  port?: number;
+  provider?: string;
 }
 
 export interface SystemInfo {
