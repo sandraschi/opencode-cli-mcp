@@ -4,6 +4,7 @@ import {
   Terminal,
   LayoutDashboard,
   ListTree,
+  FolderKanban,
   PanelRightOpen,
   PanelRightClose,
   AppWindow,
@@ -12,6 +13,7 @@ import {
   Settings2,
   Activity,
   Code2,
+  Puzzle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "./store";
@@ -19,7 +21,9 @@ import { useStore } from "./store";
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/sessions", label: "Sessions", icon: ListTree },
+  { path: "/projects", label: "Projects", icon: FolderKanban },
   { path: "/tools", label: "Tools", icon: Terminal },
+  { path: "/oc-tools", label: "OC Tools", icon: Puzzle },
   { path: "/apps", label: "Apps Hub", icon: AppWindow },
   { path: "/chat", label: "Chat", icon: MessageSquareText },
   { path: "/help", label: "Help", icon: BookOpen },

@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { Layout } from "./Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Sessions } from "./pages/Sessions";
+import { Projects } from "./pages/Projects";
 import { ToolsHub } from "./pages/ToolsHub";
 import { AppsHub } from "./pages/AppsHub";
 import { Chat } from "./pages/Chat";
@@ -9,6 +10,7 @@ import { Help } from "./pages/Help";
 import { Settings } from "./pages/Settings";
 import { StatusAudit } from "./pages/StatusAudit";
 import { ApiDocs } from "./pages/ApiDocs";
+import { OpenCodeTools } from "./pages/OpenCodeTools";
 
 export default function App() {
   return (
@@ -16,7 +18,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions" element={<Sessions />} />
+        <Route path="/projects" element={<Projects />} />
         <Route path="/tools" element={<ToolsHub />} />
+        <Route path="/oc-tools" element={<OpenCodeTools />} />
         <Route path="/apps" element={<AppsHub />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/help" element={<Help />} />

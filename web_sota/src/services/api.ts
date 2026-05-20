@@ -73,6 +73,26 @@ export interface ToolDetail {
   inputSchema?: Record<string, unknown>;
 }
 
+export interface DocEntry {
+  id: string;
+  label: string;
+  file: string;
+}
+
+export interface DocContent {
+  id: string;
+  label: string;
+  content: string;
+}
+
+export interface OpenCodeToolDef {
+  name: string;
+  label: string;
+  category: string;
+  description: string;
+  source: string;
+}
+
 export const api = {
   getCapabilities: () => fetchJson<CapabilitiesResponse>("/capabilities"),
   getHealth: () => fetchJson<{ status: string }>("/health"),
@@ -97,4 +117,12 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(s),
     }),
+
+  listDocs: () =>
+    fetchJson<{ success: boolean; data: { docs: DocEntry[] } }>("/docs"),
+  getDoc: (id: string) =>
+    fetchJson<{ success: boolean; data: DocContent }>(`/docs/${id}`),
+
+  listOpenCodeTools: () =>
+    fetchJson<{ success: boolean; data: { tools: OpenCodeToolDef[]; install_path: string } }>("/opencode-tools"),
 };

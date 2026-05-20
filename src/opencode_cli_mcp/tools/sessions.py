@@ -5,11 +5,20 @@ from pydantic import Field
 from opencode_cli_mcp.client import OpencodeClient
 
 
+async def _ensure(client: OpencodeClient) -> dict | None:
+    if not await client.ensure_server():
+        return {"success": False, "message": "opencode serve is not running - start it first", "data": {}}
+    return None
+
+
 async def opencode_list_sessions() -> dict:
     """List all active and recent opencode sessions."""  # noqa: E501
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         sessions = await client.list_sessions()
         return {
             "success": True,
@@ -27,6 +36,9 @@ async def opencode_get_session(
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         session = await client.get_session(session_id)
         return {
             "success": True,
@@ -44,6 +56,9 @@ async def opencode_export_session(
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         data = await client.export_session(session_id)
         return {
             "success": True,
@@ -62,6 +77,9 @@ async def opencode_send_message(
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         result = await client.send_message(session_id, message)
         return {
             "success": True,
@@ -79,6 +97,9 @@ async def opencode_session_diff(
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         diff = await client.get_session_diff(session_id)
         return {
             "success": True,
@@ -98,6 +119,9 @@ async def opencode_session_files(
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         files = await client.get_session_files(session_id)
         return {
             "success": True,
@@ -118,6 +142,9 @@ async def opencode_get_messages(
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         messages = await client.get_messages(session_id, limit=limit)
         return {
             "success": True,

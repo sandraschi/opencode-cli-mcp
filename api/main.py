@@ -4,7 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.capabilities import router as capabilities_router
+from api.routes.docs import router as docs_router
 from api.routes.fleet import router as fleet_router
+from api.routes.opencode_tools import router as opencode_tools_router
 from api.routes.proxy import router as proxy_router
 from api.routes.settings import router as settings_router
 from api.routes.system import router as system_router
@@ -31,7 +33,9 @@ app.add_middleware(
 )
 
 app.include_router(capabilities_router, prefix="/api")
+app.include_router(docs_router, prefix="/api")
 app.include_router(fleet_router, prefix="/api")
+app.include_router(opencode_tools_router, prefix="/api")
 app.include_router(proxy_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
 app.include_router(system_router, prefix="/api")

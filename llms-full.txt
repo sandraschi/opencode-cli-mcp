@@ -1,0 +1,162 @@
+# opencode-cli-mcp — Full Context
+
+**Version:** 0.1.0  
+**FastMCP:** 3.2.4  
+**Python:** 3.13  
+**License:** MIT  
+
+---
+
+## What It Does
+
+Bridges [opencode](https://opencode.ai/) (the open source AI coding agent) into the MCP ecosystem. AI assistants (Claude, etc.) can use this server to delegate implementation tasks to opencode running on cheaper models — enabling tiered model economics.
+
+---
+
+## Architecture
+
+```
+┌──────────────┐    stdio     ┌──────────────────┐    httpx     ┌──────────────┐
+│  MCP Clients │◄───────────►│  opencode-cli-mcp │◄───────────►│ opencode serve│
+│  (Claude…)   │     MCP      │  (FastMCP 3.2.4) │   :4096     │  (opencode)   │
+└──────────────┘              └──────────────────┘              └──────┬───────┘
+                                                                       │ subprocess
+                                                                  ┌────▼───────┐
+                                                                  │ opencode   │
+                                                                  │ agent run  │
+                                                                  └────────────┘
+                                                                  
+┌────────────────┐   proxy   ┌──────────────────┐   httpx    ┌──────────────────┐
+│ Vite/React SPA │──────────►│  FastAPI Backend  │──────────►│  opencode serve  │
+│    :10950      │  /api/*   │     :10951        │   :4096   │                  │
+└────────────────┘           └──────────────────┘            └──────────────────┘
+```
+
+## Repository Structure
+
+```
+opencode-cli-mcp/
+├── api/
+│   ├── main.py              # FastAPI app entry
+│   └── routes/
+│       ├── capabilities.py  # GET /api/capabilities
+│       ├── fleet.py         # GET /api/fleet (port scanner)
+│       ├── proxy.py         # CORS proxy for frontend
+│       ├── settings.py      # GET/PUT /api/settings
+│       ├── system.py        # GET /api/system, /api/health
+│       └── tools.py         # GET /api/tools (from registry)
+├── src/opencode_cli_mcp/
+│   ├── server.py            # FastMCP 3.2 app
+│   ├── client.py            # httpx client → opencode serve
+│   ├── job_store.py         # Async job tracking
+│   ├── registry.py          # Shared tool definitions
+│   └── tools/
+│       ├── agent.py         # opencode_run_agent
+│       ├── runs.py          # Job status/polling
+│       ├── sessions.py      # Session CRUD
+│       └── status.py        # opencode health/config
+├── tests/
+│   ├── conftest.py
+│   └── test_server.py       # 3 registration tests
+├── web_sota/                # React dashboard
+│   ├── src/
+│   │   ├── App.tsx          # Router (9 pages)
+│   │   ├── Layout.tsx       # Shell
+│   │   ├── store.ts         # Zustand state
+│   │   ├── services/api.ts  # HTTP client
+│   │   └── pages/           # Dashboard, Sessions, Chat, Tools, etc.
+│   ├── vite.config.ts       # :10950, proxy /api → :10951
+│   └── package.json
+├── start.ps1                # Fleet-standard startup
+├── start.bat                # Double-click wrapper
+├── justfile                 # just test / just lint / just check
+├── glama.json               # MCP discovery
+├── CLAUDE.md                # Agent instructions
+├── llms.txt                 # This file (concise)
+└── llms-full.txt            # This file (full context)
+```
+
+## MCP Tools (14 total)
+
+| Tool | Description |
+|------|-------------|
+| `opencode_run_agent` | Run agent prompt, returns job_id |
+| `opencode_get_run_status` | Poll run output/status |
+| `opencode_cancel_run` | Cancel running agent |
+| `opencode_list_runs` | List recent/active runs |
+| `opencode_list_sessions` | List opencode sessions |
+| `opencode_get_session` | Get session details |
+| `opencode_get_session_messages` | Get session messages |
+| `opencode_get_session_diff` | Get session file diffs |
+| `opencode_get_session_files` | Get session file list |
+| `opencode_get_status` | Get opencode health/config |
+| `opencode_get_config` | Get opencode config |
+| `opencode_get_providers` | Get available providers |
+| `opencode_get_models` | Get available models |
+| `opencode_get_project` | Get project info |
+
+## API Routes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/health | Service health |
+| GET | /api/system | System stats (CPU, mem, GPU) |
+| GET | /api/tools | Tool list from MCP registry |
+| GET | /api/capabilities | Server capabilities |
+| GET | /api/fleet | Fleet port scanner |
+| GET | /api/opencode/status | opencode serve health |
+| GET | /api/opencode/sessions | Session list |
+| GET | /api/opencode/sessions/{id} | Session detail |
+| GET | /api/opencode/sessions/{id}/diff | File diffs |
+| GET | /api/opencode/sessions/{id}/files | File list |
+| GET | /api/runs | Run list |
+| GET | /api/runs/{id} | Run detail |
+| GET | /api/settings | Get settings |
+| PUT | /api/settings | Update settings |
+| GET | /api/ollama/status | Ollama availability |
+
+## Startup
+
+```powershell
+.\start.ps1              # All services (zombie kill + install + launch)
+.\start.bat              # Double-click wrapper
+```
+
+Run individually:
+```powershell
+uv run python -m api.main           # Backend :10951
+Set-Location web_sota; npm run dev  # Frontend :10950
+opencode serve --port 4096          # opencode HTTP API
+```
+
+## Build/Test
+
+```powershell
+uv run pytest              # 3 tests
+just test                  # same
+just lint                  # ruff check
+just check                 # tsc --noEmit (frontend)
+```
+
+## Ports
+
+| Port | Service |
+|------|---------|
+| 10950 | Vite dev server (React) |
+| 10951 | FastAPI backend |
+| 4096 | opencode serve HTTP API |
+
+## Dependencies
+
+**Python:** fastmcp>=3.2.4, fastapi>=0.136.1, uvicorn>=0.30.0, httpx>=0.28.0, pydantic>=2.13.0  
+**Node:** react 19, vite 5.4, tailwindcss 3.4, framer-motion 11, zustand 5, lucide-react  
+**Dev:** ruff, pytest, pytest-asyncio, typescript
+
+**Run via:** uv (Python), npm/Node 24 (frontend)
+
+## Notes
+
+- `opencode serve` must be running separately (installed globally via npm)
+- Frontend proxies `/api/*`, `/docs`, `/openapi.json`, `/redoc` to backend
+- Fleet port scanner in fleet.py probes all WEBAPP_PORTS.md entries
+- Ollama auto-detected on port 11434

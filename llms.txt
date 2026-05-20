@@ -1,0 +1,34 @@
+# opencode-cli-mcp
+
+MCP server wrapping [opencode](https://opencode.ai/) CLI into FastMCP tools with a FastAPI REST bridge and Vite/React dashboard. Enables AI agents to delegate implementation tasks to opencode.
+
+## Quick Start
+
+```powershell
+uv sync
+uv run python -m api.main      # Backend :10951
+cd web_sota && npm run dev     # Frontend :10950
+opencode serve --port 4096     # opencode HTTP API
+```
+
+## Ports
+
+- 10950 — Frontend (Vite React)
+- 10951 — Backend (FastAPI REST + MCP HTTP /mcp)
+- 4096 — opencode serve HTTP API
+
+## Architecture
+
+MCP Clients → opencode-cli-mcp (stdio) → opencode serve (:4096) → opencode agent
+
+## Key Files
+
+- `src/opencode_cli_mcp/` — FastMCP server (9 tools)
+- `api/main.py` — FastAPI REST bridge
+- `api/routes/` — Capabilities, fleet, proxy, settings, system, tools
+- `web_sota/` — Vite/React/Tailwind dashboard
+
+## Dependencies
+
+- Python 3.13, FastMCP 3.2.4, FastAPI 0.136.1
+- Node 24, Vite 5.4, React 19, TailwindCSS 3.4

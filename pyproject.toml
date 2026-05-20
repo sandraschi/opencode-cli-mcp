@@ -20,7 +20,7 @@ testpaths = ["tests"]
 opencode-cli-mcp = "opencode_cli_mcp.server:main"
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]

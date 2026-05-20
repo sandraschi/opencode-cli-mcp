@@ -5,7 +5,6 @@ import {
   Sparkles,
   User,
   Bot,
-  RefreshCw,
   Cpu,
   Cloud,
   Loader2,

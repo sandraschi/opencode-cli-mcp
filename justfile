@@ -2,34 +2,9 @@ NAME := "opencode-cli-mcp"
 DESC := "MCP server wrapping opencode CLI"
 VER := "0.1.0"
 
-# Display the SOTA Industrial Dashboard
+# Open the interactive recipe dashboard in the browser
 default:
-    @powershell -NoLogo -Command " \
-        $lines = Get-Content '{{justfile()}}'; \
-        Write-Host ' [{{NAME}}] {{DESC}} v{{VER}}' -ForegroundColor White -BackgroundColor Cyan; \
-        Write-Host '' ; \
-        $currentCategory = ''; \
-        foreach ($line in $lines) { \
-            if ($line -match '^# ── ([^─]+) ─') { \
-                $currentCategory = $matches[1].Trim(); \
-                Write-Host \"`n  $currentCategory\" -ForegroundColor Cyan; \
-                Write-Host '  ' + ('─' * 45) -ForegroundColor Gray; \
-            } elseif ($line -match '^# ([^─].+)') { \
-                $desc = $matches[1].Trim(); \
-                $idx = [array]::IndexOf($lines, $line); \
-                if ($idx -lt $lines.Count - 1) { \
-                    $nextLine = $lines[$idx + 1]; \
-                    if ($nextLine -match '^([a-z0-9-]+):') { \
-                        $recipe = $matches[1]; \
-                        $pad = ' ' * [math]::Max(2, (18 - $recipe.Length)); \
-                        Write-Host \"    $recipe\" -ForegroundColor White -NoNewline; \
-                        Write-Host \"$pad$desc\" -ForegroundColor Gray; \
-                    } \
-                } \
-            } \
-        } \
-        Write-Host \"`n  [SOTA v{{VER}}]\" -ForegroundColor DarkGray; \
-        Write-Host ''"
+    @pwsh.exe -NoProfile -ExecutionPolicy Bypass -File ../mcp-central-docs/scripts/just-dashboard.ps1 -Path .
 
 # ── Development ─────────────────────────────────────────
 # Install dependencies

@@ -10,7 +10,6 @@ if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch "Hidden")) {
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSCommandPath
-$WindowStyle = if ($Headless) { "Hidden" } else { "Normal" }
 
 $BackendPort = 10951
 $FrontendPort = 10950
@@ -48,7 +47,7 @@ Clear-Port $BackendPort
 Clear-Port $FrontendPort
 Clear-Port $OpencodePort
 
-$env:OPENCODE_SERVE_URL = "http://127.0.0.1:$OpencodePort"
+$env:OPENCODE_SERVE_URL = "http://127.0.0.1:${OpencodePort}"
 
 Write-Host " Starting opencode serve..." -ForegroundColor Yellow
 $opencodeJob = Start-Job -ScriptBlock {
@@ -70,33 +69,28 @@ Write-Host " Backend ready on port $BackendPort" -ForegroundColor Green
 
 Start-Sleep -Seconds 1
 
+Write-Host " Starting frontend on port $FrontendPort..." -ForegroundColor Yellow
+$frontendJob = Start-Job -ScriptBlock {
+    param($dir, $port)
+    Set-Location $dir
+    $env:PORT = $port
+    npm run dev
+} -ArgumentList (Join-Path $RepoRoot "web_sota"), $FrontendPort
+
 if ($Headless) {
-    Write-Host " Starting frontend headlessly..." -ForegroundColor Yellow
-    $frontendJob = Start-Job -ScriptBlock {
-        param($dir)
-        Set-Location "$dir\web_sota"
-        npm run dev
-    } -ArgumentList $RepoRoot
     Write-Host " [SOTA] opencode-cli-mcp started headlessly." -ForegroundColor Cyan
-} else {
-    Write-Host " Starting frontend on port $FrontendPort..." -ForegroundColor Yellow
-    $frontendJob = Start-Job -ScriptBlock {
-        param($dir)
-        Set-Location "$dir\web_sota"
-        npm run dev
-    } -ArgumentList $RepoRoot
 }
 
 Write-Host ""
 Write-Host " [opencode-cli-mcp] All services starting:" -ForegroundColor Green
-Write-Host "   Frontend : http://localhost:$FrontendPort" -ForegroundColor Cyan
-Write-Host "   Backend  : http://localhost:$BackendPort" -ForegroundColor Cyan
-Write-Host "   API Docs : http://localhost:$BackendPort/docs" -ForegroundColor Cyan
-Write-Host "   opencode : http://localhost:$OpencodePort" -ForegroundColor Cyan
+Write-Host "   Frontend : http://localhost:${FrontendPort}" -ForegroundColor Cyan
+Write-Host "   Backend  : http://localhost:${BackendPort}" -ForegroundColor Cyan
+Write-Host "   API Docs : http://localhost:${BackendPort}/docs" -ForegroundColor Cyan
+Write-Host "   opencode : http://localhost:${OpencodePort}" -ForegroundColor Cyan
 Write-Host ""
 
 if ($Automated -or !$Headless) {
-    Start-Process "http://localhost:$FrontendPort"
+    Start-Process "http://localhost:${FrontendPort}"
 }
 
 try {

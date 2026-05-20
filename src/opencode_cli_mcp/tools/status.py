@@ -1,11 +1,20 @@
 from opencode_cli_mcp.client import OpencodeClient
 
 
+async def _ensure(client: OpencodeClient) -> dict | None:
+    if not await client.ensure_server():
+        return {"success": False, "message": "opencode serve is not running - start it first", "data": {}}
+    return None
+
+
 async def opencode_server_status() -> dict:
     """Check the status and health of the opencode server. Returns health info, active session count, and config summary."""  # noqa: E501
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         status = await client.get_server_status()
         return {
             "success": True,
@@ -27,6 +36,9 @@ async def opencode_list_providers() -> dict:
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         providers = await client.list_providers()
         return {
             "success": True,
@@ -42,6 +54,9 @@ async def opencode_get_project() -> dict:
 
     client = OpencodeClient()
     try:
+        err = await _ensure(client)
+        if err:
+            return err
         project = await client.get_project()
         return {
             "success": True,

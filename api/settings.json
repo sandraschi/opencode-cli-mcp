@@ -1,0 +1,9 @@
+{
+  "theme": "dark",
+  "llm_provider": "local",
+  "local_endpoint": "http://127.0.0.1:11434",
+  "local_model": "llama3.2",
+  "cloud_provider": "openai",
+  "cloud_key": "",
+  "cloud_model": "gpt-4o"
+}
