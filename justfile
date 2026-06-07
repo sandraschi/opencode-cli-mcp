@@ -1,10 +1,10 @@
-NAME := "opencode-cli-mcp"
+﻿NAME := "opencode-cli-mcp"
 DESC := "MCP server wrapping opencode CLI"
 VER := "0.1.0"
 
 # Open the interactive recipe dashboard in the browser
 default:
-    @pwsh.exe -NoProfile -ExecutionPolicy Bypass -File ../mcp-central-docs/scripts/just-dashboard.ps1 -Path .
+    @just --list
 
 # ── Development ─────────────────────────────────────────
 # Install dependencies
@@ -74,3 +74,4 @@ build-web:
 # Package MCPB bundle
 mcpb-pack:
     mcpb pack . dist/opencode-cli-mcp-v{{VER}}.mcpb
+

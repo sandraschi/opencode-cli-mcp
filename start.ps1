@@ -1,6 +1,7 @@
-param(
+﻿param(
     [switch]$Headless = $false,
-    [switch]$Automated = $false
+    [switch]$Automated = $false,
+    [switch]$BackendOnly
 )
 
 if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch "Hidden")) {
@@ -10,93 +11,63 @@ if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch "Hidden")) {
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSCommandPath
-
 $BackendPort = 10951
 $FrontendPort = 10950
 $OpencodePort = 4096
 
-Write-Host " [opencode-cli-mcp] Starting..." -ForegroundColor White -BackgroundColor Cyan
-Write-Host ""
-
-function Clear-Port($Port) {
-    $procs = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
-    foreach ($p in $procs) {
-        Write-Host "  Killing PID $($p.OwningProcess) on port $Port" -ForegroundColor Yellow
-        try { Stop-Process -Id $p.OwningProcess -Force } catch {}
-    }
-}
-
-function Wait-For-TCP($Port, $TimeoutSeconds = 60) {
-    $timer = [System.Diagnostics.Stopwatch]::StartNew()
-    while ($timer.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
-        try {
-            $tcp = New-Object System.Net.Sockets.TcpClient
-            $tcp.Connect("127.0.0.1", $Port)
-            $tcp.Close()
-            return $true
-        } catch {
-            Start-Sleep -Milliseconds 500
-        }
-    }
-    Write-Error "Backend failed to bind port $Port within ${TimeoutSeconds}s"
+$FleetStartPath = Join-Path $RepoRoot "scripts\FleetStartMode.ps1"
+if (-not (Test-Path -LiteralPath $FleetStartPath)) {
+    Write-Host "ERROR: Missing vendored launcher helper: $FleetStartPath" -ForegroundColor Red
     exit 1
 }
+. $FleetStartPath
+Stop-FleetPortSquatters -Ports @($BackendPort, $FrontendPort, $OpencodePort) -Label "opencode-cli-mcp"
 
-Write-Host " Clearing zombie ports..." -ForegroundColor Yellow
-Clear-Port $BackendPort
-Clear-Port $FrontendPort
-Clear-Port $OpencodePort
+Write-Host " [opencode-cli-mcp] Starting..." -ForegroundColor White -BackgroundColor Cyan
 
 $env:OPENCODE_SERVE_URL = "http://127.0.0.1:${OpencodePort}"
 
 Write-Host " Starting opencode serve..." -ForegroundColor Yellow
-$opencodeJob = Start-Job -ScriptBlock {
-    param($port)
-    opencode serve --port $port
-} -ArgumentList $OpencodePort
+$opencodeCmd = "opencode serve --port $OpencodePort"
+Start-Process powershell -ArgumentList "-NoProfile", "-WindowStyle", "Normal", "-Command", $opencodeCmd
 
 Start-Sleep -Seconds 2
 
 Write-Host " Starting API backend on port $BackendPort..." -ForegroundColor Yellow
-$backendJob = Start-Job -ScriptBlock {
-    param($dir)
-    Set-Location $dir
-    uv run python -m api.main
-} -ArgumentList $RepoRoot
+$backendCmd = "Set-Location '$RepoRoot'; uv run --project '$RepoRoot' python -m api.main"
+Start-Process powershell -ArgumentList "-NoProfile", "-WindowStyle", "Normal", "-Command", $backendCmd
 
-Wait-For-TCP -Port $BackendPort -TimeoutSeconds 90
+$healthUrl = "http://127.0.0.1:$BackendPort/api/v1/health"
+$ready = $false
+for ($i = 0; $i -lt 90; $i++) {
+    try {
+        $r = Invoke-WebRequest -Uri $healthUrl -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
+        if ($r.StatusCode -eq 200) { $ready = $true; break }
+    } catch {}
+    Start-Sleep -Milliseconds 500
+}
+if (-not $ready) {
+    Write-Error "Backend failed to respond at $healthUrl within 90s"
+    exit 1
+}
 Write-Host " Backend ready on port $BackendPort" -ForegroundColor Green
 
-Start-Sleep -Seconds 1
-
-Write-Host " Starting frontend on port $FrontendPort..." -ForegroundColor Yellow
-$frontendJob = Start-Job -ScriptBlock {
-    param($dir, $port)
-    Set-Location $dir
-    $env:PORT = $port
-    npm run dev
-} -ArgumentList (Join-Path $RepoRoot "web_sota"), $FrontendPort
-
-if ($Headless) {
-    Write-Host " [SOTA] opencode-cli-mcp started headlessly." -ForegroundColor Cyan
+if ($BackendOnly) {
+    while ($true) { Start-Sleep -Seconds 60 }
 }
 
-Write-Host ""
-Write-Host " [opencode-cli-mcp] All services starting:" -ForegroundColor Green
-Write-Host "   Frontend : http://localhost:${FrontendPort}" -ForegroundColor Cyan
-Write-Host "   Backend  : http://localhost:${BackendPort}" -ForegroundColor Cyan
-Write-Host "   API Docs : http://localhost:${BackendPort}/docs" -ForegroundColor Cyan
-Write-Host "   opencode : http://localhost:${OpencodePort}" -ForegroundColor Cyan
-Write-Host ""
+$WebRoot = Join-Path $RepoRoot "web_sota"
+if (-not (Test-Path (Join-Path $WebRoot "node_modules"))) {
+    Set-Location $WebRoot
+    npm install
+}
 
-if ($Automated -or !$Headless) {
+if ($Automated -or (-not $Headless)) {
     Start-Process "http://localhost:${FrontendPort}"
 }
 
-try {
-    while ($true) { Start-Sleep -Seconds 10 }
-} finally {
-    $opencodeJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
-    $backendJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
-    $frontendJob | Stop-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
-}
+Write-Host " Starting frontend on port $FrontendPort..." -ForegroundColor Yellow
+Set-Location $WebRoot
+$env:PORT = "$FrontendPort"
+npm run dev -- --host --port $FrontendPort
+
