@@ -23,6 +23,8 @@ if (-not (Test-Path -LiteralPath $FleetStartPath)) {
 . $FleetStartPath
 Stop-FleetPortSquatters -Ports @($BackendPort, $FrontendPort, $OpencodePort) -Label "opencode-cli-mcp"
 
+if (-not (Assert-FleetPortsAvailable -Ports @($BackendPort, $FrontendPort, $OpencodePort) -Label "opencode-cli-mcp")) { exit 1 }
+
 Write-Host " [opencode-cli-mcp] Starting..." -ForegroundColor White -BackgroundColor Cyan
 
 $env:OPENCODE_SERVE_URL = "http://127.0.0.1:${OpencodePort}"
@@ -70,4 +72,5 @@ Write-Host " Starting frontend on port $FrontendPort..." -ForegroundColor Yellow
 Set-Location $WebRoot
 $env:PORT = "$FrontendPort"
 npm run dev -- --host --port $FrontendPort
+
 
