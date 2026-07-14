@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException
 
-from opencode_cli_mcp.client import OpencodeClient
+from opencode_cli_mcp.client import OpencodeClient, get_client
 from opencode_cli_mcp.job_store import get_job, list_jobs
 
 router = APIRouter(tags=["proxy"])
 
 
 async def _get_client() -> OpencodeClient:
-    client = OpencodeClient()
+    client = get_client()
     await client.ensure_server()
     return client
 
@@ -20,8 +20,6 @@ async def proxy_status():
         return {"success": True, "data": status}
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"opencode server unreachable: {e}")
-    finally:
-        await client.close()
 
 
 @router.get("/opencode/sessions")
@@ -32,8 +30,6 @@ async def proxy_sessions():
         return {"success": True, "data": {"sessions": sessions}}
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
-    finally:
-        await client.close()
 
 
 @router.get("/opencode/sessions/{session_id}")
@@ -44,8 +40,6 @@ async def proxy_session(session_id: str):
         return {"success": True, "data": {"session": session}}
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Session not found: {e}")
-    finally:
-        await client.close()
 
 
 @router.get("/opencode/sessions/{session_id}/diff")
@@ -56,20 +50,6 @@ async def proxy_session_diff(session_id: str):
         return {"success": True, "data": {"diff": diff}}
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Session diff failed: {e}")
-    finally:
-        await client.close()
-
-
-@router.get("/opencode/sessions/{session_id}/files")
-async def proxy_session_files(session_id: str):
-    client = await _get_client()
-    try:
-        files = await client.get_session_files(session_id)
-        return {"success": True, "data": {"files": files}}
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Session files failed: {e}")
-    finally:
-        await client.close()
 
 
 @router.get("/runs")

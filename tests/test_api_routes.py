@@ -22,7 +22,7 @@ class TestCapabilities:
         data = resp.json()
         assert data["status"] == "ok"
         assert data["server"]["name"] == "opencode-cli-mcp"
-        assert data["tool_surface"]["total"] == 14
+        assert data["tool_surface"]["total"] == 17
 
     def test_health(self):
         resp = client.get("/api/health")
@@ -44,7 +44,7 @@ class TestTools:
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
-        assert len(data["data"]["tools"]) == 14
+        assert len(data["data"]["tools"]) == 17
 
     def test_tool_names_match_registry(self):
         resp = client.get("/api/tools")
@@ -193,9 +193,8 @@ class TestProxy:
         ])
         mock_client.get_session = AsyncMock(return_value={"id": "s1", "title": "test"})
         mock_client.get_session_diff = AsyncMock(return_value={"created": ["a.py"]})
-        mock_client.get_session_files = AsyncMock(return_value=[{"path": "a.py"}])
 
-        with patch("api.routes.proxy.OpencodeClient", return_value=mock_client):
+        with patch("api.routes.proxy.get_client", return_value=mock_client):
             yield
 
     def test_status_endpoint(self):
@@ -223,12 +222,6 @@ class TestProxy:
         assert resp.status_code == 200
         data = resp.json()
         assert data["data"]["diff"]["created"] == ["a.py"]
-
-    def test_session_files(self):
-        resp = client.get("/api/opencode/sessions/s1/files")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["data"]["files"] == [{"path": "a.py"}]
 
 
 class TestCORS:

@@ -1,11 +1,12 @@
 [project]
 name = "opencode-cli-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server wrapping opencode CLI (opencode serve) for AI agent orchestration"
 authors = [{ name = "Sandra Schipal" }]
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=3.2",
+    "fastmcp>=3.4.2,<4",
+    "prefab-ui>=0.14.0",
     "httpx>=0.28",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",

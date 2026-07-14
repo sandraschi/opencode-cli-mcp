@@ -8,12 +8,14 @@ import {
   PanelRightOpen,
   PanelRightClose,
   AppWindow,
+  Box,
   MessageSquareText,
   BookOpen,
   Settings2,
   Activity,
   Code2,
   Puzzle,
+  ScrollText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "./store";
@@ -25,11 +27,13 @@ const navItems = [
   { path: "/tools", label: "Tools", icon: Terminal },
   { path: "/oc-tools", label: "OC Tools", icon: Puzzle },
   { path: "/apps", label: "Apps Hub", icon: AppWindow },
+  { path: "/mcpb", label: "MCPB Install", icon: Box },
   { path: "/chat", label: "Chat", icon: MessageSquareText },
   { path: "/help", label: "Help", icon: BookOpen },
   { path: "/settings", label: "Settings", icon: Settings2 },
   { path: "/status", label: "Status", icon: Activity },
   { path: "/api-docs", label: "API Docs", icon: Code2 },
+  { path: "/logs", label: "Logs", icon: ScrollText },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

@@ -1,5 +1,6 @@
 import pytest
 
+from opencode_cli_mcp.registry import TOOL_NAMES
 from opencode_cli_mcp.server import app
 
 
@@ -8,24 +9,27 @@ def test_server_initialization():
 
 
 @pytest.mark.asyncio
-async def test_tools_registered():
+async def test_all_registry_tools_mounted():
     tools = await app.list_tools()
     tool_names = {t.name for t in tools}
-    assert "opencode_run_agent" in tool_names
-    assert "opencode_list_sessions" in tool_names
-    assert "opencode_get_session" in tool_names
-    assert "opencode_export_session" in tool_names
-    assert "opencode_send_message" in tool_names
-    assert "opencode_get_messages" in tool_names
-    assert "opencode_server_status" in tool_names
-    assert "opencode_list_providers" in tool_names
-    assert "opencode_get_project" in tool_names
-    assert "opencode_get_run_status" in tool_names
-    assert "opencode_list_runs" in tool_names
-    assert "opencode_cancel_run" in tool_names
-    assert "opencode_session_diff" in tool_names
-    assert "opencode_session_files" in tool_names
-    assert len(tool_names) == 14
+    # Every tool in the single-source registry must actually be mounted.
+    missing = set(TOOL_NAMES) - tool_names
+    assert not missing, f"Registry tools not mounted: {missing}"
+
+
+@pytest.mark.asyncio
+async def test_portmanteaus_mounted():
+    tools = await app.list_tools()
+    tool_names = {t.name for t in tools}
+    assert {"opencode_runs", "opencode_sessions", "opencode_system"} <= tool_names
+
+
+@pytest.mark.asyncio
+async def test_tool_count_floor():
+    tools = await app.list_tools()
+    # 3 portmanteaus + 13 legacy aliases; +3 Prefab cards when prefab-ui is
+    # installed (registration is guarded, so count may be 16 or 19).
+    assert len(tools) >= 16
 
 
 @pytest.mark.asyncio

@@ -4,19 +4,6 @@ from fastapi import APIRouter
 
 router = APIRouter(tags=["fleet"])
 
-FLEET_PORTS = [
-    10700, 10702, 10704, 10706, 10708, 10710, 10714, 10718, 10720,
-    10724, 10728, 10730, 10738, 10740, 10742, 10746, 10748, 10750,
-    10756, 10762, 10764, 10766, 10768, 10770, 10772, 10774, 10776,
-    10778, 10780, 10788, 10792, 10794, 10796, 10798, 10800, 10802,
-    10804, 10806, 10810, 10812, 10814, 10816, 10818, 10820, 10822,
-    10826, 10828, 10830, 10832, 10834, 10836, 10838, 10840, 10842,
-    10844, 10848, 10850, 10852, 10858, 10860, 10862, 10864, 10870,
-    10874, 10876, 10878, 10880, 10882, 10884, 10886, 10888, 10892,
-    10894, 10896, 10898, 10900, 10901, 10922, 10924, 10927, 10928,
-    10930, 10932, 10940, 10942, 10946, 10948, 10950, 10951,
-]
-
 FLEET_LABELS: dict[int, str] = {
     10700: "virtualization-mcp",
     10702: "git-github-mcp",
@@ -111,6 +98,10 @@ FLEET_LABELS: dict[int, str] = {
     10951: "opencode-cli-mcp-api (self)",
 }
 
+# Single source: the port list is derived from the labels dict. The old
+# separate FLEET_PORTS list had drifted (labels existed for ports never
+# probed, e.g. 10769/10808).
+FLEET_PORTS = sorted(FLEET_LABELS)
 REGISTRY_KNOWN: set[int] = set(FLEET_PORTS)
 
 

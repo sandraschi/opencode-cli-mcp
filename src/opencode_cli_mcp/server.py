@@ -1,38 +1,40 @@
+import os
+import sys
+from contextlib import asynccontextmanager
+
 from fastmcp import FastMCP
 
-from opencode_cli_mcp.tools import (
-    opencode_cancel_run,
-    opencode_export_session,
-    opencode_get_messages,
-    opencode_get_project,
-    opencode_get_run_status,
-    opencode_get_session,
-    opencode_list_providers,
-    opencode_list_runs,
-    opencode_list_sessions,
-    opencode_run_agent,
-    opencode_send_message,
-    opencode_server_status,
-    opencode_session_diff,
-    opencode_session_files,
-)
+from opencode_cli_mcp.probe import run_startup_probe
+from opencode_cli_mcp.tools import TOOL_REGISTRY
 
-app = FastMCP("opencode-cli-mcp")
 
-app.tool()(opencode_run_agent)
-app.tool()(opencode_list_sessions)
-app.tool()(opencode_get_session)
-app.tool()(opencode_export_session)
-app.tool()(opencode_send_message)
-app.tool()(opencode_get_messages)
-app.tool()(opencode_session_diff)
-app.tool()(opencode_session_files)
-app.tool()(opencode_server_status)
-app.tool()(opencode_list_providers)
-app.tool()(opencode_get_project)
-app.tool()(opencode_get_run_status)
-app.tool()(opencode_list_runs)
-app.tool()(opencode_cancel_run)
+@asynccontextmanager
+async def _lifespan(server):
+    """Startup probe (fastmcp 3.2 fleet standard): shallow, non-fatal
+    connectivity check of opencode serve, surfaced via
+    opencode_system(action="status")."""
+    await run_startup_probe()
+    yield {}
+
+
+app = FastMCP("opencode-cli-mcp", lifespan=_lifespan)
+
+# Single-source registration: every tool (4 primary + 13 legacy
+# aliases) comes from TOOL_REGISTRY. registry.py and /api/tools derive
+# from the same list, so counts can no longer drift.
+for entry in TOOL_REGISTRY:
+    app.tool(annotations=entry.annotations or None)(entry.fn)
+
+# Prefab UI cards (SOTA SS2.2). Guarded: prefab-ui not yet synced or
+# OPENCODE_CLI_MCP_PREFAB_APPS=0 skips registration without breaking
+# the rest of the server.
+if os.environ.get("OPENCODE_CLI_MCP_PREFAB_APPS", "1").lower() not in ("0", "false", "no"):
+    try:
+        from opencode_cli_mcp.tools.prefab_cards import register_prefab_tools
+
+        register_prefab_tools(app)
+    except Exception as e:  # pragma: no cover - depends on env
+        print(f"[opencode-cli-mcp] Prefab cards not registered: {e}", file=sys.stderr)
 
 
 @app.prompt()
@@ -40,29 +42,29 @@ def agent_instructions():
     """Instructions for using opencode-cli-mcp tools effectively."""
     return """You have access to opencode-cli-mcp tools which wrap opencode's agent capabilities.
 
-**When to use opencode_run_agent:**
-- Set `wait=false` (default) for long tasks — returns job_id immediately
-- Set `wait=true` for short tasks — blocks until done
-- Poll with `opencode_get_run_status(job_id)` for incremental output
-- Cancel with `opencode_cancel_run(job_id)` if stuck
+**Primary tools (portmanteaus):**
+- `opencode_runs(action=...)` — start / status / list / cancel agent runs
+- `opencode_sessions(action=...)` — list / get / messages / send / diff sessions
+- `opencode_system(action=...)` — status (incl. startup probe) / providers / project / launch_ui
 
-**When to use session tools:**
-- `opencode_list_sessions` / `opencode_get_session` — inspect opencode sessions
-- `opencode_session_diff(session_id)` — see what files changed
-- `opencode_session_files(session_id)` — see files touched
-- `opencode_export_session(session_id)` — archive a session
+The granular `opencode_*` tools (run_agent, get_run_status, list_sessions, ...)
+are legacy aliases for the same operations and will be removed in 0.3.0.
 
-**When to use run tools:**
-- `opencode_list_runs` — see all agent runs
-- `opencode_get_run_status(job_id)` — poll a running agent
-- `opencode_cancel_run(job_id)` — cancel a stuck run
+**Running agents:**
+- `opencode_runs(action="start", prompt="...", wait=false)` for long tasks — returns job_id immediately
+- `wait=true` for short tasks — blocks until done
+- Poll with `opencode_runs(action="status", job_id=...)` for incremental output
+- Cancel with `opencode_runs(action="cancel", job_id=...)` if stuck
+
+**Rich views (Prefab, when available):**
+- `show_runs_app` / `show_sessions_app` / `show_status_app` render in-chat cards
 
 **Workflow pattern:**
-1. `opencode_server_status` — verify server is running
-2. `opencode_run_agent(prompt="...", wait=false)` — launch agent, get job_id
-3. `opencode_get_run_status(job_id)` — poll until status=completed
-4. `opencode_list_sessions` — find the resulting session
-5. `opencode_session_diff(session_id)` — review what changed
+1. `opencode_system(action="status")` — verify opencode serve is reachable
+2. `opencode_runs(action="start", prompt="...")` — launch agent, get job_id
+3. `opencode_runs(action="status", job_id=...)` — poll until status=completed
+4. `opencode_sessions(action="list")` — find the resulting session
+5. `opencode_sessions(action="diff", session_id=...)` — review what changed
 """
 
 

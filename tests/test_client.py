@@ -57,7 +57,7 @@ async def test_get_health_error(client):
 
 @pytest.mark.asyncio
 async def test_list_sessions(client):
-    mock_resp = _mock_response(200, {"sessions": [{"id": "s1"}, {"id": "s2"}]})
+    mock_resp = _mock_response(200, [{"id": "s1"}, {"id": "s2"}])
     with patch.object(client._http, "get", AsyncMock(return_value=mock_resp)):
         result = await client.list_sessions()
     assert result == [{"id": "s1"}, {"id": "s2"}]
@@ -65,7 +65,7 @@ async def test_list_sessions(client):
 
 @pytest.mark.asyncio
 async def test_list_sessions_empty(client):
-    mock_resp = _mock_response(200, {"sessions": []})
+    mock_resp = _mock_response(200, [])
     with patch.object(client._http, "get", AsyncMock(return_value=mock_resp)):
         result = await client.list_sessions()
     assert result == []
@@ -78,14 +78,6 @@ async def test_get_session(client):
         result = await client.get_session("abc")
     assert result == {"id": "abc", "title": "test"}
     mock_get.assert_called_once_with("/session/abc")
-
-
-@pytest.mark.asyncio
-async def test_export_session(client):
-    mock_resp = _mock_response(200, {"export": "data"})
-    with patch.object(client._http, "get", AsyncMock(return_value=mock_resp)):
-        result = await client.export_session("abc")
-    assert result == {"export": "data"}
 
 
 @pytest.mark.asyncio
@@ -118,7 +110,7 @@ async def test_send_message(client):
     with patch.object(client._http, "post", AsyncMock(return_value=mock_resp)) as mock_post:
         result = await client.send_message("abc", "hello")
     assert result == {"response": "ok"}
-    mock_post.assert_called_once_with("/message/abc", json={"message": "hello"})
+    mock_post.assert_called_once_with("/session/abc/message", json={"parts": [{"type": "text", "text": "hello"}]})
 
 
 @pytest.mark.asyncio
@@ -127,7 +119,7 @@ async def test_get_messages(client):
     with patch.object(client._http, "get", AsyncMock(return_value=mock_resp)) as mock_get:
         result = await client.get_messages("abc", limit=10)
     assert result == [{"role": "user", "content": "hi"}]
-    mock_get.assert_called_once_with("/session/abc/messages", params={"limit": 10})
+    mock_get.assert_called_once_with("/session/abc/message", params={"limit": 10})
 
 
 @pytest.mark.asyncio
@@ -135,7 +127,7 @@ async def test_get_messages_default_limit(client):
     mock_resp = _mock_response(200, [])
     with patch.object(client._http, "get", AsyncMock(return_value=mock_resp)) as mock_get:
         await client.get_messages("abc")
-    mock_get.assert_called_once_with("/session/abc/messages", params={"limit": 50})
+    mock_get.assert_called_once_with("/session/abc/message", params={"limit": 50})
 
 
 @pytest.mark.asyncio
@@ -147,17 +139,9 @@ async def test_get_session_diff(client):
 
 
 @pytest.mark.asyncio
-async def test_get_session_files(client):
-    mock_resp = _mock_response(200, [{"path": "a.py", "change_type": "modified"}])
-    with patch.object(client._http, "get", AsyncMock(return_value=mock_resp)):
-        result = await client.get_session_files("abc")
-    assert result == [{"path": "a.py", "change_type": "modified"}]
-
-
-@pytest.mark.asyncio
 async def test_get_server_status(client):
     mock_health = _mock_response(200, {"status": "ok"})
-    mock_sessions = _mock_response(200, {"sessions": [{"id": "s1"}, {"id": "s2"}]})
+    mock_sessions = _mock_response(200, [{"id": "s1"}, {"id": "s2"}])
     mock_config = _mock_response(200, {"defaultProvider": "openai"})
     with patch.object(client._http, "get", AsyncMock(side_effect=[mock_health, mock_sessions, mock_config])):
         result = await client.get_server_status()

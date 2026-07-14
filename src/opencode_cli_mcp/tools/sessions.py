@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from opencode_cli_mcp.client import OpencodeClient
+from opencode_cli_mcp.client import OpencodeClient, get_client
 
 
 async def _ensure(client: OpencodeClient) -> dict | None:
@@ -14,19 +14,16 @@ async def _ensure(client: OpencodeClient) -> dict | None:
 async def opencode_list_sessions() -> dict:
     """List all active and recent opencode sessions."""  # noqa: E501
 
-    client = OpencodeClient()
-    try:
-        err = await _ensure(client)
-        if err:
-            return err
-        sessions = await client.list_sessions()
-        return {
-            "success": True,
-            "message": f"Found {len(sessions)} sessions",
-            "data": {"sessions": sessions},
-        }
-    finally:
-        await client.close()
+    client = get_client()
+    err = await _ensure(client)
+    if err:
+        return err
+    sessions = await client.list_sessions()
+    return {
+        "success": True,
+        "message": f"Found {len(sessions)} sessions",
+        "data": {"sessions": sessions},
+    }
 
 
 async def opencode_get_session(
@@ -34,39 +31,16 @@ async def opencode_get_session(
 ) -> dict:
     """Get detailed information about a specific opencode session, including its metadata and state."""  # noqa: E501
 
-    client = OpencodeClient()
-    try:
-        err = await _ensure(client)
-        if err:
-            return err
-        session = await client.get_session(session_id)
-        return {
-            "success": True,
-            "message": f"Retrieved session {session_id}",
-            "data": {"session": session},
-        }
-    finally:
-        await client.close()
-
-
-async def opencode_export_session(
-    session_id: Annotated[str, Field(description="Session ID to export")],
-) -> dict:
-    """Export an opencode session as JSON. Useful for saving session transcripts for analysis or archiving."""  # noqa: E501
-
-    client = OpencodeClient()
-    try:
-        err = await _ensure(client)
-        if err:
-            return err
-        data = await client.export_session(session_id)
-        return {
-            "success": True,
-            "message": f"Exported session {session_id}",
-            "data": {"export": data},
-        }
-    finally:
-        await client.close()
+    client = get_client()
+    err = await _ensure(client)
+    if err:
+        return err
+    session = await client.get_session(session_id)
+    return {
+        "success": True,
+        "message": f"Retrieved session {session_id}",
+        "data": {"session": session},
+    }
 
 
 async def opencode_send_message(
@@ -75,19 +49,16 @@ async def opencode_send_message(
 ) -> dict:
     """Send a message to an existing opencode session. Use this to continue a conversation with a running agent."""  # noqa: E501
 
-    client = OpencodeClient()
-    try:
-        err = await _ensure(client)
-        if err:
-            return err
-        result = await client.send_message(session_id, message)
-        return {
-            "success": True,
-            "message": "Message sent to session",
-            "data": {"result": result},
-        }
-    finally:
-        await client.close()
+    client = get_client()
+    err = await _ensure(client)
+    if err:
+        return err
+    result = await client.send_message(session_id, message)
+    return {
+        "success": True,
+        "message": "Message sent to session",
+        "data": {"result": result},
+    }
 
 
 async def opencode_session_diff(
@@ -95,43 +66,19 @@ async def opencode_session_diff(
 ) -> dict:
     """Show files created, modified, and deleted in a session. Returns a diff summary with file paths and change types."""  # noqa: E501
 
-    client = OpencodeClient()
+    client = get_client()
+    err = await _ensure(client)
+    if err:
+        return err
     try:
-        err = await _ensure(client)
-        if err:
-            return err
         diff = await client.get_session_diff(session_id)
-        return {
-            "success": True,
-            "message": f"Session {session_id} diff retrieved",
-            "data": {"diff": diff},
-        }
     except Exception as e:
         return {"success": False, "message": f"Diff failed: {e}", "data": {}}
-    finally:
-        await client.close()
-
-
-async def opencode_session_files(
-    session_id: Annotated[str, Field(description="Session ID to list files for")],
-) -> dict:
-    """List all files touched (read, created, modified) in a session."""  # noqa: E501
-
-    client = OpencodeClient()
-    try:
-        err = await _ensure(client)
-        if err:
-            return err
-        files = await client.get_session_files(session_id)
-        return {
-            "success": True,
-            "message": f"Session {session_id}: {len(files)} files",
-            "data": {"files": files},
-        }
-    except Exception as e:
-        return {"success": False, "message": f"Files failed: {e}", "data": {}}
-    finally:
-        await client.close()
+    return {
+        "success": True,
+        "message": f"Session {session_id} diff retrieved",
+        "data": {"diff": diff},
+    }
 
 
 async def opencode_get_messages(
@@ -140,16 +87,13 @@ async def opencode_get_messages(
 ) -> dict:
     """Retrieve message history from an opencode session. Returns the conversation transcript between the user and the agent."""  # noqa: E501
 
-    client = OpencodeClient()
-    try:
-        err = await _ensure(client)
-        if err:
-            return err
-        messages = await client.get_messages(session_id, limit=limit)
-        return {
-            "success": True,
-            "message": f"Retrieved {len(messages)} messages",
-            "data": {"messages": messages},
-        }
-    finally:
-        await client.close()
+    client = get_client()
+    err = await _ensure(client)
+    if err:
+        return err
+    messages = await client.get_messages(session_id, limit=limit)
+    return {
+        "success": True,
+        "message": f"Retrieved {len(messages)} messages",
+        "data": {"messages": messages},
+    }

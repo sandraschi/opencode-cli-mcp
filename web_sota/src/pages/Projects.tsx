@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "../lib/api";
 import { motion } from "framer-motion";
 import { RefreshCw, ExternalLink, Circle } from "lucide-react";
 
@@ -54,7 +55,7 @@ export function Projects() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/runs");
+      const res = await fetch(API_BASE + "/api/runs");
       const json = await res.json();
       setRuns(json.data?.runs ?? []);
     } catch {
@@ -71,7 +72,7 @@ export function Projects() {
   const viewRun = async (jobId: string) => {
     setSelected(jobId);
     try {
-      const res = await fetch(`/api/runs/${jobId}`);
+      const res = await fetch(`${API_BASE}/api/runs/${jobId}`);
       const json = await res.json();
       setRunDetail(json.data?.run ?? null);
     } catch {

@@ -1,4 +1,6 @@
-﻿NAME := "opencode-cli-mcp"
+import 'scripts/just/fleet.just'
+
+NAME := "opencode-cli-mcp"
 DESC := "MCP server wrapping opencode CLI"
 VER := "0.1.0"
 
@@ -14,11 +16,11 @@ install:
 
 # Run the MCP server (stdio)
 serve:
-    uv run -m opencode_cli_mcp.server
+    uv run python -m opencode_cli_mcp.server
 
 # Run the API backend
 api:
-    uv run -m api.main
+    uv run python -m api.main
 
 # Run the webapp frontend
 web:
@@ -74,4 +76,3 @@ build-web:
 # Package MCPB bundle
 mcpb-pack:
     mcpb pack . dist/opencode-cli-mcp-v{{VER}}.mcpb
-

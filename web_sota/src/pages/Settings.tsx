@@ -11,8 +11,9 @@ import {
   WifiOff,
   Server,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
-import { api } from "../services/api";
+import { api, type LocalModels, type LlmProvider } from "../services/api";
 
 interface SettingsData {
   theme: string;
@@ -48,10 +49,38 @@ export function Settings() {
   const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
   const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);
+  const [localModels, setLocalModels] = useState<LocalModels | null>(null);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [llmProviders, setLlmProviders] = useState<LlmProvider[]>([]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);
+
+  const refreshLocalStatus = () => {
+    setOllamaOk(null);
+    setLocalModels(null);
+    setLoadingModels(true);
+    api
+      .getOllamaStatus()
+      .then((d) => setOllamaOk(d.data.running))
+      .catch(() => setOllamaOk(false));
+    api
+      .getLocalModels()
+      .then((d) => {
+        if (d.success && d.data.models.length > 0) {
+          setLocalModels(d.data);
+        }
+      })
+      .catch(() => {});
+    api
+      .getLlmProviders()
+      .then((d) => {
+        if (d.success) setLlmProviders(d.data.providers);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingModels(false));
+  };
 
   useEffect(() => {
     api
@@ -63,10 +92,7 @@ export function Settings() {
         applyTheme(merged.theme);
       })
       .catch(console.error);
-    api
-      .getOllamaStatus()
-      .then((d) => setOllamaOk(d.data.running))
-      .catch(() => setOllamaOk(false));
+    refreshLocalStatus();
   }, []);
 
   const handleSave = async () => {
@@ -191,24 +217,29 @@ export function Settings() {
             Local LLM
           </h2>
           <div className="flex items-center gap-2 mb-4">
-            {ollamaOk === true ? (
+            {ollamaOk === true && localModels ? (
               <span className="flex items-center gap-1 text-xs text-green-400">
                 <Wifi className="w-3 h-3" />
-                Ollama / LM Studio detected
+                {localModels.provider === "ollama" ? "Ollama" : "LM Studio"} detected ({localModels.models.length} models)
               </span>
-            ) : (
+            ) : ollamaOk === true ? (
+              <span className="flex items-center gap-1 text-xs text-green-400">
+                <Wifi className="w-3 h-3" />
+                Local LLM detected
+              </span>
+            ) : ollamaOk === false ? (
               <span className="flex items-center gap-1 text-xs text-zinc-500">
                 <WifiOff className="w-3 h-3" />
                 No local LLM detected
               </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-zinc-500">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Checking...
+              </span>
             )}
             <button
-              onClick={() => {
-                setOllamaOk(null);
-                api.getOllamaStatus()
-                  .then((d) => setOllamaOk(d.data.running))
-                  .catch(() => setOllamaOk(false));
-              }}
+              onClick={refreshLocalStatus}
               className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               title="Re-check local LLM status"
             >
@@ -217,7 +248,29 @@ export function Settings() {
           </div>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Endpoint</label>
+              <label className="text-xs text-zinc-500 mb-1 block">
+                Provider
+              </label>
+              <select
+                value={settings.llm_provider}
+                onChange={(e) => setSettings((s) => ({ ...s, llm_provider: e.target.value }))}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
+              >
+                {llmProviders.length > 0 ? (
+                  llmProviders.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="local">Local</option>
+                  </>
+                )}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block">
+                Endpoint
+              </label>
               <input
                 type="text"
                 value={settings.local_endpoint}
@@ -226,13 +279,32 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Default Model</label>
-              <input
-                type="text"
-                value={settings.local_model}
-                onChange={(e) => setSettings((s) => ({ ...s, local_model: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
-              />
+              <label className="text-xs text-zinc-500 mb-1 block">Model</label>
+              {localModels && localModels.models.length > 0 ? (
+                <div className="flex gap-2">
+                  <select
+                    value={settings.local_model}
+                    onChange={(e) => setSettings((s) => ({ ...s, local_model: e.target.value }))}
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
+                  >
+                    {localModels.models.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={settings.local_model}
+                    onChange={(e) => setSettings((s) => ({ ...s, local_model: e.target.value }))}
+                    placeholder={loadingModels ? "Loading models..." : "Enter model name or start Ollama/LM Studio"}
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
+                  />
+                </div>
+              )}
             </div>
           </div>
           {ollamaOk === false && (

@@ -60,6 +60,27 @@ export interface OllamaStatus {
   provider?: string;
 }
 
+export interface LocalModels {
+  provider: string | null;
+  port: number | null;
+  models: string[];
+}
+
+export interface LlmProvider {
+  id: string;
+  label: string;
+  base_url: string;
+  models: string[];
+  needs_key: boolean;
+}
+
+export interface LlmProvidersResponse {
+  success: boolean;
+  data: {
+    providers: LlmProvider[];
+  };
+}
+
 export interface SystemInfo {
   cpu: number;
   memory: { total: number; used: number; percent: number };
@@ -106,6 +127,8 @@ export const api = {
 
   getFleet: () => fetchJson<{ success: boolean; data: { apps: FleetApp[] } }>("/fleet"),
   getOllamaStatus: () => fetchJson<{ success: boolean; data: OllamaStatus }>("/ollama/status"),
+  getLlmProviders: () => fetchJson<LlmProvidersResponse>("/llm/providers"),
+  getLocalModels: () => fetchJson<{ success: boolean; data: LocalModels }>("/ollama/models"),
   getSystemInfo: () => fetchJson<{ success: boolean; data: SystemInfo }>("/system"),
 
   listToolDetails: () =>

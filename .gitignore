@@ -30,6 +30,12 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Local runtime state (legacy settings location; live settings are in %LOCALAPPDATA%\opencode-cli-mcp)
+api/settings.json
+
+# fileops/editor backup sidecars
+*.bak
+
 # Build
 *.mcpb
 

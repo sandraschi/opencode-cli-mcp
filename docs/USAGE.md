@@ -13,8 +13,6 @@
 | `opencode_list_sessions` | List opencode sessions |
 | `opencode_get_session` | Session details |
 | `opencode_session_diff` | Files changed in a session |
-| `opencode_session_files` | Files touched in a session |
-| `opencode_export_session` | Export session as JSON |
 | `opencode_send_message` | Continue a running session |
 | `opencode_get_messages` | Session transcript |
 | `opencode_server_status` | Server health + config |
@@ -75,19 +73,19 @@ opencode_send_message(session_id, "Add rate limiting too")
 
 # Review final changes
 opencode_session_diff(session_id)
-opencode_session_files(session_id)
+opencode_get_messages(session_id)
 ```
 
-### 4. Export and Archive
+### 4. Archive and Review
 
 ```
-# Save session for later review
-opencode_export_session("session-xyz")
-  -> returns full JSON transcript
-
 # List recent work
 opencode_list_runs(limit=10)
   -> all runs, their status, and session references
+
+# Review conversation history
+opencode_get_messages("session-xyz")
+  -> returns full conversation transcript
 ```
 
 ---

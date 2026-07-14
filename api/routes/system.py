@@ -1,6 +1,7 @@
 import asyncio
 import platform
 
+import httpx
 from fastapi import APIRouter
 
 router = APIRouter(tags=["system"])
@@ -54,6 +55,30 @@ async def system_info():
     }
 
 
+@router.get("/llm/providers")
+async def llm_providers():
+    providers = []
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get("http://127.0.0.1:11434/api/tags")
+            if resp.status_code == 200:
+                data = resp.json()
+                models = [m["name"] for m in data.get("models", [])]
+                providers.append({"id": "ollama", "label": "Ollama", "base_url": "http://127.0.0.1:11434/v1", "models": models, "needs_key": False})
+    except Exception:
+        providers.append({"id": "ollama", "label": "Ollama", "base_url": "http://127.0.0.1:11434/v1", "models": [], "needs_key": False})
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get("http://127.0.0.1:1234/v1/models")
+            if resp.status_code == 200:
+                data = resp.json()
+                models = [m["id"] for m in data.get("data", [])]
+                providers.append({"id": "lmstudio", "label": "LM Studio", "base_url": "http://127.0.0.1:1234/v1", "models": models, "needs_key": False})
+    except Exception:
+        providers.append({"id": "lmstudio", "label": "LM Studio", "base_url": "http://127.0.0.1:1234/v1", "models": [], "needs_key": False})
+    return {"success": True, "data": {"providers": providers}}
+
+
 @router.get("/ollama/status")
 async def ollama_status():
     try:
@@ -74,3 +99,49 @@ async def ollama_status():
         return {"success": True, "data": {"running": True, "port": 1234, "provider": "lmstudio"}}
     except Exception:
         return {"success": True, "data": {"running": False, "port": None, "provider": None}}
+
+
+@router.get("/ollama/models")
+async def ollama_models():
+    """Fetch available models from Ollama or LM Studio."""
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        # Try Ollama first (port 11434)
+        try:
+            r = await client.get("http://127.0.0.1:11434/api/tags")
+            if r.is_success:
+                models = [m["name"] for m in r.json().get("models", [])]
+                return {
+                    "success": True,
+                    "data": {
+                        "provider": "ollama",
+                        "port": 11434,
+                        "models": models,
+                    },
+                }
+        except Exception:
+            pass
+
+        # Try LM Studio (port 1234, OpenAI-compatible /v1/models)
+        try:
+            r = await client.get("http://127.0.0.1:1234/v1/models")
+            if r.is_success:
+                models = [m["id"] for m in r.json().get("data", [])]
+                return {
+                    "success": True,
+                    "data": {
+                        "provider": "lmstudio",
+                        "port": 1234,
+                        "models": models,
+                    },
+                }
+        except Exception:
+            pass
+
+        return {
+            "success": False,
+            "data": {
+                "provider": None,
+                "port": None,
+                "models": [],
+            },
+        }

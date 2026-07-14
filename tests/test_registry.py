@@ -1,17 +1,23 @@
 from opencode_cli_mcp import registry
 
-REQUIRED_TOOLS = [
+PRIMARY_TOOLS = [
+    "opencode_mcpb_install",
+    "opencode_runs",
+    "opencode_sessions",
+    "opencode_system",
+]
+
+LEGACY_TOOLS = [
     "opencode_run_agent",
+    "opencode_launch_ui",
     "opencode_get_run_status",
     "opencode_list_runs",
     "opencode_cancel_run",
     "opencode_list_sessions",
     "opencode_get_session",
-    "opencode_export_session",
     "opencode_send_message",
     "opencode_get_messages",
     "opencode_session_diff",
-    "opencode_session_files",
     "opencode_server_status",
     "opencode_list_providers",
     "opencode_get_project",
@@ -19,12 +25,22 @@ REQUIRED_TOOLS = [
 
 
 def test_tool_count():
-    assert len(registry.TOOL_DEFINITIONS) == 14
+    assert len(registry.TOOL_DEFINITIONS) == 17
+    assert registry.PORTMANTEAU_COUNT == 4
+    assert registry.LEGACY_COUNT == 13
 
 
-def test_tool_names_match_required():
-    names = [t["name"] for t in registry.TOOL_DEFINITIONS]
-    assert names == REQUIRED_TOOLS
+def test_tool_names_complete():
+    names = set(registry.TOOL_NAMES)
+    assert names == set(PRIMARY_TOOLS) | set(LEGACY_TOOLS)
+
+
+def test_primary_tool_flags():
+    for t in registry.TOOL_DEFINITIONS:
+        if t["name"] in PRIMARY_TOOLS:
+            assert t["portmanteau"] is True and t["legacy"] is False
+        else:
+            assert t["portmanteau"] is False and t["legacy"] is True
 
 
 def test_tool_names_alias():
@@ -44,19 +60,16 @@ def test_all_tools_have_name():
         assert len(t["name"]) > 0
 
 
-def test_tools_importable():
-    from opencode_cli_mcp.tools import __all__ as tool_exports
+def test_registry_matches_tool_registry():
+    # registry.py is derived, not hand-maintained: it must mirror TOOL_REGISTRY.
+    from opencode_cli_mcp.tools import TOOL_REGISTRY
 
-    registered = set(registry.TOOL_NAMES)
-    exported = set(tool_exports)
-    assert registered == exported
+    assert registry.TOOL_NAMES == [e.name for e in TOOL_REGISTRY]
 
 
-def test_server_uses_registry():
-    import inspect
+def test_all_registry_entries_have_annotations():
+    from opencode_cli_mcp.tools import TOOL_REGISTRY
 
-    from opencode_cli_mcp import server
-
-    src = inspect.getsource(server)
-    for name in registry.TOOL_NAMES:
-        assert name in src, f"Tool {name} not registered in server.py"
+    for e in TOOL_REGISTRY:
+        assert isinstance(e.annotations, dict) and e.annotations, f"{e.name} missing annotations"
+        assert "readOnlyHint" in e.annotations

@@ -25,7 +25,6 @@ while True:
 sessions = await opencode_list_sessions()
 latest = sessions["data"]["sessions"][0]["id"]
 diff = await opencode_session_diff(latest)
-files = await opencode_session_files(latest)
 ```
 
 ### Pattern 2: Multi-Agent Parallel
@@ -66,16 +65,13 @@ sequenceDiagram
 ## Session Analysis
 
 ```python
-# See all files touched
-files = await opencode_session_files("session-xyz")
-for f in files["data"]["files"]:
-    print(f"{f['path']} ({f['change_type']})")
-
 # See raw diff
 diff = await opencode_session_diff("session-xyz")
 
-# Export for archiving
-export = await opencode_export_session("session-xyz")
+# Review message history
+messages = await opencode_get_messages("session-xyz")
+for m in messages["data"]["messages"]:
+    print(f"{m['info']['role']}: {m['parts']}")
 ```
 
 ## Batch Operations

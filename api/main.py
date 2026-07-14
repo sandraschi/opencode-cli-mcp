@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.capabilities import router as capabilities_router
+from api.routes.chat import router as chat_router
 from api.routes.docs import router as docs_router
 from api.routes.fleet import router as fleet_router
 from api.routes.opencode_tools import router as opencode_tools_router
@@ -13,6 +14,7 @@ from api.routes.system import router as system_router
 from api.routes.tools import router as tools_router
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "10951"))
+_tauri_desktop = os.environ.get("OPENCODE_CLI_MCP_TAURI", "").lower() in ("1", "true", "yes")
 
 app = FastAPI(
     title="opencode-cli-mcp API",
@@ -26,13 +28,18 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:10950",
         "http://localhost:10950",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
     ],
+    allow_origin_regex=r"https?://tauri\.localhost(:\d+)?" if _tauri_desktop else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(capabilities_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
 app.include_router(docs_router, prefix="/api")
 app.include_router(fleet_router, prefix="/api")
 app.include_router(opencode_tools_router, prefix="/api")

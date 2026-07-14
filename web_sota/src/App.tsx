@@ -10,7 +10,9 @@ import { Help } from "./pages/Help";
 import { Settings } from "./pages/Settings";
 import { StatusAudit } from "./pages/StatusAudit";
 import { ApiDocs } from "./pages/ApiDocs";
+import { McpbInstall } from "./pages/McpbInstall";
 import { OpenCodeTools } from "./pages/OpenCodeTools";
+import Logging from "./pages/Logging";
 
 export default function App() {
   return (
@@ -22,11 +24,13 @@ export default function App() {
         <Route path="/tools" element={<ToolsHub />} />
         <Route path="/oc-tools" element={<OpenCodeTools />} />
         <Route path="/apps" element={<AppsHub />} />
+        <Route path="/mcpb" element={<McpbInstall />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/help" element={<Help />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/status" element={<StatusAudit />} />
         <Route path="/api-docs" element={<ApiDocs />} />
+        <Route path="/logs" element={<Logging />} />
       </Routes>
     </Layout>
   );

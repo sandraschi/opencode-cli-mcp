@@ -38,7 +38,7 @@ Starts: opencode serve (`:4096`) + FastAPI backend (`:10951`) + Vite frontend (`
 uv run -m opencode_cli_mcp.server
 Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/integration-guide.md)).
 
-## 14 MCP Tools
+## 12 MCP Tools
 
 | Tool | Purpose |
 |------|---------|
@@ -49,8 +49,6 @@ Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/in
 | `opencode_list_sessions` | List opencode sessions |
 | `opencode_get_session` | Session details |
 | `opencode_session_diff` | Files changed in a session |
-| `opencode_session_files` | Files touched in a session |
-| `opencode_export_session` | Export session as JSON |
 | `opencode_send_message` | Continue a session |
 | `opencode_get_messages` | Session transcript |
 | `opencode_server_status` | Server health + config |

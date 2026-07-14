@@ -1,6 +1,9 @@
+import asyncio
+import atexit
 import os
 import subprocess
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -9,15 +12,39 @@ OPENCODE_BINARY = os.environ.get("OPENCODE_BINARY", "opencode")
 
 
 class OpencodeClient:
+    """HTTP client for the opencode serve API.
+
+    Prefer the module-level get_client() singleton in tools and routes: it
+    reuses one HTTP connection pool and spawns at most one `opencode serve`
+    process per Python process. The old per-call pattern (instantiate, use,
+    close) cold-started opencode serve and then killed it again on every
+    single tool call whenever serve was not already running.
+    """
+
     def __init__(self, base_url: str = DEFAULT_SERVE_URL):
         self.base_url = base_url.rstrip("/")
         self._http = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
         self._process: subprocess.Popen | None = None
+        self._start_lock: asyncio.Lock | None = None
+
+    @property
+    def port(self) -> int:
+        """Port derived from base_url so autostart honors OPENCODE_SERVE_URL."""
+        try:
+            return urlsplit(self.base_url).port or 4096
+        except ValueError:
+            return 4096
 
     async def ensure_server(self) -> bool:
         if await self._ping():
             return True
-        return await self._start_server()
+        if self._start_lock is None:
+            self._start_lock = asyncio.Lock()
+        async with self._start_lock:
+            # Re-check: another caller may have started serve while we waited.
+            if await self._ping():
+                return True
+            return await self._start_server()
 
     async def _ping(self) -> bool:
         try:
@@ -27,21 +54,38 @@ class OpencodeClient:
             return False
 
     async def _start_server(self) -> bool:
+        creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
         try:
             self._process = subprocess.Popen(
-                [OPENCODE_BINARY, "serve", "--port", "4096"],
+                [OPENCODE_BINARY, "serve", "--port", str(self.port)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                creationflags=creationflags,
             )
-            for _ in range(30):
-                if await self._ping():
-                    return True
-                await _async_sleep(0.5)
-            return False
         except FileNotFoundError:
             return False
+        atexit.register(self._terminate_spawned)
+        for _ in range(30):
+            if await self._ping():
+                return True
+            await asyncio.sleep(0.5)
+        return False
+
+    def _terminate_spawned(self):
+        """atexit hook: don't leave a spawned opencode serve orphaned."""
+        proc = self._process
+        if proc is not None and proc.poll() is None:
+            try:
+                proc.terminate()
+            except OSError:
+                pass
 
     async def close(self):
+        """Explicit teardown: close the HTTP pool and stop a spawned serve.
+
+        Do NOT call this per tool call on the shared client - it exists for
+        tests and deliberate shutdown only.
+        """
         await self._http.aclose()
         if self._process:
             self._process.terminate()
@@ -54,15 +98,11 @@ class OpencodeClient:
     async def list_sessions(self) -> list[dict[str, Any]]:
         r = await self._http.get("/session")
         r.raise_for_status()
-        return r.json().get("sessions", [])
+        data = r.json()
+        return data if isinstance(data, list) else data.get("sessions", [])
 
     async def get_session(self, session_id: str) -> dict[str, Any]:
         r = await self._http.get(f"/session/{session_id}")
-        r.raise_for_status()
-        return r.json()
-
-    async def export_session(self, session_id: str) -> dict[str, Any]:
-        r = await self._http.get(f"/session/{session_id}/export")
         r.raise_for_status()
         return r.json()
 
@@ -77,30 +117,26 @@ class OpencodeClient:
         return r.json()
 
     async def get_project(self) -> dict[str, Any]:
-        r = await self._http.get("/project")
+        r = await self._http.get("/project/current")
         r.raise_for_status()
         return r.json()
 
     async def send_message(self, session_id: str, message: str) -> dict[str, Any]:
         r = await self._http.post(
-            f"/message/{session_id}",
-            json={"message": message},
+            f"/session/{session_id}/message",
+            json={"parts": [{"type": "text", "text": message}]},
         )
         r.raise_for_status()
         return r.json()
 
     async def get_messages(self, session_id: str, limit: int = 50) -> list[dict[str, Any]]:
-        r = await self._http.get(f"/session/{session_id}/messages", params={"limit": limit})
+        r = await self._http.get(f"/session/{session_id}/message", params={"limit": limit})
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        return data if isinstance(data, list) else data.get("items", [])
 
     async def get_session_diff(self, session_id: str) -> dict[str, Any]:
         r = await self._http.get(f"/session/{session_id}/diff")
-        r.raise_for_status()
-        return r.json()
-
-    async def get_session_files(self, session_id: str) -> list[dict[str, Any]]:
-        r = await self._http.get(f"/session/{session_id}/files")
         r.raise_for_status()
         return r.json()
 
@@ -121,7 +157,12 @@ class OpencodeClient:
         return result
 
 
-async def _async_sleep(seconds: float):
-    import asyncio
+_shared_client: OpencodeClient | None = None
 
-    await asyncio.sleep(seconds)
+
+def get_client() -> OpencodeClient:
+    """Process-wide shared client (lazy). Use this in tools and API routes."""
+    global _shared_client
+    if _shared_client is None:
+        _shared_client = OpencodeClient()
+    return _shared_client
