@@ -182,15 +182,19 @@ class TestProxy:
         mock_client = AsyncMock()
         mock_client.ensure_server = AsyncMock(return_value=True)
         mock_client.close = AsyncMock()
-        mock_client.get_server_status = AsyncMock(return_value={
-            "health": {"status": "ok"},
-            "sessions": 3,
-            "config": {},
-        })
-        mock_client.list_sessions = AsyncMock(return_value=[
-            {"id": "s1", "title": "test"},
-            {"id": "s2"},
-        ])
+        mock_client.get_server_status = AsyncMock(
+            return_value={
+                "health": {"status": "ok"},
+                "sessions": 3,
+                "config": {},
+            }
+        )
+        mock_client.list_sessions = AsyncMock(
+            return_value=[
+                {"id": "s1", "title": "test"},
+                {"id": "s2"},
+            ]
+        )
         mock_client.get_session = AsyncMock(return_value={"id": "s1", "title": "test"})
         mock_client.get_session_diff = AsyncMock(return_value={"created": ["a.py"]})
 

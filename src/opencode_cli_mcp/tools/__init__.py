@@ -24,17 +24,21 @@ from opencode_cli_mcp.tools.runs import (
     opencode_list_runs,
 )
 from opencode_cli_mcp.tools.sessions import (
+    opencode_export_session,
     opencode_get_messages,
     opencode_get_session,
     opencode_list_sessions,
     opencode_send_message,
     opencode_session_diff,
+    opencode_session_grep,
 )
 from opencode_cli_mcp.tools.status import (
+    opencode_config_drift,
     opencode_get_config,
     opencode_get_health,
     opencode_get_project,
     opencode_list_providers,
+    opencode_mcp_pulse,
     opencode_server_status,
 )
 
@@ -104,4 +108,8 @@ __all__ = [
     "opencode_get_run_status",
     "opencode_list_runs",
     "opencode_cancel_run",
+    "opencode_mcp_pulse",
+    "opencode_session_grep",
+    "opencode_export_session",
+    "opencode_config_drift",
 ]

@@ -5,12 +5,13 @@ description = "MCP server wrapping opencode CLI (opencode serve) for AI agent or
 authors = [{ name = "Sandra Schipal" }]
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=3.4.2,<4",
+    "fastmcp>=3.4.4,<4",
     "prefab-ui>=0.14.0",
     "httpx>=0.28",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
     "pydantic>=2.0",
+    "psutil>=6.0",
 ]
 
 [tool.pytest.ini_options]
@@ -34,6 +35,5 @@ quote-style = "double"
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
-    "ruff>=0.8.0",
-    "psutil>=6.0",
+    "ruff>=0.16.0,<0.17",
 ]

@@ -1,3 +1,5 @@
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
+
 import 'scripts/just/fleet.just'
 
 NAME := "opencode-cli-mcp"
@@ -73,6 +75,11 @@ type-check:
 build-web:
     cd web_sota && npm run build
 
-# Package MCPB bundle
-mcpb-pack:
-    mcpb pack . dist/opencode-cli-mcp-v{{VER}}.mcpb
+# ── Native (Tauri) ──────────────────────────────────────────────────────────
+
+# Build the Tauri NSIS desktop installer (full pipeline: frontend -> Rust -> NSIS)
+build-native:
+	$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+	Set-Location '{{justfile_directory()}}\native'
+	npx @tauri-apps/cli build --bundles nsis
+

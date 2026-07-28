@@ -14,15 +14,19 @@ from opencode_cli_mcp.probe import PROBE_STATE
 from opencode_cli_mcp.tools.agent import opencode_launch_ui, opencode_run_agent
 from opencode_cli_mcp.tools.runs import opencode_cancel_run, opencode_get_run_status
 from opencode_cli_mcp.tools.sessions import (
+    opencode_export_session,
     opencode_get_messages,
     opencode_get_session,
     opencode_list_sessions,
     opencode_send_message,
     opencode_session_diff,
+    opencode_session_grep,
 )
 from opencode_cli_mcp.tools.status import (
+    opencode_config_drift,
     opencode_get_project,
     opencode_list_providers,
+    opencode_mcp_pulse,
     opencode_server_status,
 )
 
@@ -98,21 +102,39 @@ async def opencode_runs(
 
 async def opencode_sessions(
     action: Annotated[
-        Literal["list", "get", "messages", "send", "diff"],
+        Literal["list", "get", "messages", "send", "diff", "grep", "export"],
         Field(
-            description="list: all sessions. get: one session. messages: transcript. send: message a session. diff: files changed."
+            description=(
+                "list: all sessions. get: one session. messages: transcript."
+                " send: message a session. diff: files changed."
+                " grep: search messages across sessions. export: render session as markdown/html."
+            )
         ),
     ],
-    session_id: Annotated[str | None, Field(description="Session ID (required for get/messages/send/diff)")] = None,
+    session_id: Annotated[
+        str | None, Field(description="Session ID (required for get/messages/send/diff/export)")
+    ] = None,
     message: Annotated[str | None, Field(description="Message text (required for send)")] = None,
+    query: Annotated[str | None, Field(description="Search query (required for grep)")] = None,
+    format: Annotated[str, Field(description="Export format: markdown or html (export)")] = "markdown",
     limit: Annotated[int, Field(description="Page size (list/messages)", ge=1, le=200)] = 50,
     offset: Annotated[int, Field(description="Page offset (list)", ge=0)] = 0,
 ) -> dict:
-    """Inspect and interact with opencode sessions: list, get, read transcript, send a message, or diff changed files.
+    """Inspect and interact with opencode sessions: list, get, transcript, send, diff, grep, or export.
 
     ## Return Format
     {"success": bool, "message": str, "data": dict}
     """
+
+    if action == "grep":
+        if not query:
+            return _missing("grep", "query")
+        return await opencode_session_grep(query=query, session_limit=limit)
+
+    if action == "export":
+        if not session_id:
+            return _missing("export", "session_id")
+        return await opencode_export_session(session_id=session_id, format=format)
 
     if action == "list":
         result = await opencode_list_sessions()
@@ -147,15 +169,20 @@ async def opencode_sessions(
 
 async def opencode_system(
     action: Annotated[
-        Literal["status", "providers", "project", "launch_ui"],
+        Literal["status", "providers", "project", "launch_ui", "mcp_pulse", "config_drift"],
         Field(
-            description="status: health + startup probe. providers: LLM providers. project: current project. launch_ui: open opencode."
+            description=(
+                "status: health + startup probe. providers: LLM providers."
+                " project: current project. launch_ui: open opencode."
+                " mcp_pulse: probe all MCP servers for liveness."
+                " config_drift: check local MCP server paths exist on disk."
+            )
         ),
     ],
     mode: Annotated[Literal["tui", "web", "serve"], Field(description="Launch mode (launch_ui)")] = "tui",
     project: Annotated[str | None, Field(description="Project directory (launch_ui)")] = None,
 ) -> dict:
-    """opencode server and environment: health/status (incl. startup probe), providers, current project, or launch the UI.
+    """opencode server environment: health/status, providers, project, launch UI, MCP pulse, or config drift.
 
     ## Return Format
     {"success": bool, "message": str, "data": dict}
@@ -167,6 +194,10 @@ async def opencode_system(
         return await opencode_get_project()
     if action == "launch_ui":
         return await opencode_launch_ui(project=project, mode=mode)
+    if action == "mcp_pulse":
+        return await opencode_mcp_pulse()
+    if action == "config_drift":
+        return await opencode_config_drift()
 
     # status: server status + startup probe result
     result = await opencode_server_status()

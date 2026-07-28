@@ -45,7 +45,8 @@ def agent_instructions():
 **Primary tools (portmanteaus):**
 - `opencode_runs(action=...)` — start / status / list / cancel agent runs
 - `opencode_sessions(action=...)` — list / get / messages / send / diff sessions
-- `opencode_system(action=...)` — status (incl. startup probe) / providers / project / launch_ui
+- `opencode_system(action=...)` — status / providers / project / launch_ui / mcp_pulse / config_drift
+- `opencode_sessions(action=...)` — list / get / messages / send / diff / grep / export
 
 The granular `opencode_*` tools (run_agent, get_run_status, list_sessions, ...)
 are legacy aliases for the same operations and will be removed in 0.3.0.
