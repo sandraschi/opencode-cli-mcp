@@ -9,12 +9,13 @@ export function ApiDocs() {
   const src = view === "swagger" ? `${BACKEND}/docs?transport=rest` : `${BACKEND}/redoc`;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="api-docs-page">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">API Docs</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
+            data-testid="api-docs-swagger-tab"
             onClick={() => setView("swagger")}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
               view === "swagger"
@@ -27,6 +28,7 @@ export function ApiDocs() {
           </button>
           <button
             type="button"
+            data-testid="api-docs-redoc-tab"
             onClick={() => setView("redoc")}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
               view === "redoc"

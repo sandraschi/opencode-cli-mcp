@@ -14,7 +14,9 @@ export function ToolsHub() {
     api
       .listToolDetails()
       .then((r) => setTools(r.data.tools))
-      .catch(console.error)
+      .catch(() => {
+        // backend down — empty state covers it
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -24,7 +26,7 @@ export function ToolsHub() {
   );
 
   return (
-    <div>
+    <div data-testid="tools-hub-page">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Tools Hub</h1>
@@ -34,6 +36,7 @@ export function ToolsHub() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
           <input
             type="text"
+            data-testid="tools-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tools..."
@@ -64,6 +67,7 @@ export function ToolsHub() {
           {filtered.map((tool) => (
             <motion.div
               key={tool.name}
+              data-testid={`tools-tool-${tool.name}`}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-surface-light border border-surface-border rounded-lg overflow-hidden"

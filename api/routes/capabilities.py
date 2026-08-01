@@ -1,7 +1,9 @@
 import datetime
+import shutil
 
 from fastapi import APIRouter
 
+from api import logs as _logs
 from opencode_cli_mcp.registry import (
     LEGACY_COUNT,
     PORTMANTEAU_COUNT,
@@ -10,7 +12,7 @@ from opencode_cli_mcp.registry import (
 
 router = APIRouter(tags=["capabilities"])
 
-SELF_VERSION = "0.2.1"
+SELF_VERSION = "0.2.3"
 
 
 @router.get("/capabilities")
@@ -76,3 +78,46 @@ async def health():
 async def v1_health():
     """Canonical fleet health endpoint for cross-fleet probing."""
     return {"status": "ok", "service": "opencode-cli-mcp", "version": SELF_VERSION}
+
+
+@router.get("/v1/diagnostics")
+async def v1_diagnostics():
+    """CUA-NSIS smoke-test contract (scripts/cua-smoke.py Phase 7).
+
+    system.cpu_percent/memory_percent/disk_percent use psutil when available,
+    0.0 otherwise (psutil is an optional dependency, not vendored here to
+    keep this route import-cheap on non-Windows dev machines).
+
+    cua_status.window_found is always False: this backend process has no
+    window of its own to introspect (that's the Tauri shell's UI, a
+    separate process) — the CUA smoke test is expected to fill this in
+    from its own pywinauto probe, not trust this endpoint for it.
+    """
+    try:
+        import psutil
+
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory_percent = psutil.virtual_memory().percent
+        disk_percent = psutil.disk_usage("/").percent
+    except ImportError:
+        cpu_percent = memory_percent = disk_percent = 0.0
+
+    error_entries, error_count = _logs.entries(limit=_logs.MAX_ENTRIES, level="ERROR")
+
+    return {
+        "success": True,
+        "data": {
+            "backend": {"status": "running", "version": SELF_VERSION},
+            "system": {
+                "cpu_percent": cpu_percent,
+                "memory_percent": memory_percent,
+                "disk_percent": disk_percent,
+            },
+            "tools": {"total": len(TOOL_DEFINITIONS)},
+            "cua_status": {
+                "tesseract_available": shutil.which("tesseract") is not None,
+                "window_found": False,
+            },
+            "errors": {"count": error_count, "recent": [e["detail"] for e in error_entries[:5]]},
+        },
+    }

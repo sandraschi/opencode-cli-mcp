@@ -4,7 +4,7 @@ import 'scripts/just/fleet.just'
 
 NAME := "opencode-cli-mcp"
 DESC := "MCP server wrapping opencode CLI"
-VER := "0.1.0"
+VER := "0.2.3"
 
 # Open the interactive recipe dashboard in the browser
 default:
@@ -68,11 +68,20 @@ test:
 
 # Run Playwright e2e tests (webapp)
 e2e:
-    cd web_sota && npx playwright test
+    cd web_sota; npx playwright test
 
 # Run type checker
 type-check:
     uv run pyright
+
+# Run every gate: ruff, pytest, pyright, tsc, biome — abort on first failure
+certify:
+    uv run ruff check .
+    uv run pytest tests/ -q
+    uv run pyright src/ api/
+    cd web_sota; npx tsc --noEmit
+    cd web_sota; npm run biome:ci
+    Write-Host "=== CERTIFY PASSED — all gates green ===" -ForegroundColor Green
 
 # ── Build ───────────────────────────────────────────────
 # Build webapp

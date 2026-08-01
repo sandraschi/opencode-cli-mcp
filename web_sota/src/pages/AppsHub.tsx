@@ -22,8 +22,9 @@ export function AppsHub() {
     try {
       const res = await api.getFleet();
       setApps(res.data.apps);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Fleet scan failed (backend down or /api/fleet unreachable) — apps list
+      // just stays empty; the loading skeleton clears and shows zero results.
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,7 @@ export function AppsHub() {
   const dead = apps.filter((a) => !a.alive);
 
   return (
-    <div>
+    <div data-testid="apps-hub-page">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Apps Hub</h1>
@@ -46,6 +47,7 @@ export function AppsHub() {
         </div>
         <button
           type="button"
+          data-testid="apps-hub-scan"
           onClick={load}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           title="Refresh fleet scan"
@@ -70,7 +72,7 @@ export function AppsHub() {
               Registered ({registeredAlive.length})
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" data-testid="apps-hub-registered">
             {registeredAlive.map((app, i) => (
               <motion.a
                 key={app.port}

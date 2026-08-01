@@ -81,11 +81,12 @@ export function Projects() {
   };
 
   return (
-    <div>
+    <div data-testid="projects-page">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
         <button
           type="button"
+          data-testid="projects-refresh"
           onClick={load}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           title="Refresh runs"
@@ -120,6 +121,7 @@ export function Projects() {
                     : "border-surface-border bg-surface-light hover:border-zinc-600"
                 }`}
                 onClick={() => viewRun(run.job_id)}
+                data-testid={`project-run-${run.job_id}`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">

@@ -73,13 +73,14 @@ export function StatusAudit() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-testid="status-audit-page" className="flex flex-col h-full">
       <h1 className="text-2xl font-bold mb-6">Status & Audit</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
+          data-testid="kpi-cpu"
           className="bg-surface-light border border-surface-border rounded-xl p-4"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -96,6 +97,7 @@ export function StatusAudit() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
+          data-testid="kpi-memory"
           className="bg-surface-light border border-surface-border rounded-xl p-4"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -117,6 +119,7 @@ export function StatusAudit() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          data-testid="kpi-platform"
           className="bg-surface-light border border-surface-border rounded-xl p-4"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -130,6 +133,7 @@ export function StatusAudit() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
+          data-testid="kpi-gpu"
           className="bg-surface-light border border-surface-border rounded-xl p-4"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -151,6 +155,7 @@ export function StatusAudit() {
           </div>
           <button
             type="button"
+            data-testid="log-autoscroll"
             onClick={() => setAutoScroll(!autoScroll)}
             className={`text-xs px-2 py-1 rounded transition-colors ${
               autoScroll ? "bg-accent/10 text-accent" : "text-zinc-500 hover:text-zinc-300"
@@ -159,7 +164,12 @@ export function StatusAudit() {
             {autoScroll ? "Auto-scroll ON" : "Auto-scroll OFF"}
           </button>
         </div>
-        <div ref={logRef} onScroll={handleScroll} className="flex-1 overflow-auto p-3 space-y-0.5">
+        <div
+          ref={logRef}
+          onScroll={handleScroll}
+          data-testid="live-log"
+          className="flex-1 overflow-auto p-3 space-y-0.5"
+        >
           {logs.map((entry) => (
             <LogLine key={`${entry.timestamp}-${entry.message}`} entry={entry} />
           ))}

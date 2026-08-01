@@ -125,7 +125,7 @@ export function Help() {
   const renderedHtml = useMemo(() => (docContent ? renderMarkdown(docContent.content) : ""), [docContent]);
 
   return (
-    <div className="flex gap-6 h-full">
+    <div className="flex gap-6 h-full" data-testid="help-page">
       <div className="w-64 flex-shrink-0">
         <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
           <BookOpen className="w-4 h-4" />
@@ -136,6 +136,7 @@ export function Help() {
           <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-zinc-500" />
           <input
             type="text"
+            data-testid="help-search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search docs..."
@@ -155,6 +156,7 @@ export function Help() {
               <button
                 type="button"
                 key={doc.id}
+                data-testid={`help-doc-${doc.id}`}
                 onClick={() => setSelected(doc.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
                   selected === doc.id

@@ -14,8 +14,8 @@ export function Sessions() {
     try {
       const res = await api.listSessions();
       setSessions(res.data.sessions);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // backend down — keep last list; empty state covers first load
     } finally {
       setLoading(false);
     }
@@ -36,11 +36,12 @@ export function Sessions() {
   };
 
   return (
-    <div>
+    <div data-testid="sessions-page">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Sessions</h1>
         <button
           type="button"
+          data-testid="sessions-refresh"
           onClick={load}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           title="Refresh sessions"
@@ -61,6 +62,7 @@ export function Sessions() {
             {sessions.map((s) => (
               <motion.div
                 key={s.id}
+                data-testid={`session-${s.id}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -79,7 +81,7 @@ export function Sessions() {
             ))}
           </div>
 
-          <div className="bg-surface-light border border-surface-border rounded-xl p-4">
+          <div data-testid="session-detail" className="bg-surface-light border border-surface-border rounded-xl p-4">
             <h2 className="text-sm font-semibold mb-3 text-zinc-400 uppercase tracking-wider">Session Detail</h2>
             {sessionDetail ? (
               <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap overflow-auto max-h-96">

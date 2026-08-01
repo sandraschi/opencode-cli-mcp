@@ -19,13 +19,12 @@ from api.routes.tools import router as tools_router
 from opencode_cli_mcp.server import mcp_app as mcp_http_app
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "10951"))
-_tauri_desktop = os.environ.get("OPENCODE_CLI_MCP_TAURI", "").lower() in ("1", "true", "yes")
 
 _allow_origin_regex = r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$"
 
 app = FastAPI(
     title="opencode-cli-mcp API",
-    version="0.1.0",
+    version="0.2.3",
     docs_url="/docs",
     redoc_url="/redoc",
     # The FastMCP StreamableHTTPSessionManager needs its lifespan wired into

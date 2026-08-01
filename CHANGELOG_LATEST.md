@@ -1,27 +1,19 @@
-# opencode-cli-mcp 0.2.0 — 2026-07-09
+# opencode-cli-mcp 0.2.3 — 2026-08-01 (session depot + unified backend)
 
-Full sprint release: 3 criticals, 5 highs, and the fleet-standards gap closed in one pass.
+## Added
 
-## Highlights
+- `opencode_depot` portmanteau (6th primary tool): list/get/archive/unarchive/rename/delete/search/stats directly over the opencode SQLite depot (`~/.local/share/opencode/opencode.db`). Works without `opencode serve`; adds unarchive (missing in opencode UI), permanent delete (FK cascade), global transcript search, depot stats. `OPENCODE_DB_PATH` env override for tests/alt installs.
+- Experimental light-mode toggle (CSS invert hack, topbar Sun/Moon, persisted `ocmcp-light-mode`). Marked EXPERIMENTAL + reversible.
+- CI: `pyright` step (blocking, `src/` + `api/`) — five-gate standard.
+- `tests/test_depot.py` (23 tests: filters, pagination, archive round-trip, delete cascade, search, stats, tool surface).
 
-- **Portmanteau surface**: `opencode_runs` / `opencode_sessions` / `opencode_system` consolidate all 13 atomic tools (which stay mounted as legacy aliases through 0.2.x, removal in 0.3.0). Pagination on list actions, `ToolAnnotations` on everything.
-- **SQLite job store** (`%LOCALAPPDATA%\opencode-cli-mcp\jobs.db`, WAL): MCP server and FastAPI backend finally share one store — the webapp Runs page shows real MCP-launched runs, jobs survive restarts, cancel works cross-process.
-- **Startup probe** (fastmcp 3.2): opencode serve connectivity checked at server start, surfaced in `opencode_system(action="status")`.
-- **Prefab UI cards**: `show_runs_app`, `show_status_app`, `show_sessions_app` (`prefab-ui` now a core dependency; `OPENCODE_CLI_MCP_PREFAB_APPS=0` to skip).
+## Fixed
 
-## Critical fixes
+- **Unified backend**: `api.main:app` now serves BOTH REST (`/api/*`) and the FastMCP Streamable HTTP endpoint (`/mcp`, with its lifespan wired) on one port. `fleet-start.config.ps1` points at `api.main:app` — fixes the `/api/v1/health` 404 and the missing MCP mount on the PyInstaller path.
+- **opencode serve autostart**: `OPENCODE_BINARY` now resolved via `shutil.which()` — npm-installed `opencode.CMD` shims were never found by `Popen`, so autostart silently failed and the dashboard showed offline.
+- Settings page SOTA rewrite: detection-driven provider select (Ollama/LM Studio/vLLM), localStorage persistence, per-provider model lists, vLLM probe, DeepSeek cloud option.
+- pyright: 0 errors across `src/` + `api/`.
+- `GET /api/v1/diagnostics` (was referenced by `scripts/cua-smoke.py` Phase 7 but never implemented — added, returns backend/system/tools/cua_status/errors per the smoke test's contract).
+- Version alignment across pyproject.toml, glama.json, capabilities.py `SELF_VERSION`, `api/main.py` FastAPI app version, justfile `VER`, web_sota/package.json, native/tauri.conf.json, native/Cargo.toml — all were still on 0.2.1 or older after the depot release landed.
 
-- `start.ps1` could never run (function called before its definition was dot-sourced).
-- Tauri/PyInstaller backend squatted on **10700 = virtualization-mcp**; one port identity (10951) everywhere now. Requires PyInstaller + Tauri rebuild.
-- Settings page persisted `cloud_key` into a git-visible file; settings relocated to LOCALAPPDATA with API-side key redaction. **If a key was ever saved, rotate it.**
-
-## Reliability
-
-- Shared opencode client (no more spawn-then-kill serve churn per tool call).
-- Job store: cancel can't be overwritten to "failed", queued-cancel race closed, lock-safe reaper that respects per-job timeouts, strong task references.
-- LM Studio detection parses the port (was a `"1234"` substring match).
-- Tool registry, capabilities endpoint, and fleet port list all derived from single sources — the 13-vs-14 drift class is dead.
-
-## Tooling
-
-- npm → bun in `start.ps1`; `Require-Command` naked-PC preflight (uv, bun, opencode).
+> Full history: see [CHANGELOG.md](CHANGELOG.md).

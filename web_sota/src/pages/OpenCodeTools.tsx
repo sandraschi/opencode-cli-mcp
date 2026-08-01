@@ -67,7 +67,7 @@ export function OpenCodeTools() {
   const categories = [...new Set(tools.map((t) => t.category))];
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto" data-testid="opencode-tools-page">
       <div className="mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Puzzle className="w-6 h-6 text-accent" />
@@ -153,6 +153,7 @@ export function OpenCodeTools() {
                       >
                         <button
                           type="button"
+                          data-testid={`opencode-tool-${tool.name}`}
                           onClick={() => toggleExpanded(tool.name)}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-800/30 transition-colors"
                         >

@@ -60,8 +60,9 @@ export default function Logging() {
         if (d.entries.length > 0) {
           afterIdRef.current = d.entries[d.entries.length - 1].id;
         }
-      } catch (e) {
-        console.error("Log fetch failed", e);
+      } catch {
+        // Log fetch failed (backend down or /api/logs unreachable) — entries
+        // just stay as-is; the next poll/tail tick will retry.
       } finally {
         setLoading(false);
       }
@@ -131,7 +132,7 @@ export default function Logging() {
   const currentPage = Math.floor(offset / limit) + 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="logging-page">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-bold text-slate-200 mr-2">Logs</h2>
 
@@ -170,6 +171,7 @@ export default function Logging() {
         <input
           className="h-8 w-48 rounded border border-slate-700 bg-slate-800 px-2 text-xs text-slate-300 placeholder:text-slate-500"
           placeholder="Search..."
+          data-testid="logging-search"
           value={search}
           onChange={(e) => handleSearch(e.target.value)}
         />
@@ -190,6 +192,7 @@ export default function Logging() {
 
         <button
           type="button"
+          data-testid="logging-tail-toggle"
           className={`h-8 rounded px-3 text-xs font-medium ${tail ? "bg-emerald-600 text-white" : "border border-slate-700 text-slate-400 hover:bg-slate-800"}`}
           onClick={() => setTail(!tail)}
         >

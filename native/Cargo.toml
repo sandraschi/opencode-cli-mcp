@@ -1,6 +1,6 @@
 [package]
 name = "opencode-cli-mcp-native"
-version = "0.1.0"
+version = "0.2.3"
 description = "Tauri desktop shell for opencode-cli-mcp operator UI"
 edition = "2021"
 

@@ -47,7 +47,7 @@ If you prefer not to use `just`:
    uv run python -m opencode_cli_mcp.server
 
    # HTTP mode (for web dashboard)
-   uv run uvicorn opencode_cli_mcp.server:app --port 10951
+   uv run uvicorn opencode_cli_mcp.server:http_app --port 10951
    ```
 5. Open `http://localhost:10951` or the frontend URL.
 

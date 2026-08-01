@@ -3,6 +3,7 @@ import { API_BASE } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles, User, Bot, Cpu, Cloud, Loader2, Wifi, WifiOff, Download, Eraser } from "lucide-react";
 import { api } from "../services/api";
+import { useStore } from "../store";
 
 const LS_HISTORY = "opencode-cli-chat-history";
 const LS_PERSONALITY = "opencode-cli-chat-personality";
@@ -56,6 +57,7 @@ const PERSONAS = [
 const HEADERS: Record<string, string> = {
   ollama: "Ollama",
   lmstudio: "LM Studio",
+  vllm: "vLLM",
   openai: "OpenAI",
   anthropic: "Anthropic",
   google: "Google Gemini",
@@ -99,6 +101,10 @@ export function Chat() {
   const [settings, setSettings] = useState<SettingsData>({});
   const [refined, setRefined] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Shared selection from the Zustand store (Settings owns detection; this
+  // keeps the header label consistent with Settings without re-fetching).
+  const storeProvider = useStore((s) => s.llmProvider);
+  const storeModel = useStore((s) => s.llmModel);
 
   useEffect(() => {
     try {
@@ -136,6 +142,7 @@ export function Chat() {
   const providerLabel = () => {
     if (backendProvider) return HEADERS[backendProvider] || backendProvider;
     if (backendOk && provider === "local") {
+      if (storeProvider) return HEADERS[storeProvider] || storeProvider;
       if (settings.local_endpoint?.includes("1234")) return "LM Studio";
       return "Ollama";
     }
@@ -274,6 +281,7 @@ export function Chat() {
             <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
               <Wifi className="w-3 h-3" />
               {providerLabel()}
+              {storeProvider && storeModel && provider === "local" && !backendProvider ? ` · ${storeModel}` : ""}
             </span>
           )}
           {backendOk === false && (

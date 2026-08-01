@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Cpu, Cloud, Save, Check, Wifi, WifiOff, Server, RefreshCw, Loader2 } from "lucide-react";
 import { api, type LlmProvider } from "../services/api";
+import { useStore } from "../store";
 
 interface SettingsData {
   theme: string;
@@ -50,6 +51,8 @@ export function Settings() {
   const [llmProviders, setLlmProviders] = useState<LlmProvider[]>([]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const setStoreLlmProvider = useStore((s) => s.setLlmProvider);
+  const setStoreLlmModel = useStore((s) => s.setLlmModel);
 
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
@@ -115,7 +118,12 @@ export function Settings() {
         : (selected?.models[0] ?? s.local_model),
     }));
     if (selected) setDetectedModels(selected.models);
-  }, []);
+    if (selected) {
+      setStoreLlmProvider(selected.id);
+      const resolvedModel = selected.models.includes(savedModel ?? "") ? (savedModel as string) : selected.models[0];
+      if (resolvedModel) setStoreLlmModel(resolvedModel);
+    }
+  }, [setStoreLlmProvider, setStoreLlmModel]);
 
   const refreshModels = useCallback(
     async (providerId: string) => {
@@ -124,19 +132,21 @@ export function Settings() {
         const prov = llmProviders.find((p) => p.id === providerId);
         if (prov && prov.models.length > 0) {
           setDetectedModels(prov.models);
-          setSettings((s) => ({
-            ...s,
-            local_model: prov.models.includes(s.local_model) ? s.local_model : prov.models[0],
-          }));
+          setSettings((s) => {
+            const nextModel = prov.models.includes(s.local_model) ? s.local_model : prov.models[0];
+            setStoreLlmModel(nextModel);
+            return { ...s, local_model: nextModel };
+          });
         } else {
           // Provider has no model list yet — try the models endpoint directly.
           const d = await api.getLocalModels();
           if (d.success && d.data.models.length > 0) {
             setDetectedModels(d.data.models);
-            setSettings((s) => ({
-              ...s,
-              local_model: d.data.models.includes(s.local_model) ? s.local_model : d.data.models[0],
-            }));
+            setSettings((s) => {
+              const nextModel = d.data.models.includes(s.local_model) ? s.local_model : d.data.models[0];
+              setStoreLlmModel(nextModel);
+              return { ...s, local_model: nextModel };
+            });
           }
         }
       } catch {
@@ -145,7 +155,7 @@ export function Settings() {
         setLoadingModels(false);
       }
     },
-    [llmProviders],
+    [llmProviders, setStoreLlmModel],
   );
 
   useEffect(() => {
@@ -169,12 +179,14 @@ export function Settings() {
     }));
     localStorage.setItem(LS_PROVIDER, id);
     if (prov) localStorage.setItem(LS_ENDPOINT, prov.base_url);
+    setStoreLlmProvider(id);
     refreshModels(id);
   };
 
   const handleModelChange = (model: string) => {
     setSettings((s) => ({ ...s, local_model: model }));
     localStorage.setItem(LS_MODEL, model);
+    setStoreLlmModel(model);
   };
 
   const handleSave = async () => {

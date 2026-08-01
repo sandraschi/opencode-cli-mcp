@@ -36,7 +36,7 @@ export function McpbInstall() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6" data-testid="mcpb-install-page">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Box className="w-6 h-6 text-accent" />
@@ -59,6 +59,7 @@ export function McpbInstall() {
           <input
             id="mcpb-source"
             type="text"
+            data-testid="mcpb-source-input"
             value={source}
             onChange={(e) => setSource(e.target.value)}
             placeholder="./dist/arxiv-mcp-v1.0.0.mcpb"
@@ -91,6 +92,7 @@ export function McpbInstall() {
 
         <button
           type="button"
+          data-testid="mcpb-install-submit"
           onClick={install}
           disabled={busy || !source.trim()}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/10 text-accent border border-accent/20 hover:bg-accent/15 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
