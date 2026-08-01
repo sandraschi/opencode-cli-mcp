@@ -11,6 +11,22 @@ import httpx
 DEFAULT_SERVE_URL = os.environ.get("OPENCODE_SERVE_URL", "http://127.0.0.1:4096")
 
 
+def _serve_auth() -> httpx.BasicAuth | None:
+    """Basic auth for password-protected opencode serve (desktop app env).
+
+    The opencode desktop app sets OPENCODE_SERVER_PASSWORD in the environment,
+    inherited by every child process — including our spawned `opencode serve` —
+    and a password-protected serve returns 401 without Basic auth. Read the
+    env lazily (not at import) so a desktop app that sets the password after
+    our backend starts is still picked up.
+    """
+    password = os.environ.get("OPENCODE_SERVER_PASSWORD", "")
+    if password:
+        username = os.environ.get("OPENCODE_SERVER_USERNAME", "opencode")
+        return httpx.BasicAuth(username, password)
+    return None
+
+
 def _resolve_binary() -> str:
     """Resolve the opencode CLI binary to a runnable path.
 
@@ -43,7 +59,7 @@ class OpencodeClient:
 
     def __init__(self, base_url: str = DEFAULT_SERVE_URL):
         self.base_url = base_url.rstrip("/")
-        self._http = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
+        self._http = httpx.AsyncClient(base_url=self.base_url, timeout=30.0, auth=_serve_auth())
         self._process: subprocess.Popen | None = None
         self._start_lock: asyncio.Lock | None = None
 

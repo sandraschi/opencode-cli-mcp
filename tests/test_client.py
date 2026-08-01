@@ -3,7 +3,23 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from opencode_cli_mcp.client import OpencodeClient
+from opencode_cli_mcp.client import OpencodeClient, _serve_auth
+
+
+def test_serve_auth_with_password(monkeypatch):
+    monkeypatch.setenv("OPENCODE_SERVER_PASSWORD", "sekret")
+    monkeypatch.setenv("OPENCODE_SERVER_USERNAME", "opencode")
+    auth = _serve_auth()
+    assert auth is not None
+    req = httpx.Request("GET", "http://127.0.0.1:4096/global/health")
+    flow = list(auth.auth_flow(req))
+    assert flow
+    assert flow[0].headers.get("Authorization") == "Basic b3BlbmNvZGU6c2VrcmV0"
+
+
+def test_serve_auth_without_password(monkeypatch):
+    monkeypatch.delenv("OPENCODE_SERVER_PASSWORD", raising=False)
+    assert _serve_auth() is None
 
 
 def _mock_response(status_code=200, json_data=None):
