@@ -7,12 +7,19 @@
 - Experimental light-mode toggle (CSS invert hack, topbar Sun/Moon, persisted `ocmcp-light-mode`). Marked EXPERIMENTAL + reversible per `chat_skills_prefab_standard.md` §7.1.
 - CI: `pyright` step (blocking, `src/` + `api/`) — five-gate standard.
 - `tests/test_depot.py` (23 tests: filters, pagination, archive round-trip, delete cascade, search, stats, tool surface).
+- `GET /api/v1/diagnostics` — CUA smoke-test Phase 7 contract (backend, system, tools, cua_status, errors) with real psutil stats and tool count.
+- `just certify` — chains ruff + pytest + pyright + tsc + biome, abort on first failure.
 
 ### Fixed
+- **Package never installed** (root cause): `pyproject.toml` had no `[build-system]` table, so `uv run python -m api.main` failed with `ModuleNotFoundError` and local dev was broken (only pytest's conftest and the PyInstaller spec worked around it). Added hatchling build config — `uv sync` now installs `opencode-cli-mcp==0.2.3`.
 - **Unified backend**: `api.main:app` now serves BOTH REST (`/api/*`) and the FastMCP Streamable HTTP endpoint (`/mcp`, with its lifespan wired) on one port. `fleet-start.config.ps1` points at `api.main:app` — fixes the `/api/v1/health` 404 and the missing MCP mount on the PyInstaller path.
 - **opencode serve autostart**: `OPENCODE_BINARY` now resolved via `shutil.which()` — npm-installed `opencode.CMD` shims were never found by `Popen` (CreateProcess only appends `.exe`), so autostart silently failed and the dashboard showed offline.
 - Settings page SOTA rewrite: detection-driven provider select (Ollama/LM Studio/vLLM), localStorage persistence (`llm_provider`/`llm_model`), per-provider model lists, vLLM probe, DeepSeek cloud option. Light-mode toggle removed from Settings (it lives in the topbar now).
 - pyright: 0 errors across `src/` + `api/` (incl. pre-existing prefab `Div()` runtime bug, `_job` helper typing, cua-smoke `cfg()` typing).
+- Version alignment across pyproject.toml, glama.json, capabilities.py `SELF_VERSION`, `api/main.py` FastAPI app version, justfile `VER`, web_sota/package.json, native/tauri.conf.json, native/Cargo.toml — all were still on 0.2.1 or older after the depot release landed.
+- `data-testid` sweep: all 15 webapp pages now carry testids (Sessions, StatusAudit, ToolsHub completed; KPIs use fleet `kpi-*` naming).
+- Chat page reads the shared Zustand `llmProvider`/`llmModel` (Settings stays owner of detection) — header badge shows `Provider · Model` live.
+- justfile `e2e` recipe used `&&` (invalid in the pinned PowerShell 5.1 shell) — now `;`.
 
 ## 0.2.2 — 2026-08-01 (assfix)
 

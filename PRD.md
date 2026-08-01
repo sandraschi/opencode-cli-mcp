@@ -16,7 +16,7 @@ Webapp SPA ──/api──► Unified backend :10951 (REST /api/* + FastMCP /mc
 - **MCP surface**: 6 portmanteaus (runs, sessions, depot, system, mcpb_install, shutdown) + 15 legacy aliases
 - **REST bridge**: FastAPI on the same ASGI app as the FastMCP Streamable HTTP endpoint
 - **Session depot**: direct SQLite access to opencode's DB for archive/search/delete (offline-capable)
-- **Frontend**: Vite/React fleet-standard dashboard (13 pages), experimental light-mode toggle
+- **Frontend**: Vite/React fleet-standard dashboard (15 pages), experimental light-mode toggle
 
 ## Shipped Features (v0.2.x)
 

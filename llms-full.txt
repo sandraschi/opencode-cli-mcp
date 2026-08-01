@@ -71,7 +71,7 @@ opencode-cli-mcp/
 │   └── test_server.py       # Registration tests
 ├── web_sota/                # React dashboard
 │   ├── src/
-│   │   ├── App.tsx          # Router (13 pages)
+│   │   ├── App.tsx          # Router (15 pages)
 │   │   ├── Layout.tsx       # Shell (+ experimental light-mode toggle)
 │   │   ├── store.ts         # Zustand state
 │   │   ├── services/api.ts  # HTTP client
@@ -111,6 +111,7 @@ Prompt: `agent_instructions`.
 |--------|------|-------------|
 | GET | /api/health | Service health |
 | GET | /api/v1/health | Canonical fleet health (probed by start.ps1 / CUA) |
+| GET | /api/v1/diagnostics | CUA smoke-test contract: backend, system, tools, cua_status, errors |
 | GET | /api/system | System stats (CPU, mem, GPU) |
 | GET | /api/tools | Tool list from MCP registry |
 | GET | /api/capabilities | Server capabilities |
@@ -126,6 +127,7 @@ Prompt: `agent_instructions`.
 | GET | /api/ollama/status | Ollama/LM Studio availability |
 | GET | /api/ollama/models | Model lists |
 | GET | /api/llm/providers | Detection-driven provider list (+ models) |
+| POST | /api/chat | LLM chat (Ollama / LM Studio / cloud) |
 | GET | /api/logs | Ring-buffer request logs |
 | GET | /api/logs/export | Export logs |
 | DELETE | /api/logs | Clear logs |
@@ -149,11 +151,12 @@ opencode serve --port 4096          # opencode HTTP API (autostarted by proxy if
 ## Build/Test
 
 ```powershell
-uv run pytest              # 114 tests
+uv run pytest              # 125 tests
 just test                  # same
-just lint                  # ruff check
+just check                 # ruff check + format check
 just type-check            # pyright src/ api/
-just check                 # ruff + pyright + pytest (backend gates)
+just check                 # ruff check + format check
+just certify               # all gates: ruff, pytest, pyright, tsc, biome
 cd web_sota; npx tsc --noEmit  # frontend types
 cd web_sota; npm run biome:ci   # frontend lint
 ```
