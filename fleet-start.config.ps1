@@ -8,7 +8,7 @@
     WebRoot      = 'D:\Dev\repos\opencode-cli-mcp\web_sota'
     Backend = @{
         Kind          = 'uvicorn'
-        UvicornTarget = 'opencode_cli_mcp.server:app'
+        UvicornTarget = 'opencode_cli_mcp.server:http_app'
         Env           = @{ WEB_PORT = '10951' }
     }
     Frontend = @{

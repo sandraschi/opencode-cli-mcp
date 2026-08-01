@@ -6,6 +6,18 @@ __pycache__/
 .pytest_cache/
 tests/
 
+# Secrets & backups
+.env
+.env.local
+*.bak
+*.bak.*
+
+# Native/Tauri build
+native/target/
+native/gen/
+native/resources/
+native/binaries/
+
 # Discovery & Fleet Metadata
 glama.json
 llms.txt
@@ -17,6 +29,7 @@ llms-full.txt
 # Webapp build (separate deploy)
 web_sota/node_modules/
 web_sota/dist/
+web_sota/src-tauri/target/
 
 # Build Artifacts
 dist/

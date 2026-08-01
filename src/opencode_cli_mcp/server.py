@@ -3,6 +3,7 @@ import sys
 from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
+from starlette.middleware.cors import CORSMiddleware
 
 from opencode_cli_mcp.probe import run_startup_probe
 from opencode_cli_mcp.tools import TOOL_REGISTRY
@@ -67,6 +68,23 @@ are legacy aliases for the same operations and will be removed in 0.3.0.
 4. `opencode_sessions(action="list")` — find the resulting session
 5. `opencode_sessions(action="diff", session_id=...)` — review what changed
 """
+
+
+# ASGI app for uvicorn (fleet standard: serve mcp.http_app(), never the raw FastMCP object)
+http_app = CORSMiddleware(
+    app.http_app(),
+    allow_origins=[
+        "http://localhost:10950",
+        "http://127.0.0.1:10950",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
+    ],
+    allow_origin_regex=r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def main():

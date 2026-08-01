@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ExternalLink, Monitor, Wifi, WifiOff, RefreshCw, ShieldCheck,
-  FlaskConical, AlertTriangle,
+  ExternalLink,
+  Monitor,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  ShieldCheck,
+  FlaskConical,
+  AlertTriangle,
 } from "lucide-react";
 import { api, type FleetApp } from "../services/api";
 
@@ -11,7 +17,7 @@ export function AppsHub() {
   const [loading, setLoading] = useState(true);
   const [showUntrusted, setShowUntrusted] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.getFleet();
@@ -21,11 +27,11 @@ export function AppsHub() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const registeredAlive = apps.filter((a) => a.alive && a.known);
   const unregisteredAlive = apps.filter((a) => a.alive && !a.known);
@@ -36,11 +42,10 @@ export function AppsHub() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Apps Hub</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Fleet Discovery — MCP webapps on this machine
-          </p>
+          <p className="text-sm text-zinc-500 mt-1">Fleet Discovery — MCP webapps on this machine</p>
         </div>
         <button
+          type="button"
           onClick={load}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           title="Refresh fleet scan"
@@ -98,6 +103,7 @@ export function AppsHub() {
           {unregisteredAlive.length > 0 && (
             <>
               <button
+                type="button"
                 onClick={() => setShowUntrusted(!showUntrusted)}
                 className="flex items-center gap-2 mb-3 text-zinc-500 hover:text-zinc-300 transition-colors"
               >
@@ -130,9 +136,7 @@ export function AppsHub() {
             </>
           )}
 
-          <h2 className="text-sm font-semibold text-zinc-600 uppercase tracking-wider mb-3">
-            Offline ({dead.length})
-          </h2>
+          <h2 className="text-sm font-semibold text-zinc-600 uppercase tracking-wider mb-3">Offline ({dead.length})</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {dead.slice(0, 12).map((app) => (
               <div

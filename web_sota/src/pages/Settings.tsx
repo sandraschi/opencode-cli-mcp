@@ -1,18 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Cpu,
-  Cloud,
-  Sun,
-  Moon,
-  Save,
-  Check,
-  Wifi,
-  WifiOff,
-  Server,
-  RefreshCw,
-  Loader2,
-} from "lucide-react";
+import { Cpu, Cloud, Sun, Moon, Save, Check, Wifi, WifiOff, Server, RefreshCw, Loader2 } from "lucide-react";
 import { api, type LocalModels, type LlmProvider } from "../services/api";
 
 interface SettingsData {
@@ -57,7 +45,7 @@ export function Settings() {
 
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
-  const refreshLocalStatus = () => {
+  const refreshLocalStatus = useCallback(() => {
     setOllamaOk(null);
     setLocalModels(null);
     setLoadingModels(true);
@@ -80,7 +68,7 @@ export function Settings() {
       })
       .catch(() => {})
       .finally(() => setLoadingModels(false));
-  };
+  }, []);
 
   useEffect(() => {
     api
@@ -91,9 +79,9 @@ export function Settings() {
         setOriginalSettings(merged);
         applyTheme(merged.theme);
       })
-      .catch(console.error);
+      .catch(() => {});
     refreshLocalStatus();
-  }, []);
+  }, [refreshLocalStatus]);
 
   const handleSave = async () => {
     setError("");
@@ -117,12 +105,11 @@ export function Settings() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Settings</h1>
         <button
+          type="button"
           onClick={handleSave}
           disabled={!hasChanges}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${
-            hasChanges
-              ? "bg-accent hover:bg-accent-hover text-white"
-              : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+            hasChanges ? "bg-accent hover:bg-accent-hover text-white" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
           }`}
           title={hasChanges ? "Save settings" : "No changes to save"}
           aria-label="Save settings"
@@ -142,9 +129,7 @@ export function Settings() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-900/30 border border-red-800 rounded-lg text-sm text-red-400">
-          {error}
-        </div>
+        <div className="mb-4 p-3 bg-red-900/30 border border-red-800 rounded-lg text-sm text-red-400">{error}</div>
       )}
 
       <div className="space-y-6">
@@ -160,6 +145,7 @@ export function Settings() {
           <div className="flex items-center gap-3">
             <Moon className="w-5 h-5 text-zinc-400" />
             <button
+              type="button"
               onClick={() => {
                 const next = settings.theme === "dark" ? "light" : "dark";
                 setSettings((s) => ({ ...s, theme: next }));
@@ -177,9 +163,7 @@ export function Settings() {
                 }`}
               />
             </button>
-            <span className="text-sm text-zinc-300">
-              {settings.theme === "dark" ? "Dark mode" : "Light mode"}
-            </span>
+            <span className="text-sm text-zinc-300">{settings.theme === "dark" ? "Dark mode" : "Light mode"}</span>
           </div>
         </motion.section>
 
@@ -195,8 +179,11 @@ export function Settings() {
           </h2>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Server URL</label>
+              <label htmlFor="oc-serve-url" className="text-xs text-zinc-500 mb-1 block">
+                Server URL
+              </label>
               <input
+                id="oc-serve-url"
                 type="text"
                 value={settings.opencode_serve_url}
                 onChange={(e) => setSettings((s) => ({ ...s, opencode_serve_url: e.target.value }))}
@@ -220,7 +207,8 @@ export function Settings() {
             {ollamaOk === true && localModels ? (
               <span className="flex items-center gap-1 text-xs text-green-400">
                 <Wifi className="w-3 h-3" />
-                {localModels.provider === "ollama" ? "Ollama" : "LM Studio"} detected ({localModels.models.length} models)
+                {localModels.provider === "ollama" ? "Ollama" : "LM Studio"} detected ({localModels.models.length}{" "}
+                models)
               </span>
             ) : ollamaOk === true ? (
               <span className="flex items-center gap-1 text-xs text-green-400">
@@ -239,6 +227,7 @@ export function Settings() {
               </span>
             )}
             <button
+              type="button"
               onClick={refreshLocalStatus}
               className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               title="Re-check local LLM status"
@@ -248,30 +237,33 @@ export function Settings() {
           </div>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">
+              <label htmlFor="llm-provider" className="text-xs text-zinc-500 mb-1 block">
                 Provider
               </label>
               <select
+                id="llm-provider"
+                data-testid="llm-provider-select"
                 value={settings.llm_provider}
                 onChange={(e) => setSettings((s) => ({ ...s, llm_provider: e.target.value }))}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
               >
                 {llmProviders.length > 0 ? (
                   llmProviders.map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
                   ))
                 ) : (
-                  <>
-                    <option value="local">Local</option>
-                  </>
+                  <option value="local">Local</option>
                 )}
               </select>
             </div>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">
+              <label htmlFor="llm-endpoint" className="text-xs text-zinc-500 mb-1 block">
                 Endpoint
               </label>
               <input
+                id="llm-endpoint"
                 type="text"
                 value={settings.local_endpoint}
                 onChange={(e) => setSettings((s) => ({ ...s, local_endpoint: e.target.value }))}
@@ -279,10 +271,14 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Model</label>
+              <label htmlFor="llm-model" className="text-xs text-zinc-500 mb-1 block">
+                Model
+              </label>
               {localModels && localModels.models.length > 0 ? (
                 <div className="flex gap-2">
                   <select
+                    id="llm-model"
+                    data-testid="llm-model-select"
                     value={settings.local_model}
                     onChange={(e) => setSettings((s) => ({ ...s, local_model: e.target.value }))}
                     className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
@@ -297,6 +293,8 @@ export function Settings() {
               ) : (
                 <div className="flex gap-2">
                   <input
+                    id="llm-model"
+                    data-testid="llm-model-select"
                     type="text"
                     value={settings.local_model}
                     onChange={(e) => setSettings((s) => ({ ...s, local_model: e.target.value }))}
@@ -309,7 +307,25 @@ export function Settings() {
           </div>
           {ollamaOk === false && (
             <p className="text-xs text-zinc-500 mt-3">
-              Install <a href="https://ollama.com" className="text-accent hover:underline" target="_blank" rel="noopener noreferrer">Ollama</a> or <a href="https://lmstudio.ai" className="text-accent hover:underline" target="_blank" rel="noopener noreferrer">LM Studio</a> to run local models.
+              Install{" "}
+              <a
+                href="https://ollama.com"
+                className="text-accent hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Ollama
+              </a>{" "}
+              or{" "}
+              <a
+                href="https://lmstudio.ai"
+                className="text-accent hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                LM Studio
+              </a>{" "}
+              to run local models.
             </p>
           )}
         </motion.section>
@@ -326,8 +342,11 @@ export function Settings() {
           </h2>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Provider</label>
+              <label htmlFor="cloud-provider" className="text-xs text-zinc-500 mb-1 block">
+                Provider
+              </label>
               <select
+                id="cloud-provider"
                 value={settings.cloud_provider}
                 onChange={(e) => setSettings((s) => ({ ...s, cloud_provider: e.target.value }))}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
@@ -339,8 +358,11 @@ export function Settings() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">API Key</label>
+              <label htmlFor="cloud-key" className="text-xs text-zinc-500 mb-1 block">
+                API Key
+              </label>
               <input
+                id="cloud-key"
                 type="password"
                 value={settings.cloud_key}
                 onChange={(e) => setSettings((s) => ({ ...s, cloud_key: e.target.value }))}
@@ -349,8 +371,11 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Model</label>
+              <label htmlFor="cloud-model" className="text-xs text-zinc-500 mb-1 block">
+                Model
+              </label>
               <input
+                id="cloud-model"
                 type="text"
                 value={settings.cloud_model}
                 onChange={(e) => setSettings((s) => ({ ...s, cloud_model: e.target.value }))}

@@ -107,9 +107,7 @@ REGISTRY_KNOWN: set[int] = set(FLEET_PORTS)
 
 async def _probe(port: int) -> bool:
     try:
-        _, writer = await asyncio.wait_for(
-            asyncio.open_connection("127.0.0.1", port), timeout=0.5
-        )
+        _, writer = await asyncio.wait_for(asyncio.open_connection("127.0.0.1", port), timeout=0.5)
         writer.close()
         await writer.wait_closed()
         return True
@@ -123,11 +121,13 @@ async def list_fleet():
     apps = []
     for port, alive in zip(FLEET_PORTS, results):
         label = FLEET_LABELS.get(port, "unknown")
-        apps.append({
-            "port": port,
-            "alive": alive,
-            "label": label,
-            "name": label,
-            "known": port in REGISTRY_KNOWN,
-        })
+        apps.append(
+            {
+                "port": port,
+                "alive": alive,
+                "label": label,
+                "name": label,
+                "known": port in REGISTRY_KNOWN,
+            }
+        )
     return {"success": True, "data": {"apps": apps}}

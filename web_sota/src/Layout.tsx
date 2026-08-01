@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "./store";
+import { useZoom } from "./lib/use-zoom";
+import { BackendStatus } from "./components/BackendStatus";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -40,6 +42,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
+  const { zoom } = useZoom();
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -65,9 +68,7 @@ export function Layout({ children }: { children: ReactNode }) {
                       key={item.path}
                       to={item.path}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        active
-                          ? "bg-accent/10 text-accent"
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                        active ? "bg-accent/10 text-accent" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
                       }`}
                       title={item.label}
                     >
@@ -85,6 +86,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-12 flex-shrink-0 border-b border-surface-border flex items-center px-4 gap-3 bg-surface-light/50 backdrop-blur-sm">
           <button
+            type="button"
             onClick={toggleSidebar}
             className="text-zinc-400 hover:text-zinc-200 transition-colors"
             title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
@@ -94,7 +96,10 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
           <span className="text-sm text-zinc-500">opencode-cli-mcp</span>
           <div className="flex-1" />
-          <span className="text-xs text-zinc-600">v0.1.0</span>
+          <BackendStatus />
+          <span className="text-xs text-zinc-600 ml-2" title={`Zoom ${Math.round(zoom * 100)}%`}>
+            {Math.round(zoom * 100)}%
+          </span>
         </header>
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>

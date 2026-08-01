@@ -1,6 +1,6 @@
 # opencode-cli-mcp — Improvement Plan
 
-**Date:** 2026-05-05  
+**Date:** 2026-05-05
 **Status:** Active development
 
 ---
@@ -52,7 +52,7 @@ For the 6-agent parallel sweep pattern, you want:
 
 ```
 run_async -> returns session_id immediately
-list_sessions -> poll for completion  
+list_sessions -> poll for completion
 get_messages -> read output when done
 ```
 
@@ -86,7 +86,7 @@ The fleet.py label dict still hardcodes ~90 port entries. Ideal: parse `WEBAPP_P
 
 Current tests only verify tool registration. Add:
 - `OpcencodeClient` unit tests with mocked HTTP
-- `job_store` operation tests  
+- `job_store` operation tests
 - API route integration tests
 
 **8. SSE passthrough for live session output**

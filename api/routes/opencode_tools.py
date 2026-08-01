@@ -29,13 +29,15 @@ def _scan_tools() -> list[dict]:
             source = f.read_text(encoding="utf-8")
         except OSError:
             continue
-        items.append({
-            "name": stem,
-            "label": meta["label"],
-            "category": meta["category"],
-            "description": meta["desc"],
-            "source": source,
-        })
+        items.append(
+            {
+                "name": stem,
+                "label": meta["label"],
+                "category": meta["category"],
+                "description": meta["desc"],
+                "source": source,
+            }
+        )
     return items
 
 

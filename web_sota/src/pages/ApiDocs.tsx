@@ -6,10 +6,7 @@ const BACKEND = "http://127.0.0.1:10951";
 export function ApiDocs() {
   const [view, setView] = useState<"swagger" | "redoc">("swagger");
 
-  const src =
-    view === "swagger"
-      ? `${BACKEND}/docs?transport=rest`
-      : `${BACKEND}/redoc`;
+  const src = view === "swagger" ? `${BACKEND}/docs?transport=rest` : `${BACKEND}/redoc`;
 
   return (
     <div className="flex flex-col h-full">
@@ -17,6 +14,7 @@ export function ApiDocs() {
         <h1 className="text-2xl font-bold">API Docs</h1>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setView("swagger")}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
               view === "swagger"
@@ -28,6 +26,7 @@ export function ApiDocs() {
             Swagger UI
           </button>
           <button
+            type="button"
             onClick={() => setView("redoc")}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
               view === "redoc"
@@ -52,11 +51,16 @@ export function ApiDocs() {
 
       <div className="flex-1 bg-surface-light border border-surface-border rounded-xl overflow-hidden">
         <div className="flex gap-2 px-4 py-2 border-b border-surface-border overflow-x-auto">
-          {["GET /api/capabilities", "GET /api/health", "GET /api/opencode/status", "GET /api/fleet", "GET /api/tools", "GET /api/settings", "PUT /api/settings"].map((ep) => (
-            <span
-              key={ep}
-              className="text-xs font-mono text-zinc-500 bg-zinc-800 px-2 py-1 rounded whitespace-nowrap"
-            >
+          {[
+            "GET /api/capabilities",
+            "GET /api/health",
+            "GET /api/opencode/status",
+            "GET /api/fleet",
+            "GET /api/tools",
+            "GET /api/settings",
+            "PUT /api/settings",
+          ].map((ep) => (
+            <span key={ep} className="text-xs font-mono text-zinc-500 bg-zinc-800 px-2 py-1 rounded whitespace-nowrap">
               {ep}
             </span>
           ))}

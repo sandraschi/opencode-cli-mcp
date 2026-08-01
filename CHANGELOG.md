@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.2 — 2026-08-01 (assfix)
+
+### Added
+- `opencode_shutdown` MCP tool (confirm-guarded self-termination) + `POST /api/shutdown`.
+- `GET /api/logs`, `GET /api/logs/export`, `DELETE /api/logs` — ring-buffer request log backing the Logs page (was a dead UI calling a nonexistent endpoint).
+- Frontend: `useZoom()` Ctrl+Scroll zoom (Tauri, persisted to `tauri-zoom`), backend status dot with exponential-backoff health poll + Tauri `backend-status` listener + Restart Backend button, dashboard hero with onboarding CTAs.
+- Session context injection: `.claude-plugin/`, `hooks/hooks.json`, `.opencode/skills/session-context/`, `.github/copilot-instructions.md`, `## Session Context` in `.cursorrules` + `.windsurfrules`.
+- MCPB 3-4-100 prompts: `assets/prompts/system.md`, `user.md`, `examples.json` (103 entries).
+- CI: `.github/workflows/ci.yml` (ruff, pytest with coverage, biome, tsc, build on windows-latest).
+- Playwright e2e suite (4 tests) + `just e2e`; coverage threshold (`--cov-fail-under=30`, current 49%).
+- Biome adoption: `biome.json`, `biome:ci` script, `.pre-commit-config.yaml` + `scripts/pre-commit-biome.ps1`, `.gitattributes` (LF).
+- `docs/ONBOARDING.md`.
+
+### Fixed
+- CORS: `allow_origin_regex` in `api/main.py` now unconditional fleet regex (Tailscale + LAN), matching the `http_app` middleware on the MCP surface.
+- Stale test assertions (tool count 17 → derived from registry; 91 tests green).
+- tsc errors (unused `setSort`; `setZoom` moved to `getCurrentWebview`).
+- 36 Biome lint violations (button types, label/control pairs, exhaustive deps, index keys, explicit any).
+- `just bootstrap` recipe (tab indent, `pre-commit` added to dev deps).
+- Version alignment: pyproject/glama/tauri/SELF_VERSION/webapp → 0.2.1.
+
 ## 0.2.1 — 2026-07-13
 
 ### Added

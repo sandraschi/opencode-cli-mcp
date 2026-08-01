@@ -1,9 +1,9 @@
 # opencode-cli-mcp — Full Context
 
-**Version:** 0.1.0  
-**FastMCP:** 3.2.4  
-**Python:** 3.13  
-**License:** MIT  
+**Version:** 0.2.1
+**FastMCP:** 3.4.4+
+**Python:** 3.12+
+**License:** MIT
 
 ---
 
@@ -25,7 +25,7 @@ Bridges [opencode](https://opencode.ai/) (the open source AI coding agent) into 
                                                                   │ opencode   │
                                                                   │ agent run  │
                                                                   └────────────┘
-                                                                  
+
 ┌────────────────┐   proxy   ┌──────────────────┐   httpx    ┌──────────────────┐
 │ Vite/React SPA │──────────►│  FastAPI Backend  │──────────►│  opencode serve  │
 │    :10950      │  /api/*   │     :10951        │   :4096   │                  │
@@ -76,24 +76,22 @@ opencode-cli-mcp/
 └── llms-full.txt            # This file (full context)
 ```
 
-## MCP Tools (14 total)
+## MCP Tools (20 total: 5 primary + 15 legacy aliases)
+
+Primary surface (portmanteaus + atomic):
 
 | Tool | Description |
 |------|-------------|
-| `opencode_run_agent` | Run agent prompt, returns job_id |
-| `opencode_get_run_status` | Poll run output/status |
-| `opencode_cancel_run` | Cancel running agent |
-| `opencode_list_runs` | List recent/active runs |
-| `opencode_list_sessions` | List opencode sessions |
-| `opencode_get_session` | Get session details |
-| `opencode_get_session_messages` | Get session messages |
-| `opencode_get_session_diff` | Get session file diffs |
-| `opencode_get_session_files` | Get session file list |
-| `opencode_get_status` | Get opencode health/config |
-| `opencode_get_config` | Get opencode config |
-| `opencode_get_providers` | Get available providers |
-| `opencode_get_models` | Get available models |
-| `opencode_get_project` | Get project info |
+| `opencode_runs(action=...)` | start / status / list / cancel agent runs |
+| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
+| `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
+| `opencode_mcpb_install(...)` | install .mcpb bundles into opencode config (dry-run support) |
+| `opencode_shutdown(confirm=...)` | graceful self-termination |
+
+Legacy aliases (deprecated in 0.3.0): `opencode_run_agent`, `opencode_launch_ui`, `opencode_list_sessions`, `opencode_get_session`, `opencode_send_message`, `opencode_get_messages`, `opencode_session_diff`, `opencode_server_status`, `opencode_list_providers`, `opencode_get_project`, `opencode_get_config`, `opencode_get_health`, `opencode_get_run_status`, `opencode_list_runs`, `opencode_cancel_run`, `opencode_session_grep`, `opencode_export_session`, `opencode_config_drift`, `opencode_mcp_pulse`.
+
+Prefab cards: `show_runs_app`, `show_sessions_app`, `show_status_app`.
+Prompt: `agent_instructions`.
 
 ## API Routes
 
@@ -148,8 +146,8 @@ just check                 # tsc --noEmit (frontend)
 
 ## Dependencies
 
-**Python:** fastmcp>=3.2.4, fastapi>=0.136.1, uvicorn>=0.30.0, httpx>=0.28.0, pydantic>=2.13.0  
-**Node:** react 19, vite 5.4, tailwindcss 3.4, framer-motion 11, zustand 5, lucide-react  
+**Python:** fastmcp>=3.2.4, fastapi>=0.136.1, uvicorn>=0.30.0, httpx>=0.28.0, pydantic>=2.13.0
+**Node:** react 19, vite 5.4, tailwindcss 3.4, framer-motion 11, zustand 5, lucide-react
 **Dev:** ruff, pytest, pytest-asyncio, typescript
 
 **Run via:** uv (Python), npm/Node 24 (frontend)

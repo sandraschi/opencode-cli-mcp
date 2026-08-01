@@ -21,12 +21,14 @@ def _refresh_doc_list():
         for f in sorted(DOCS_DIR.iterdir()):
             if f.suffix == ".md":
                 label = f.stem.replace("-", " ").replace("_", " ").title()
-                sources.append({
-                    "id": f.stem,
-                    "path": str(f),
-                    "label": label,
-                    "file": f"docs/{f.name}",
-                })
+                sources.append(
+                    {
+                        "id": f.stem,
+                        "path": str(f),
+                        "label": label,
+                        "file": f"docs/{f.name}",
+                    }
+                )
     DOC_SOURCES = sources
 
 

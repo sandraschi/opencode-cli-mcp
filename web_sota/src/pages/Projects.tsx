@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { API_BASE } from "../lib/api";
 import { motion } from "framer-motion";
 import { RefreshCw, ExternalLink, Circle } from "lucide-react";
@@ -52,10 +52,10 @@ export function Projects() {
   const [selected, setSelected] = useState<string | null>(null);
   const [runDetail, setRunDetail] = useState<Run | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(API_BASE + "/api/runs");
+      const res = await fetch(`${API_BASE}/api/runs`);
       const json = await res.json();
       setRuns(json.data?.runs ?? []);
     } catch {
@@ -63,11 +63,11 @@ export function Projects() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const viewRun = async (jobId: string) => {
     setSelected(jobId);
@@ -85,6 +85,7 @@ export function Projects() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
         <button
+          type="button"
           onClick={load}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           title="Refresh runs"
@@ -134,9 +135,7 @@ export function Projects() {
                 <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
                   <span>{run.project || "(no project)"}</span>
                   <span>{fmtTimeAgo(run.created_at)}</span>
-                  {run.completed_at && (
-                    <span>{Math.round(run.completed_at - run.created_at)}s duration</span>
-                  )}
+                  {run.completed_at && <span>{Math.round(run.completed_at - run.created_at)}s duration</span>}
                 </div>
               </motion.div>
             ))}
@@ -153,7 +152,9 @@ export function Projects() {
                 <div className="flex gap-4">
                   <div>
                     <span className="text-zinc-500 text-xs uppercase">Status</span>
-                    <div className="mt-0.5"><StatusBadge status={runDetail.status} /></div>
+                    <div className="mt-0.5">
+                      <StatusBadge status={runDetail.status} />
+                    </div>
                   </div>
                   <div>
                     <span className="text-zinc-500 text-xs uppercase">Project</span>

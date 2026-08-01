@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "text",
+            "text": "## Session Context (opencode-cli-mcp)\n\nYou have access to opencode-cli-mcp: it orchestrates opencode agent runs, sessions, and system diagnostics through opencode serve.\n\n**Before starting work:**\n1. Check server status: opencode_system(action=\"status\")\n2. Check recent runs: opencode_runs(action=\"list\", limit=10)\n\n**At end of work:**\n- Review what changed: opencode_sessions(action=\"diff\", session_id=...)\n- Cancel stuck runs: opencode_runs(action=\"cancel\", job_id=...)"
+          }
+        ]
+      }
+    ]
+  }
+}

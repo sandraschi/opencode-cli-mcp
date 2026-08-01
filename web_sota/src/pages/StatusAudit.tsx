@@ -19,9 +19,7 @@ function LogLine({ entry }: { entry: LogEntry }) {
   return (
     <div className="flex gap-2 text-xs font-mono leading-5">
       <span className="text-zinc-600 w-20 flex-shrink-0">{entry.timestamp}</span>
-      <span className={`w-20 flex-shrink-0 ${levelColors[entry.level] || "text-zinc-400"}`}>
-        [{entry.level}]
-      </span>
+      <span className={`w-20 flex-shrink-0 ${levelColors[entry.level] || "text-zinc-400"}`}>[{entry.level}]</span>
       <span className="text-zinc-300">{entry.message}</span>
     </div>
   );
@@ -37,18 +35,26 @@ export function StatusAudit() {
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.getSystemInfo().then((r) => setSysInfo(r.data)).catch(console.error);
+    api
+      .getSystemInfo()
+      .then((r) => setSysInfo(r.data))
+      .catch(() => {});
 
     const interval = setInterval(() => {
-      api.getSystemInfo().then((r) => setSysInfo(r.data)).catch(() => {});
-      setLogs((prev) => [
-        ...prev,
-        {
-          timestamp: new Date().toISOString().slice(11, 19),
-          level: "DEBUG",
-          message: `Heartbeat — CPU: ${Math.floor(Math.random() * 30 + 10)}%`,
-        },
-      ].slice(-200));
+      api
+        .getSystemInfo()
+        .then((r) => setSysInfo(r.data))
+        .catch(() => {});
+      setLogs((prev) =>
+        [
+          ...prev,
+          {
+            timestamp: new Date().toISOString().slice(11, 19),
+            level: "DEBUG",
+            message: `Heartbeat — CPU: ${Math.floor(Math.random() * 30 + 10)}%`,
+          },
+        ].slice(-200),
+      );
     }, 5000);
 
     return () => clearInterval(interval);
@@ -58,7 +64,7 @@ export function StatusAudit() {
     if (autoScroll && logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [autoScroll]);
 
   const handleScroll = () => {
     if (!logRef.current) return;
@@ -82,10 +88,7 @@ export function StatusAudit() {
           </div>
           <div className="text-2xl font-semibold">{sysInfo?.cpu ?? "?"}%</div>
           <div className="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-accent rounded-full transition-all"
-              style={{ width: `${sysInfo?.cpu ?? 0}%` }}
-            />
+            <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${sysInfo?.cpu ?? 0}%` }} />
           </div>
         </motion.div>
 
@@ -134,9 +137,7 @@ export function StatusAudit() {
             <span className="text-xs text-zinc-500 uppercase">GPU</span>
           </div>
           <div className="text-sm font-mono truncate" title={sysInfo?.gpu}>
-            {sysInfo?.gpu && sysInfo.gpu.length > 30
-              ? sysInfo.gpu.slice(0, 30) + "..."
-              : sysInfo?.gpu ?? "?"}
+            {sysInfo?.gpu && sysInfo.gpu.length > 30 ? `${sysInfo.gpu.slice(0, 30)}...` : (sysInfo?.gpu ?? "?")}
           </div>
         </motion.div>
       </div>
@@ -149,6 +150,7 @@ export function StatusAudit() {
             <span className="text-xs text-zinc-500">{logs.length} entries</span>
           </div>
           <button
+            type="button"
             onClick={() => setAutoScroll(!autoScroll)}
             className={`text-xs px-2 py-1 rounded transition-colors ${
               autoScroll ? "bg-accent/10 text-accent" : "text-zinc-500 hover:text-zinc-300"
@@ -157,13 +159,9 @@ export function StatusAudit() {
             {autoScroll ? "Auto-scroll ON" : "Auto-scroll OFF"}
           </button>
         </div>
-        <div
-          ref={logRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-auto p-3 space-y-0.5"
-        >
-          {logs.map((entry, i) => (
-            <LogLine key={i} entry={entry} />
+        <div ref={logRef} onScroll={handleScroll} className="flex-1 overflow-auto p-3 space-y-0.5">
+          {logs.map((entry) => (
+            <LogLine key={`${entry.timestamp}-${entry.message}`} entry={entry} />
           ))}
         </div>
       </div>

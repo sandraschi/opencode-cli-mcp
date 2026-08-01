@@ -35,6 +35,13 @@ api/settings.json
 
 # fileops/editor backup sidecars
 *.bak
+*.bak.*
+
+# Test artifacts
+.coverage
+htmlcov/
+test-results/
+playwright-report/
 
 # Build
 *.mcpb
@@ -43,3 +50,6 @@ api/settings.json
 docs/ASSESSMENT*.md
 
 _dashboard/
+
+# Assessment artifacts
+reports/

@@ -3,14 +3,16 @@
 <p align="center">
   <a href="https://github.com/casey/just"><img src="https://img.shields.io/badge/just-ready_to_go-7c5cfc?style=flat-square&logo=just&logoColor=white" alt="Just"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
-  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.13+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
-  <a href="https://github.com/PrefectHQ/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.2-7c5cfc?style=flat-square" alt="FastMCP"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://github.com/PrefectHQ/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.4-7c5cfc?style=flat-square" alt="FastMCP"></a>
 </p>
 
 
 > 📖 **[Installation Guide](INSTALL.md)** — quick start, manual setup, and troubleshooting
+> 📖 **[Onboarding](docs/ONBOARDING.md)** — 5-minute first-run guide
+> 📖 **[Full reference](llms-full.txt)** — tools, endpoints, env vars, architecture
 
-MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into 14 FastMCP tools. Also includes a FastAPI REST bridge, a Vite/React fleet-standard dashboard, and [OpenCode custom tools](.opencode/tools/) that extend opencode itself.
+MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into 20 FastMCP tools (5 primary portmanteaus + 15 legacy aliases). Also includes a FastAPI REST bridge, a Vite/React fleet-standard dashboard, and [OpenCode custom tools](.opencode/tools/) that extend opencode itself.
 
 **Pattern: Plan with Claude, implement with opencode.** Claude (expensive, high-judgment) orchestrates and supervises; opencode handles implementation grunt work on cheaper models (DeepSeek V4 Flash/Pro).
 
@@ -22,7 +24,7 @@ cd opencode-cli-mcp
 just
 ```
 
-This opens an interactive dashboard showing all available commands. Run `just bootstrap` to install dependencies, then `just serve` or `just dev` to start.
+This opens an interactive dashboard showing all available commands. Run `just bootstrap` to install dependencies, then `just serve` to start.
 
 ### Manual Setup
 
@@ -38,22 +40,21 @@ Starts: opencode serve (`:4096`) + FastAPI backend (`:10951`) + Vite frontend (`
 uv run -m opencode_cli_mcp.server
 Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/integration-guide.md)).
 
-## 12 MCP Tools
+## MCP Tools
+
+Primary surface — three portmanteaus (operation discriminator) plus two atomic tools:
 
 | Tool | Purpose |
 |------|---------|
-| `opencode_run_agent` | Launch agent (background or blocking) |
-| `opencode_get_run_status` | Poll running agent |
-| `opencode_list_runs` | List all agent runs |
-| `opencode_cancel_run` | Cancel a stuck run |
-| `opencode_list_sessions` | List opencode sessions |
-| `opencode_get_session` | Session details |
-| `opencode_session_diff` | Files changed in a session |
-| `opencode_send_message` | Continue a session |
-| `opencode_get_messages` | Session transcript |
-| `opencode_server_status` | Server health + config |
-| `opencode_list_providers` | Configured LLM providers |
-| `opencode_get_project` | Active project context |
+| `opencode_runs(action=...)` | start / status / list / cancel agent runs |
+| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
+| `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
+| `opencode_mcpb_install(...)` | install `.mcpb` bundles into opencode config |
+| `opencode_shutdown(confirm=...)` | graceful self-termination |
+
+15 legacy atomic tools remain mounted as aliases through 0.2.x (`opencode_run_agent`, `opencode_get_run_status`, `opencode_list_runs`, `opencode_cancel_run`, `opencode_list_sessions`, `opencode_get_session`, `opencode_send_message`, `opencode_get_messages`, `opencode_session_diff`, `opencode_server_status`, `opencode_list_providers`, `opencode_get_project`, `opencode_get_config`, `opencode_get_health`, `opencode_launch_ui`, plus `opencode_session_grep` / `opencode_export_session` / `opencode_config_drift` / `opencode_mcp_pulse`).
+
+Prefab in-chat cards: `show_runs_app`, `show_sessions_app`, `show_status_app`.
 
 ## Key Workflows
 
@@ -84,12 +85,19 @@ Copy `.opencode/tools/*.ts` into your opencode project to give opencode's LLM di
 
 | Doc | Description |
 |-----|-------------|
+| [Onboarding](docs/ONBOARDING.md) | 5-minute first-run guide |
 | [Usage Guide](docs/USAGE.md) | All tools, workflows, async patterns, webapp pages |
 | [Integration Guide](docs/integration-guide.md) | MCP client config (Claude Desktop, Cursor, Windsurf) |
 | [Advanced Usage](docs/advanced-usage.md) | Async patterns, session management, cross-project, custom tools |
 | [Improvement Plan](docs/IMPROVEMENTS_2026-05-02.md) | Known issues and roadmap |
-| [Assessment](docs/ASSESSMENT.md) | Architecture review and bug audit |
 | [Changelog](CHANGELOG.md) | Version history |
+
+## Stack
+
+- **Backend**: Python 3.12+, FastMCP 3.4.4, FastAPI, uvicorn, httpx, pydantic v2, prefab-ui, psutil, SQLite (job store)
+- **Frontend**: React 18, Vite 5, TypeScript, TailwindCSS 3.4, Zustand, Framer Motion, Lucide, React Router, @tauri-apps/api
+- **Native**: Tauri 2 (NSIS installer, embedded PyInstaller backend)
+- **Quality**: ruff, biome, pytest (+coverage), Playwright e2e, pre-commit, just
 
 ## Ports
 

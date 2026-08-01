@@ -1,6 +1,6 @@
-import httpx
 from urllib.parse import urlsplit
 
+import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -90,7 +90,11 @@ async def chat(body: ChatRequest):
     cloud_model = settings.get("cloud_model", "gpt-4o")
 
     if not cloud_key:
-        return {"success": False, "response": "Cloud API key not configured. Set it in Settings.", "provider": cloud_provider}  # noqa: E501
+        return {
+            "success": False,
+            "response": "Cloud API key not configured. Set it in Settings.",
+            "provider": cloud_provider,
+        }  # noqa: E501
 
     base_urls = {
         "openai": "https://api.openai.com/v1",
@@ -117,7 +121,11 @@ async def chat(body: ChatRequest):
                 data = r.json()
                 content = data.get("content", [{}])[0].get("text", "")
                 return {"success": True, "response": content, "provider": cloud_provider, "model": cloud_model}
-            return {"success": False, "response": f"Anthropic error: {r.status_code} {r.text}", "provider": cloud_provider}  # noqa: E501
+            return {
+                "success": False,
+                "response": f"Anthropic error: {r.status_code} {r.text}",
+                "provider": cloud_provider,
+            }  # noqa: E501
 
         if cloud_provider == "google":
             r = await client.post(
@@ -152,4 +160,8 @@ async def chat(body: ChatRequest):
             data = r.json()
             content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
             return {"success": True, "response": content, "provider": cloud_provider, "model": cloud_model}
-        return {"success": False, "response": f"{cloud_provider} error: {r.status_code} {r.text}", "provider": cloud_provider}  # noqa: E501
+        return {
+            "success": False,
+            "response": f"{cloud_provider} error: {r.status_code} {r.text}",
+            "provider": cloud_provider,
+        }  # noqa: E501

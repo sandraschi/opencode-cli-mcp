@@ -88,13 +88,16 @@ export function OpenCodeTools() {
           Installation
         </h2>
         <p className="text-sm text-zinc-300 mb-3">
-          OpenCode loads custom tools from <code className="bg-zinc-800 text-accent px-1.5 py-0.5 rounded text-xs font-mono">.opencode/tools/</code> at startup.
-          Each <code className="bg-zinc-800 text-accent px-1.5 py-0.5 rounded text-xs font-mono">.ts</code> file becomes a tool the LLM can invoke.
+          OpenCode loads custom tools from{" "}
+          <code className="bg-zinc-800 text-accent px-1.5 py-0.5 rounded text-xs font-mono">.opencode/tools/</code> at
+          startup. Each <code className="bg-zinc-800 text-accent px-1.5 py-0.5 rounded text-xs font-mono">.ts</code>{" "}
+          file becomes a tool the LLM can invoke.
         </p>
         <ol className="space-y-2">
-          {INSTALL_STEPS.map((step, i) => (
-            <li key={i} className="flex gap-2 text-sm text-zinc-400">
-              <span className="text-accent font-mono flex-shrink-0">{i + 1}.</span>
+          {INSTALL_STEPS.map((step) => (
+            <li key={step} className="flex gap-2 text-sm text-zinc-400">
+              <span className="text-accent font-mono flex-shrink-0">{INSTALL_STEPS.indexOf(step) + 1}.</span>
+              {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static in-repo constant with <code> markup, no user input */}
               <span dangerouslySetInnerHTML={{ __html: step }} />
             </li>
           ))}
@@ -149,6 +152,7 @@ export function OpenCodeTools() {
                         className="bg-surface-light border border-surface-border rounded-xl overflow-hidden"
                       >
                         <button
+                          type="button"
                           onClick={() => toggleExpanded(tool.name)}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-800/30 transition-colors"
                         >
@@ -160,16 +164,12 @@ export function OpenCodeTools() {
                           <Code2 className="w-4 h-4 text-accent flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-sm font-semibold">
-                                {tool.name}
-                              </span>
+                              <span className="font-mono text-sm font-semibold">{tool.name}</span>
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-mono">
                                 .opencode/tools/{tool.name}.ts
                               </span>
                             </div>
-                            <p className="text-xs text-zinc-500 truncate mt-0.5">
-                              {tool.description}
-                            </p>
+                            <p className="text-xs text-zinc-500 truncate mt-0.5">{tool.description}</p>
                           </div>
                         </button>
                         <AnimatePresence>
@@ -185,6 +185,7 @@ export function OpenCodeTools() {
                                 <div className="mt-3">
                                   <p className="text-sm text-zinc-300 mb-2">{tool.description}</p>
                                   <button
+                                    type="button"
                                     onClick={() => toggleSource(tool.name)}
                                     className="flex items-center gap-1 text-xs text-accent hover:underline mb-2"
                                   >
@@ -194,6 +195,7 @@ export function OpenCodeTools() {
                                   {hasSource && (
                                     <div className="relative">
                                       <button
+                                        type="button"
                                         onClick={() => handleCopy(tool.name, tool.source)}
                                         className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded text-xs bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors"
                                       >

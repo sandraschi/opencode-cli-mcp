@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Terminal,
-  ChevronDown,
-  ChevronRight,
-  Code2,
-  BookOpen,
-  Search,
-  X,
-} from "lucide-react";
+import { Terminal, ChevronDown, ChevronRight, Code2, BookOpen, Search, X } from "lucide-react";
 import { api, type ToolDetail } from "../services/api";
 
 export function ToolsHub() {
@@ -19,7 +11,8 @@ export function ToolsHub() {
 
   useEffect(() => {
     setLoading(true);
-    api.listToolDetails()
+    api
+      .listToolDetails()
       .then((r) => setTools(r.data.tools))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -27,8 +20,7 @@ export function ToolsHub() {
 
   const filtered = tools.filter(
     (t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.description.toLowerCase().includes(search.toLowerCase())
+      t.name.toLowerCase().includes(search.toLowerCase()) || t.description.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -36,9 +28,7 @@ export function ToolsHub() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Tools Hub</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {tools.length} atomic MCP tools — click for details
-          </p>
+          <p className="text-sm text-zinc-500 mt-1">{tools.length} atomic MCP tools — click for details</p>
         </div>
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -51,6 +41,7 @@ export function ToolsHub() {
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
               title="Clear search"
@@ -78,6 +69,7 @@ export function ToolsHub() {
               className="bg-surface-light border border-surface-border rounded-lg overflow-hidden"
             >
               <button
+                type="button"
                 onClick={() => setExpanded(expanded === tool.name ? null : tool.name)}
                 className="w-full flex items-center gap-3 p-3 text-left hover:bg-zinc-800/50 transition-colors"
                 aria-expanded={expanded === tool.name ? "true" : "false"}
@@ -90,13 +82,9 @@ export function ToolsHub() {
                 <Terminal className="w-4 h-4 text-accent flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="font-mono text-sm">{tool.name}</div>
-                  <div className="text-xs text-zinc-500 mt-0.5 truncate">
-                    {tool.description}
-                  </div>
+                  <div className="text-xs text-zinc-500 mt-0.5 truncate">{tool.description}</div>
                 </div>
-                <span className="text-xs text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded">
-                  atomic
-                </span>
+                <span className="text-xs text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded">atomic</span>
               </button>
 
               <AnimatePresence>

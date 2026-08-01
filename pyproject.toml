@@ -1,6 +1,6 @@
 [project]
 name = "opencode-cli-mcp"
-version = "0.2.0"
+version = "0.2.1"
 description = "MCP server wrapping opencode CLI (opencode serve) for AI agent orchestration"
 authors = [{ name = "Sandra Schipal" }]
 requires-python = ">=3.12"
@@ -17,6 +17,7 @@ dependencies = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "--cov=src --cov=api --cov-report=term-missing --cov-fail-under=30"
 
 [project.scripts]
 opencode-cli-mcp = "opencode_cli_mcp.server:main"
@@ -37,4 +38,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
     "ruff>=0.16.0,<0.17",
+    "pre-commit>=4.0.0",
+    "pytest-cov>=7.1.0",
+    "pyright>=1.1.411",
 ]

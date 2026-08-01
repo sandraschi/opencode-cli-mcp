@@ -1,0 +1,812 @@
+[
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Fix the failing test in src/client.py"
+    },
+    "desc": "Launch a short agent run"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Add pagination to the list endpoint",
+      "wait": true,
+      "timeout": 120
+    },
+    "desc": "Blocking run for a quick task"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Refactor tools into portmanteaus",
+      "project": "D:/Dev/repos/opencode-cli-mcp"
+    },
+    "desc": "Fire-and-forget run in a specific project"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Document the API",
+      "output_format": "json"
+    },
+    "desc": "Run with JSON output"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "status",
+      "job_id": "abc123"
+    },
+    "desc": "Poll a running agent"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "list",
+      "limit": 50
+    },
+    "desc": "List recent runs"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "list",
+      "limit": 20,
+      "offset": 40
+    },
+    "desc": "Second page of runs"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "cancel",
+      "job_id": "abc123"
+    },
+    "desc": "Cancel a stuck run"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "list",
+      "limit": 25
+    },
+    "desc": "List sessions"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "list",
+      "limit": 100,
+      "offset": 100
+    },
+    "desc": "Paginate through sessions"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "get",
+      "session_id": "sess_01"
+    },
+    "desc": "Get one session"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "messages",
+      "session_id": "sess_01",
+      "limit": 200
+    },
+    "desc": "Full transcript"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "send",
+      "session_id": "sess_01",
+      "message": "Do not touch tests/"
+    },
+    "desc": "Steer the agent mid-task"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "diff",
+      "session_id": "sess_01"
+    },
+    "desc": "Review changed files"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "grep",
+      "query": "portmanteau"
+    },
+    "desc": "Search transcripts"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "grep",
+      "query": "TODO",
+      "limit": 50
+    },
+    "desc": "Find TODOs across sessions"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "export",
+      "session_id": "sess_01",
+      "format": "markdown"
+    },
+    "desc": "Export session as markdown"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "export",
+      "session_id": "sess_01",
+      "format": "html"
+    },
+    "desc": "Export session as HTML"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "status"
+    },
+    "desc": "Health and startup probe"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "providers"
+    },
+    "desc": "List LLM providers"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "project"
+    },
+    "desc": "Current project context"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "launch_ui",
+      "mode": "web"
+    },
+    "desc": "Open web UI"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "launch_ui",
+      "mode": "tui"
+    },
+    "desc": "Open TUI"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "launch_ui",
+      "mode": "serve"
+    },
+    "desc": "Start serve mode"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "mcp_pulse"
+    },
+    "desc": "Probe all MCP servers"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "config_drift"
+    },
+    "desc": "Check config paths on disk"
+  },
+  {
+    "tool": "opencode_mcpb_install",
+    "args": {
+      "source": "./dist/arxiv-mcp-v1.0.0.mcpb",
+      "dry_run": true
+    },
+    "desc": "Preview an MCPB install"
+  },
+  {
+    "tool": "opencode_mcpb_install",
+    "args": {
+      "source": "./dist/arxiv-mcp-v1.0.0.mcpb",
+      "dry_run": false
+    },
+    "desc": "Install an MCPB bundle"
+  },
+  {
+    "tool": "opencode_mcpb_install",
+    "args": {
+      "source": "./unpacked-dir",
+      "name_override": "arxiv",
+      "dry_run": true
+    },
+    "desc": "Install with name override"
+  },
+  {
+    "tool": "opencode_shutdown",
+    "args": {
+      "confirm": true,
+      "reason": "maintenance"
+    },
+    "desc": "Graceful self-termination"
+  },
+  {
+    "tool": "opencode_shutdown",
+    "args": {
+      "confirm": false
+    },
+    "desc": "Aborted shutdown"
+  },
+  {
+    "tool": "opencode_run_agent",
+    "args": {
+      "prompt": "Fix the lint errors in src/"
+    },
+    "desc": "Legacy alias call for opencode_run_agent"
+  },
+  {
+    "tool": "opencode_get_run_status",
+    "args": {
+      "job_id": "abc123"
+    },
+    "desc": "Legacy alias call for opencode_get_run_status"
+  },
+  {
+    "tool": "opencode_list_runs",
+    "args": {},
+    "desc": "Legacy alias call for opencode_list_runs"
+  },
+  {
+    "tool": "opencode_cancel_run",
+    "args": {
+      "job_id": "abc123"
+    },
+    "desc": "Legacy alias call for opencode_cancel_run"
+  },
+  {
+    "tool": "opencode_list_sessions",
+    "args": {},
+    "desc": "Legacy alias call for opencode_list_sessions"
+  },
+  {
+    "tool": "opencode_get_session",
+    "args": {
+      "session_id": "sess_01"
+    },
+    "desc": "Legacy alias call for opencode_get_session"
+  },
+  {
+    "tool": "opencode_send_message",
+    "args": {
+      "session_id": "sess_01",
+      "message": "continue"
+    },
+    "desc": "Legacy alias call for opencode_send_message"
+  },
+  {
+    "tool": "opencode_get_messages",
+    "args": {
+      "session_id": "sess_01"
+    },
+    "desc": "Legacy alias call for opencode_get_messages"
+  },
+  {
+    "tool": "opencode_session_diff",
+    "args": {
+      "session_id": "sess_01"
+    },
+    "desc": "Legacy alias call for opencode_session_diff"
+  },
+  {
+    "tool": "opencode_server_status",
+    "args": {},
+    "desc": "Legacy alias call for opencode_server_status"
+  },
+  {
+    "tool": "opencode_list_providers",
+    "args": {},
+    "desc": "Legacy alias call for opencode_list_providers"
+  },
+  {
+    "tool": "opencode_get_project",
+    "args": {},
+    "desc": "Legacy alias call for opencode_get_project"
+  },
+  {
+    "tool": "opencode_get_config",
+    "args": {},
+    "desc": "Legacy alias call for opencode_get_config"
+  },
+  {
+    "tool": "opencode_get_health",
+    "args": {},
+    "desc": "Legacy alias call for opencode_get_health"
+  },
+  {
+    "tool": "opencode_launch_ui",
+    "args": {
+      "mode": "web"
+    },
+    "desc": "Legacy alias call for opencode_launch_ui"
+  },
+  {
+    "tool": "opencode_session_grep",
+    "args": {
+      "query": "refactor"
+    },
+    "desc": "Legacy alias call for opencode_session_grep"
+  },
+  {
+    "tool": "opencode_export_session",
+    "args": {
+      "session_id": "sess_01",
+      "format": "markdown"
+    },
+    "desc": "Legacy alias call for opencode_export_session"
+  },
+  {
+    "tool": "opencode_config_drift",
+    "args": {},
+    "desc": "Legacy alias call for opencode_config_drift"
+  },
+  {
+    "tool": "opencode_mcp_pulse",
+    "args": {},
+    "desc": "Legacy alias call for opencode_mcp_pulse"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Bump the version and update the changelog",
+      "wait": true
+    },
+    "desc": "Blocking run: version bump"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Write tests for the job store",
+      "project": "D:/Dev/repos/opencode-cli-mcp"
+    },
+    "desc": "Run with explicit project"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Regenerate the SDK bindings",
+      "timeout": 600
+    },
+    "desc": "Long-running generation task"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "status",
+      "job_id": "run-42"
+    },
+    "desc": "Poll specific job"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "list",
+      "limit": 10
+    },
+    "desc": "Recent 10 runs"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "cancel",
+      "job_id": "run-42"
+    },
+    "desc": "Cancel runaway job"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "list",
+      "limit": 5
+    },
+    "desc": "Latest sessions"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "messages",
+      "session_id": "sess_02"
+    },
+    "desc": "Transcript of session two"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "send",
+      "session_id": "sess_02",
+      "message": "Rename the variables per the style guide"
+    },
+    "desc": "Correction mid-run"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "diff",
+      "session_id": "sess_02"
+    },
+    "desc": "Diff after run"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "grep",
+      "query": "FIXME"
+    },
+    "desc": "Find FIXME mentions"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "export",
+      "session_id": "sess_02",
+      "format": "html"
+    },
+    "desc": "HTML export"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "status"
+    },
+    "desc": "Server health"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "providers"
+    },
+    "desc": "Provider list"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "launch_ui",
+      "mode": "web"
+    },
+    "desc": "Launch web UI"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "mcp_pulse"
+    },
+    "desc": "MCP liveness probe"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Add a retry loop to the fetch helper",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 1"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Extract the config module",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 2"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Document the portmanteau pattern",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 3"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Update the README quick start",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 4"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Clean up the .bak files",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 5"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Add data-testid to the dashboard",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 6"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Wire the Zustand store",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 7"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Fix the TS errors in Layout",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 8"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Add the useZoom hook",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 9"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Implement the /api/logs route",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 10"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Add the shutdown tool test",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 11"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Align the glama version",
+      "wait": false
+    },
+    "desc": "Fire-and-forget task 12"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "status",
+      "job_id": "job_0"
+    },
+    "desc": "Poll job_0"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "cancel",
+      "job_id": "job_0"
+    },
+    "desc": "Cancel job_0"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "get",
+      "session_id": "sess_00"
+    },
+    "desc": "Get session 0"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "diff",
+      "session_id": "sess_00"
+    },
+    "desc": "Diff session 0"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "status",
+      "job_id": "job_1"
+    },
+    "desc": "Poll job_1"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "cancel",
+      "job_id": "job_1"
+    },
+    "desc": "Cancel job_1"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "get",
+      "session_id": "sess_01"
+    },
+    "desc": "Get session 1"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "diff",
+      "session_id": "sess_01"
+    },
+    "desc": "Diff session 1"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "status",
+      "job_id": "job_2"
+    },
+    "desc": "Poll job_2"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "cancel",
+      "job_id": "job_2"
+    },
+    "desc": "Cancel job_2"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "get",
+      "session_id": "sess_02"
+    },
+    "desc": "Get session 2"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "diff",
+      "session_id": "sess_02"
+    },
+    "desc": "Diff session 2"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "start",
+      "prompt": "Audit the dependency tree",
+      "wait": true,
+      "timeout": 180
+    },
+    "desc": "Blocking dependency audit"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "list",
+      "limit": 100
+    },
+    "desc": "Large run list"
+  },
+  {
+    "tool": "opencode_runs",
+    "args": {
+      "action": "list",
+      "offset": 200
+    },
+    "desc": "Deep pagination"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "list",
+      "limit": 200
+    },
+    "desc": "Large session list"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "messages",
+      "session_id": "sess_99",
+      "limit": 50
+    },
+    "desc": "Paged transcript"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "send",
+      "session_id": "sess_99",
+      "message": "Use the fleet style guide"
+    },
+    "desc": "Style steering"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "grep",
+      "query": "shutdown"
+    },
+    "desc": "Search for shutdown mentions"
+  },
+  {
+    "tool": "opencode_sessions",
+    "args": {
+      "action": "export",
+      "session_id": "sess_99"
+    },
+    "desc": "Default markdown export"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "project"
+    },
+    "desc": "Active project check"
+  },
+  {
+    "tool": "opencode_system",
+    "args": {
+      "action": "config_drift"
+    },
+    "desc": "Post-move config check"
+  },
+  {
+    "tool": "opencode_mcpb_install",
+    "args": {
+      "source": "./dist/email-mcp-v2.3.0.mcpb",
+      "dry_run": true
+    },
+    "desc": "Preview email-mcp bundle"
+  },
+  {
+    "tool": "opencode_mcpb_install",
+    "args": {
+      "source": "./dist/plex-mcp-v0.5.0.mcpb",
+      "name_override": "plex"
+    },
+    "desc": "Install with rename"
+  },
+  {
+    "tool": "opencode_shutdown",
+    "args": {
+      "confirm": true
+    },
+    "desc": "Unconditional shutdown after maintenance"
+  }
+]

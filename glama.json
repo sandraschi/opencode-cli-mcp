@@ -11,7 +11,7 @@
         "prompts": { "enabled": true }
       },
       "metadata": {
-        "version": "0.1.0",
+        "version": "0.2.1",
         "tags": ["opencode", "coding-agent", "orchestration"],
         "homepage": "https://github.com/sandraschi/opencode-cli-mcp"
       }

@@ -1,15 +1,7 @@
 import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  Server,
-  Activity,
-  ListTree,
-  Cpu,
-  AppWindow,
-  HardDrive,
-  Monitor,
-  Terminal,
-} from "lucide-react";
+import { Server, Activity, ListTree, Cpu, AppWindow, HardDrive, Monitor, Terminal } from "lucide-react";
 import { api, type FleetApp, type SystemInfo } from "../services/api";
 import { useStore } from "../store";
 
@@ -56,30 +48,82 @@ export function Dashboard() {
 
   useEffect(() => {
     mounted.current = true;
-    api.getCapabilities().then((c) => mounted.current && setCapabilities(c)).catch(() => {});
-    api.getOpencodeStatus().then((r) => mounted.current && setOpencodeStatus(r.data)).catch(() => {});
-    api.getFleet().then((r) => mounted.current && setFleetCount(r.data.apps.filter((a: FleetApp) => a.alive).length)).catch(() => {});
-    api.getSystemInfo().then((r) => mounted.current && setSysInfo(r.data)).catch(() => {});
-    return () => { mounted.current = false; };
-  }, []);
+    api
+      .getCapabilities()
+      .then((c) => mounted.current && setCapabilities(c))
+      .catch(() => {});
+    api
+      .getOpencodeStatus()
+      .then((r) => mounted.current && setOpencodeStatus(r.data))
+      .catch(() => {});
+    api
+      .getFleet()
+      .then((r) => mounted.current && setFleetCount(r.data.apps.filter((a: FleetApp) => a.alive).length))
+      .catch(() => {});
+    api
+      .getSystemInfo()
+      .then((r) => mounted.current && setSysInfo(r.data))
+      .catch(() => {});
+    return () => {
+      mounted.current = false;
+    };
+  }, [setOpencodeStatus, setCapabilities]);
 
-  const serverOk =
-    opencodeStatus?.health?.status === "ok" ||
-    opencodeStatus?.health?.status === "running";
+  const serverOk = opencodeStatus?.health?.status === "ok" || opencodeStatus?.health?.status === "running";
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+    <div data-testid="dashboard">
+      <div className="bg-surface-light border border-surface-border rounded-xl p-6 mb-6 flex flex-col md:flex-row md:items-center gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold mb-1">opencode-cli-mcp</h1>
+          <p className="text-sm text-zinc-400 max-w-xl">
+            Delegate implementation work to opencode agents from your MCP client. Launch runs, supervise them mid-task,
+            and review the resulting sessions.
+          </p>
+        </div>
+        <div className="flex gap-3 flex-shrink-0">
+          <Link
+            to="/help"
+            className="px-4 py-2 rounded-lg bg-accent/10 text-accent border border-accent/20 text-sm font-medium hover:bg-accent/15 transition-colors"
+          >
+            Quick start
+          </Link>
+          <Link
+            to="/chat"
+            className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+          >
+            Ask the assistant
+          </Link>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Server} label="opencode Server" value={serverOk ? "Online" : "Offline"} sub={opencodeStatus?.health?.status || "unknown"} delay={0} />
+        <StatCard
+          icon={Server}
+          label="opencode Server"
+          value={serverOk ? "Online" : "Offline"}
+          sub={opencodeStatus?.health?.status || "unknown"}
+          delay={0}
+        />
         <StatCard icon={ListTree} label="Sessions" value={opencodeStatus?.sessions ?? "?"} delay={0.04} />
-        <StatCard icon={Terminal} label="MCP Tools" value={capabilities?.tool_surface?.total ?? 0} sub={`${capabilities?.tool_surface?.atomic_count ?? 0} atomic`} delay={0.08} />
+        <StatCard
+          icon={Terminal}
+          label="MCP Tools"
+          value={capabilities?.tool_surface?.total ?? 0}
+          sub={`${capabilities?.tool_surface?.atomic_count ?? 0} atomic`}
+          delay={0.08}
+        />
         <StatCard icon={AppWindow} label="Fleet Apps" value={fleetCount} sub="alive on this machine" delay={0.12} />
         <StatCard icon={Cpu} label="CPU" value={`${sysInfo?.cpu ?? "?"}%`} delay={0.16} />
         <StatCard icon={HardDrive} label="Memory" value={`${sysInfo?.memory?.percent ?? "?"}%`} delay={0.2} />
         <StatCard icon={Monitor} label="Platform" value={sysInfo?.platform ?? "?"} delay={0.24} />
-        <StatCard icon={Activity} label="MCP Server" value={capabilities?.server?.version ?? "?"} sub="opencode-cli-mcp" delay={0.28} />
+        <StatCard
+          icon={Activity}
+          label="MCP Server"
+          value={capabilities?.server?.version ?? "?"}
+          sub="opencode-cli-mcp"
+          delay={0.28}
+        />
       </div>
 
       <div className="mt-8">

@@ -53,8 +53,11 @@ export function McpbInstall() {
         className="bg-surface-light border border-surface-border rounded-xl p-5 space-y-4"
       >
         <div>
-          <label className="block text-xs text-zinc-500 mb-1">MCPB source path</label>
+          <label htmlFor="mcpb-source" className="block text-xs text-zinc-500 mb-1">
+            MCPB source path
+          </label>
           <input
+            id="mcpb-source"
             type="text"
             value={source}
             onChange={(e) => setSource(e.target.value)}
@@ -65,15 +68,20 @@ export function McpbInstall() {
         </div>
 
         <div>
-          <label className="block text-xs text-zinc-500 mb-1">Name override (optional)</label>
+          <label htmlFor="mcpb-name" className="block text-xs text-zinc-500 mb-1">
+            Name override (optional)
+          </label>
           <input
+            id="mcpb-name"
             type="text"
             value={nameOverride}
             onChange={(e) => setNameOverride(e.target.value)}
             placeholder="arxiv"
             className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent/50"
           />
-          <p className="text-xs text-zinc-600 mt-1">Override the server name in opencode config. Default: from manifest.</p>
+          <p className="text-xs text-zinc-600 mt-1">
+            Override the server name in opencode config. Default: from manifest.
+          </p>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
@@ -126,13 +134,25 @@ export function McpbInstall() {
           <div className="flex items-center gap-2 text-emerald-400">
             <CheckCircle2 className="w-5 h-5" />
             <span className="text-sm font-semibold">
-              {Boolean(result.dry_run) ? "Preview ready" : Boolean(result.created) ? "Config created" : Boolean(result.overwritten) ? "Server overwritten" : "Server installed"}
+              {result.dry_run
+                ? "Preview ready"
+                : result.created
+                  ? "Config created"
+                  : result.overwritten
+                    ? "Server overwritten"
+                    : "Server installed"}
             </span>
           </div>
 
           <div className="text-xs text-zinc-400 space-y-1">
-            <p><span className="text-zinc-500">Server:</span> <code className="text-zinc-300 font-mono">{String(result.server_name ?? "")}</code></p>
-            <p><span className="text-zinc-500">Config:</span> <code className="text-zinc-300 font-mono">{String(result.config_path ?? "")}</code></p>
+            <p>
+              <span className="text-zinc-500">Server:</span>{" "}
+              <code className="text-zinc-300 font-mono">{String(result.server_name ?? "")}</code>
+            </p>
+            <p>
+              <span className="text-zinc-500">Config:</span>{" "}
+              <code className="text-zinc-300 font-mono">{String(result.config_path ?? "")}</code>
+            </p>
             {Boolean(result.dry_run) && <p className="text-amber-400">Dry run -- nothing was written.</p>}
           </div>
 
@@ -146,9 +166,7 @@ export function McpbInstall() {
             </pre>
           </div>
 
-          {!Boolean(result.dry_run) && (
-            <p className="text-xs text-zinc-500">Restart opencode for the changes to take effect.</p>
-          )}
+          {!result.dry_run && <p className="text-xs text-zinc-500">Restart opencode for the changes to take effect.</p>}
         </motion.section>
       )}
     </div>

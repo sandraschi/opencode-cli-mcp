@@ -59,6 +59,11 @@ async def opencode_runs(
     ## Return Format
     {"success": bool, "message": str, "data": dict}
     Fire-and-forget starts return a job_id; poll with action="status".
+
+    ## Examples
+    opencode_runs(action="start", prompt="Refactor main.py", wait=False)
+    opencode_runs(action="status", job_id="abc123")
+    opencode_runs(action="list", limit=20, offset=0)
     """
 
     if action == "start":
@@ -124,6 +129,11 @@ async def opencode_sessions(
 
     ## Return Format
     {"success": bool, "message": str, "data": dict}
+
+    ## Examples
+    opencode_sessions(action="list", limit=50)
+    opencode_sessions(action="messages", session_id="sess_01", limit=100)
+    opencode_sessions(action="send", session_id="sess_01", message="continue")
     """
 
     if action == "grep":
@@ -186,6 +196,11 @@ async def opencode_system(
 
     ## Return Format
     {"success": bool, "message": str, "data": dict}
+
+    ## Examples
+    opencode_system(action="status")
+    opencode_system(action="providers")
+    opencode_system(action="launch_ui", mode="web")
     """
 
     if action == "providers":

@@ -118,12 +118,9 @@ export const api = {
   getCapabilities: () => fetchJson<CapabilitiesResponse>("/capabilities"),
   getHealth: () => fetchJson<{ status: string }>("/health"),
 
-  getOpencodeStatus: () =>
-    fetchJson<{ success: boolean; data: OpencodeStatus }>("/opencode/status"),
-  listSessions: () =>
-    fetchJson<{ success: boolean; data: { sessions: Session[] } }>("/opencode/sessions"),
-  getSession: (id: string) =>
-    fetchJson<{ success: boolean; data: { session: Session } }>(`/opencode/sessions/${id}`),
+  getOpencodeStatus: () => fetchJson<{ success: boolean; data: OpencodeStatus }>("/opencode/status"),
+  listSessions: () => fetchJson<{ success: boolean; data: { sessions: Session[] } }>("/opencode/sessions"),
+  getSession: (id: string) => fetchJson<{ success: boolean; data: { session: Session } }>(`/opencode/sessions/${id}`),
 
   getFleet: () => fetchJson<{ success: boolean; data: { apps: FleetApp[] } }>("/fleet"),
   getOllamaStatus: () => fetchJson<{ success: boolean; data: OllamaStatus }>("/ollama/status"),
@@ -131,8 +128,7 @@ export const api = {
   getLocalModels: () => fetchJson<{ success: boolean; data: LocalModels }>("/ollama/models"),
   getSystemInfo: () => fetchJson<{ success: boolean; data: SystemInfo }>("/system"),
 
-  listToolDetails: () =>
-    fetchJson<{ success: boolean; data: { tools: ToolDetail[] } }>("/tools"),
+  listToolDetails: () => fetchJson<{ success: boolean; data: { tools: ToolDetail[] } }>("/tools"),
 
   getSettings: () => fetchJson<Record<string, unknown>>("/settings"),
   updateSettings: (s: Record<string, unknown>) =>
@@ -141,10 +137,8 @@ export const api = {
       body: JSON.stringify(s),
     }),
 
-  listDocs: () =>
-    fetchJson<{ success: boolean; data: { docs: DocEntry[] } }>("/docs"),
-  getDoc: (id: string) =>
-    fetchJson<{ success: boolean; data: DocContent }>(`/docs/${id}`),
+  listDocs: () => fetchJson<{ success: boolean; data: { docs: DocEntry[] } }>("/docs"),
+  getDoc: (id: string) => fetchJson<{ success: boolean; data: DocContent }>(`/docs/${id}`),
 
   listOpenCodeTools: () =>
     fetchJson<{ success: boolean; data: { tools: OpenCodeToolDef[]; install_path: string } }>("/opencode-tools"),

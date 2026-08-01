@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { api, type Session } from "../services/api";
@@ -9,7 +9,7 @@ export function Sessions() {
   const [selected, setSelected] = useState<string | null>(null);
   const [sessionDetail, setSessionDetail] = useState<Session | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.listSessions();
@@ -19,11 +19,11 @@ export function Sessions() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const viewSession = async (id: string) => {
     setSelected(id);
@@ -40,6 +40,7 @@ export function Sessions() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Sessions</h1>
         <button
+          type="button"
           onClick={load}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           title="Refresh sessions"

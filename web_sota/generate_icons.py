@@ -93,8 +93,18 @@ def icon_tools():
     glass_panel(draw)
     glow(draw, S2, S2, ACCENT, 48)
     pts = [
-        (88, 92), (148, 92), (148, 104), (108, 104), (108, 120), (148, 120),
-        (148, 132), (88, 132), (88, 120), (128, 120), (128, 104), (88, 104),
+        (88, 92),
+        (148, 92),
+        (148, 104),
+        (108, 104),
+        (108, 120),
+        (148, 120),
+        (148, 132),
+        (88, 132),
+        (88, 120),
+        (128, 120),
+        (128, 104),
+        (88, 104),
     ]
     draw.polygon(pts, fill=(*ACCENT, 245))
     draw.polygon(pts, outline=(255, 255, 255, 60), width=2)
@@ -236,7 +246,7 @@ def icon_windows_ops():
         ey = cy + int(30 * math.sin(rad))
         draw.ellipse([ex - 6, ey - 6, ex + 6, ey + 6], fill=(255, 255, 255, 200))
     small = [(cx - hw + 10, cy + 8), (cx - hw + 10, cy + 28), (cx - hw + 30, cy + 8)]
-    for (x, y) in small:
+    for x, y in small:
         draw.rectangle([x, y, x + 10, y + 10], fill=(255, 255, 255, 100))
     save(im, "windows_ops")
 
@@ -270,8 +280,17 @@ def icon_docker():
     glow(draw, S2, S2, ACCENT, 50, 40)
     cy = 144
     body = [
-        (64, 156), (64, 128), (96, 128), (96, 112), (120, 112),
-        (120, 96), (144, 96), (160, 112), (184, 112), (188, 120), (188, 156),
+        (64, 156),
+        (64, 128),
+        (96, 128),
+        (96, 112),
+        (120, 112),
+        (120, 96),
+        (144, 96),
+        (160, 112),
+        (184, 112),
+        (188, 120),
+        (188, 156),
     ]
     draw.polygon(body, fill=(*ACCENT, 235))
     draw.polygon(body, outline=(255, 255, 255, 60), width=3)
@@ -298,7 +317,7 @@ def icon_songgeneration():
     glass_panel(draw)
     glow(draw, S2, S2, PURPLE, 50, 40)
     placements = [(80, 104), (140, 84), (108, 132)]
-    for (x, y) in placements:
+    for x, y in placements:
         r = 16
         draw.ellipse([x, y, x + r * 2, y + r * 2], fill=(*PURPLE, 245))
         draw.ellipse([x, y, x + r * 2, y + r * 2], outline=(255, 255, 255, 60), width=2)
@@ -366,10 +385,7 @@ def icon_browser():
     cx, cy, r = S2, S2, 60
     draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(*GREEN, 200))
     draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(255, 255, 255, 80), width=4)
-    blobs = [
-        (108, 96, 20, 28), (128, 92, 16, 24), (96, 108, 24, 32),
-        (148, 116, 16, 28), (132, 96, 12, 16)
-    ]
+    blobs = [(108, 96, 20, 28), (128, 92, 16, 24), (96, 108, 24, 32), (148, 116, 16, 28), (132, 96, 12, 16)]
     for bx, by, bw, bh in blobs:
         draw.ellipse([bx, by, bx + bw, by + bh], fill=(*GREEN, 245))
     for i in range(1, 5):

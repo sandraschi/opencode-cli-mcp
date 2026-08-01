@@ -1,12 +1,15 @@
 import os
+import time
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api import logs
 from api.routes.capabilities import router as capabilities_router
 from api.routes.chat import router as chat_router
 from api.routes.docs import router as docs_router
 from api.routes.fleet import router as fleet_router
+from api.routes.logs import router as logs_router
 from api.routes.opencode_tools import router as opencode_tools_router
 from api.routes.proxy import router as proxy_router
 from api.routes.settings import router as settings_router
@@ -15,6 +18,8 @@ from api.routes.tools import router as tools_router
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "10951"))
 _tauri_desktop = os.environ.get("OPENCODE_CLI_MCP_TAURI", "").lower() in ("1", "true", "yes")
+
+_allow_origin_regex = r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$"
 
 app = FastAPI(
     title="opencode-cli-mcp API",
@@ -32,16 +37,39 @@ app.add_middleware(
         "https://tauri.localhost",
         "tauri://localhost",
     ],
-    allow_origin_regex=r"https?://tauri\.localhost(:\d+)?" if _tauri_desktop else None,
+    allow_origin_regex=_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    """Capture API traffic into the ring buffer for the Logs page."""
+    start = time.monotonic()
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        level = "INFO" if status < 400 else "WARNING" if status < 500 else "ERROR"
+        logs.log(
+            level,
+            "api",
+            f"{request.method} {request.url.path} -> {status}",
+            status=status,
+            duration_ms=round((time.monotonic() - start) * 1000, 1),
+        )
+        return response
+    except Exception as exc:  # never break the request path for logging
+        logs.log("ERROR", "api", f"{request.method} {request.url.path} -> exception: {exc}")
+        raise
+
+
 app.include_router(capabilities_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(docs_router, prefix="/api")
 app.include_router(fleet_router, prefix="/api")
+app.include_router(logs_router, prefix="/api")
 app.include_router(opencode_tools_router, prefix="/api")
 app.include_router(proxy_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
@@ -51,6 +79,7 @@ app.include_router(tools_router, prefix="/api")
 
 def main():
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=BACKEND_PORT)
 
 

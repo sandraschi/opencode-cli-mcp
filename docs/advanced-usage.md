@@ -15,6 +15,7 @@ job_id = result["data"]["job_id"]
 
 # Step 2: Poll until done
 import asyncio
+
 while True:
     status = await opencode_get_run_status(job_id)
     if status["data"]["status"] in ("completed", "failed"):
@@ -31,10 +32,7 @@ diff = await opencode_session_diff(latest)
 
 ```python
 # Launch multiple agents concurrently
-tasks = [
-    opencode_run_agent(prompt=f"Implement feature {f}", wait=False)
-    for f in ["auth", "logging", "tests"]
-]
+tasks = [opencode_run_agent(prompt=f"Implement feature {f}", wait=False) for f in ["auth", "logging", "tests"]]
 results = await asyncio.gather(*tasks)
 job_ids = [r["data"]["job_id"] for r in results]
 

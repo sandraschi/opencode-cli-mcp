@@ -1,12 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import {
-  BookOpen,
-  FileText,
-  ExternalLink,
-  Search,
-  ChevronRight,
-  Loader2,
-} from "lucide-react";
+import { BookOpen, FileText, ExternalLink, Search, ChevronRight, Loader2 } from "lucide-react";
 import { api } from "../services/api";
 
 import type { DocEntry, DocContent } from "../services/api";
@@ -15,8 +8,10 @@ function renderMarkdown(md: string): string {
   let html = md
     .split("\n")
     .map((line) => {
-      if (line.startsWith("### ")) return `<h3 class="text-base font-semibold text-zinc-200 mt-5 mb-2">${line.slice(4)}</h3>`;
-      if (line.startsWith("## ")) return `<h2 class="text-lg font-semibold text-zinc-100 mt-6 mb-3 border-b border-zinc-800 pb-1">${line.slice(3)}</h2>`;
+      if (line.startsWith("### "))
+        return `<h3 class="text-base font-semibold text-zinc-200 mt-5 mb-2">${line.slice(4)}</h3>`;
+      if (line.startsWith("## "))
+        return `<h2 class="text-lg font-semibold text-zinc-100 mt-6 mb-3 border-b border-zinc-800 pb-1">${line.slice(3)}</h2>`;
       if (line.startsWith("# ")) return `<h1 class="text-xl font-bold text-white mt-4 mb-4">${line.slice(2)}</h1>`;
       if (line.startsWith("- ")) return `<li class="text-sm text-zinc-300 ml-4 list-disc">${line.slice(2)}</li>`;
       if (line.startsWith("| ")) return line;
@@ -42,10 +37,19 @@ function renderMarkdown(md: string): string {
 
   const tableRegex = /\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)*)/g;
   html = html.replace(tableRegex, (_match, headerRow, bodyRows) => {
-    const headers = headerRow.split("|").map((h: string) => h.trim()).filter(Boolean);
-    const rows = bodyRows.trim().split("\n").map((r: string) =>
-      r.split("|").map((c: string) => c.trim()).filter(Boolean),
-    );
+    const headers = headerRow
+      .split("|")
+      .map((h: string) => h.trim())
+      .filter(Boolean);
+    const rows = bodyRows
+      .trim()
+      .split("\n")
+      .map((r: string) =>
+        r
+          .split("|")
+          .map((c: string) => c.trim())
+          .filter(Boolean),
+      );
     let table = '<div class="overflow-x-auto my-3"><table class="w-full text-xs text-zinc-300 border-collapse">';
     table += "<thead><tr>";
     for (const h of headers) {
@@ -65,10 +69,7 @@ function renderMarkdown(md: string): string {
 
   const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
   html = html.replace(codeBlockRegex, (_match, _lang, code) => {
-    const escaped = code
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+    const escaped = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return `<pre class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 my-3 overflow-x-auto"><code class="text-xs text-zinc-300 font-mono leading-relaxed">${escaped}</code></pre>`;
   });
 
@@ -97,7 +98,7 @@ export function Help() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [selected]);
 
   useEffect(() => {
     if (!selected) return;
@@ -121,10 +122,7 @@ export function Help() {
     [docs, searchQuery],
   );
 
-  const renderedHtml = useMemo(
-    () => (docContent ? renderMarkdown(docContent.content) : ""),
-    [docContent],
-  );
+  const renderedHtml = useMemo(() => (docContent ? renderMarkdown(docContent.content) : ""), [docContent]);
 
   return (
     <div className="flex gap-6 h-full">
@@ -155,6 +153,7 @@ export function Help() {
           ) : (
             filteredDocs.map((doc) => (
               <button
+                type="button"
                 key={doc.id}
                 onClick={() => setSelected(doc.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
@@ -164,9 +163,7 @@ export function Help() {
                 }`}
               >
                 <ChevronRight
-                  className={`w-3 h-3 flex-shrink-0 ${
-                    selected === doc.id ? "text-accent" : "text-transparent"
-                  }`}
+                  className={`w-3 h-3 flex-shrink-0 ${selected === doc.id ? "text-accent" : "text-transparent"}`}
                 />
                 <FileText className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">{doc.label}</span>
@@ -188,26 +185,18 @@ export function Help() {
       <div className="flex-1 min-w-0 bg-surface-light border border-surface-border rounded-xl overflow-hidden">
         <div className="p-4 border-b border-surface-border flex items-center justify-between">
           <h3 className="font-semibold text-sm">{docContent?.label ?? "Select a document"}</h3>
-          {docContent && (
-            <span className="text-xs text-zinc-600">{docContent.id}</span>
-          )}
+          {docContent && <span className="text-xs text-zinc-600">{docContent.id}</span>}
         </div>
         <div className="p-6 overflow-auto max-h-[calc(100vh-12rem)]">
           {loadingDoc ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="h-4 bg-zinc-800 rounded animate-pulse"
-                  style={{ width: `${60 + i * 10}%` }}
-                />
+                <div key={i} className="h-4 bg-zinc-800 rounded animate-pulse" style={{ width: `${60 + i * 10}%` }} />
               ))}
             </div>
           ) : renderedHtml ? (
-            <div
-              className="prose-custom text-sm leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: renderedHtml }}
-            />
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: rendered from first-party repo docs served by this backend (renderMarkdown escapes code blocks)
+            <div className="prose-custom text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
           ) : (
             <p className="text-sm text-zinc-500">Select a document from the sidebar.</p>
           )}

@@ -32,6 +32,7 @@ from opencode_cli_mcp.tools.sessions import (
     opencode_session_diff,
     opencode_session_grep,
 )
+from opencode_cli_mcp.tools.shutdown import opencode_shutdown
 from opencode_cli_mcp.tools.status import (
     opencode_config_drift,
     opencode_get_config,
@@ -66,6 +67,8 @@ class ToolEntry:
 TOOL_REGISTRY: list[ToolEntry] = [
     # --- install ---
     ToolEntry(opencode_mcpb_install, _MUTATING),
+    # --- lifecycle ---
+    ToolEntry(opencode_shutdown, _DESTRUCTIVE),
     # --- portmanteaus (primary surface, TOOL_DESIGN_STANDARDS SS2) ---
     ToolEntry(opencode_runs, {"title": "OpenCode Runs", **_DESTRUCTIVE}),
     ToolEntry(opencode_sessions, {"title": "OpenCode Sessions", **_MUTATING}),
@@ -92,6 +95,7 @@ __all__ = [
     "TOOL_REGISTRY",
     "ToolEntry",
     "opencode_mcpb_install",
+    "opencode_shutdown",
     "opencode_runs",
     "opencode_sessions",
     "opencode_system",

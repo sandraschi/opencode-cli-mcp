@@ -66,6 +66,10 @@ format:
 test:
     uv run pytest tests/ -v
 
+# Run Playwright e2e tests (webapp)
+e2e:
+    cd web_sota && npx playwright test
+
 # Run type checker
 type-check:
     uv run pyright
@@ -83,3 +87,9 @@ build-native:
 	Set-Location '{{justfile_directory()}}\native'
 	npx @tauri-apps/cli build --bundles nsis
 
+
+# Bootstrap: install dev deps + pre-commit hook
+bootstrap:
+	uv sync --group dev
+	uv run pre-commit install
+	Write-Host "Pre-commit hooks installed." -ForegroundColor Green

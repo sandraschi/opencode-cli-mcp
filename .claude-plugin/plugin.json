@@ -1,0 +1,6 @@
+{
+  "name": "opencode-cli-mcp",
+  "version": "0.2.0",
+  "description": "Session context injection for opencode-cli-mcp (MCP server wrapping opencode serve)",
+  "hooks": "../hooks/hooks.json"
+}

@@ -2,6 +2,7 @@ from opencode_cli_mcp import registry
 
 PRIMARY_TOOLS = [
     "opencode_mcpb_install",
+    "opencode_shutdown",
     "opencode_runs",
     "opencode_sessions",
     "opencode_system",
@@ -21,13 +22,15 @@ LEGACY_TOOLS = [
     "opencode_server_status",
     "opencode_list_providers",
     "opencode_get_project",
+    "opencode_get_config",
+    "opencode_get_health",
 ]
 
 
 def test_tool_count():
-    assert len(registry.TOOL_DEFINITIONS) == 17
-    assert registry.PORTMANTEAU_COUNT == 4
-    assert registry.LEGACY_COUNT == 13
+    assert len(registry.TOOL_DEFINITIONS) == len(PRIMARY_TOOLS) + len(LEGACY_TOOLS)
+    assert registry.PORTMANTEAU_COUNT == len(PRIMARY_TOOLS)
+    assert registry.LEGACY_COUNT == len(LEGACY_TOOLS)
 
 
 def test_tool_names_complete():
