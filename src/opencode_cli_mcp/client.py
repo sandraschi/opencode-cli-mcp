@@ -1,6 +1,7 @@
 import asyncio
 import atexit
 import os
+import shutil
 import subprocess
 from typing import Any
 from urllib.parse import urlsplit
@@ -8,7 +9,26 @@ from urllib.parse import urlsplit
 import httpx
 
 DEFAULT_SERVE_URL = os.environ.get("OPENCODE_SERVE_URL", "http://127.0.0.1:4096")
-OPENCODE_BINARY = os.environ.get("OPENCODE_BINARY", "opencode")
+
+
+def _resolve_binary() -> str:
+    """Resolve the opencode CLI binary to a runnable path.
+
+    Windows CreateProcess only appends .exe when resolving a bare name, so
+    npm-installed shims (opencode.cmd / opencode.ps1) were never found and
+    autostart silently failed. shutil.which() honors PATHEXT (.exe/.cmd/.bat)
+    and returns the actual runnable file.
+    """
+    env_override = os.environ.get("OPENCODE_BINARY")
+    if env_override:
+        return env_override
+    resolved = shutil.which("opencode")
+    if resolved:
+        return resolved
+    return "opencode"  # last resort; Popen will raise FileNotFoundError
+
+
+OPENCODE_BINARY = _resolve_binary()
 
 
 class OpencodeClient:

@@ -10,9 +10,9 @@ synced) or OPENCODE_CLI_MCP_PREFAB_APPS=0 skip these tools without
 affecting the rest of the server.
 """
 
-from fastmcp.server.server import ToolResult
+from fastmcp.server.server import ToolResult  # type: ignore[reportPrivateImportUsage]
 from prefab_ui import PrefabApp
-from prefab_ui.components import Badge, Div, Heading, Row
+from prefab_ui.components import Badge, Heading, P, Row
 
 from opencode_cli_mcp.client import get_client
 from opencode_cli_mcp.job_store import list_jobs
@@ -42,10 +42,10 @@ async def show_runs_app(limit: int = 10) -> ToolResult:
         Heading(f"Agent Runs ({len(jobs)})")
         if jobs:
             for j in jobs:
-                Row(label=j["prompt"][:60], value=j["status"])
+                Row(label=j["prompt"][:60], value=j["status"])  # type: ignore[reportCallIssue]
                 Badge(j["status"], variant=_STATUS_VARIANT.get(j["status"], "info"))
         else:
-            Div("No agent runs yet.")
+            P("No agent runs yet.")
 
     summary = "; ".join(f"{j['job_id']}={j['status']}" for j in jobs) if jobs else "No agent runs yet"
     return ToolResult(content=summary, structured_content=app)
@@ -69,15 +69,15 @@ async def show_status_app() -> ToolResult:
 
     with PrefabApp(title="opencode-cli-mcp Status") as app:
         Heading("Server Status")
-        Row(label="opencode serve", value=client.base_url)
+        Row(label="opencode serve", value=client.base_url)  # type: ignore[reportCallIssue]
         Badge("reachable" if reachable else "unreachable", variant="success" if reachable else "error")
-        Row(label="Startup probe", value=str(PROBE_STATE.get("detail")))
+        Row(label="Startup probe", value=str(PROBE_STATE.get("detail")))  # type: ignore[reportCallIssue]
         Heading("Jobs")
         if by_status:
             for status, count in sorted(by_status.items()):
-                Row(label=status, value=str(count))
+                Row(label=status, value=str(count))  # type: ignore[reportCallIssue]
         else:
-            Div("No jobs recorded.")
+            P("No jobs recorded.")
 
     summary = (
         f"opencode serve {'reachable' if reachable else 'UNREACHABLE'} at {client.base_url}; "
@@ -105,9 +105,9 @@ async def show_sessions_app(limit: int = 10) -> ToolResult:
             Badge("opencode serve unreachable", variant="error")
         elif sessions:
             for s in sessions:
-                Row(label=s.get("id", "?"), value=s.get("title", ""))
+                Row(label=s.get("id", "?"), value=s.get("title", ""))  # type: ignore[reportCallIssue]
         else:
-            Div("No sessions found.")
+            P("No sessions found.")
 
     summary = f"{len(sessions)} session(s)" if ok else "opencode serve unreachable"
     return ToolResult(content=summary, structured_content=app)

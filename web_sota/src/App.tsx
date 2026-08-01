@@ -11,6 +11,8 @@ import { Settings } from "./pages/Settings";
 import { StatusAudit } from "./pages/StatusAudit";
 import { ApiDocs } from "./pages/ApiDocs";
 import { McpbInstall } from "./pages/McpbInstall";
+import { McpServers } from "./pages/McpServers";
+import { Plugins } from "./pages/Plugins";
 import { OpenCodeTools } from "./pages/OpenCodeTools";
 import Logging from "./pages/Logging";
 
@@ -25,6 +27,8 @@ export default function App() {
         <Route path="/oc-tools" element={<OpenCodeTools />} />
         <Route path="/apps" element={<AppsHub />} />
         <Route path="/mcpb" element={<McpbInstall />} />
+        <Route path="/mcp-servers" element={<McpServers />} />
+        <Route path="/plugins" element={<Plugins />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/help" element={<Help />} />
         <Route path="/settings" element={<Settings />} />

@@ -8,7 +8,9 @@
     WebRoot      = 'D:\Dev\repos\opencode-cli-mcp\web_sota'
     Backend = @{
         Kind          = 'uvicorn'
-        UvicornTarget = 'opencode_cli_mcp.server:http_app'
+        # Unified app: REST /api/* + FastMCP /mcp on the same port (api/main.py
+        # mounts opencode_cli_mcp.server:http_app at /mcp with its lifespan).
+        UvicornTarget = 'api.main:app'
         Env           = @{ WEB_PORT = '10951' }
     }
     Frontend = @{

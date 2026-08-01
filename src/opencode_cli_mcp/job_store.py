@@ -419,6 +419,10 @@ async def run_agent_background(
                 except ProcessLookupError:
                     pass
 
+        # Spawned with PIPE, so both streams are guaranteed non-None; assert to
+        # satisfy the type checker and fail loudly if that invariant breaks.
+        assert proc.stdout is not None
+        assert proc.stderr is not None
         await asyncio.gather(
             _reader(proc.stdout, "stdout"),
             _reader(proc.stderr, "stderr"),

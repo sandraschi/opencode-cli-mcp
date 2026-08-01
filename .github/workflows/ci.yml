@@ -21,6 +21,8 @@ jobs:
         run: uv run ruff check src/ api/
       - name: Ruff format check
         run: uv run ruff format src/ api/ --check
+      - name: Pyright typecheck
+        run: uv run pyright src/ api/
       - name: Tests
         run: uv run pytest tests/ -q
 

@@ -2,22 +2,18 @@
 
 ## Quick Reference
 
-### All MCP Tools (14)
+### Primary MCP Tools (6 portmanteaus)
 
 | Tool | Purpose |
 |------|---------|
-| `opencode_run_agent` | Launch agent with a prompt (background or blocking) |
-| `opencode_get_run_status` | Poll a running agent for progress |
-| `opencode_list_runs` | List all agent runs |
-| `opencode_cancel_run` | Cancel a stuck run |
-| `opencode_list_sessions` | List opencode sessions |
-| `opencode_get_session` | Session details |
-| `opencode_session_diff` | Files changed in a session |
-| `opencode_send_message` | Continue a running session |
-| `opencode_get_messages` | Session transcript |
-| `opencode_server_status` | Server health + config |
-| `opencode_list_providers` | Configured LLM providers |
-| `opencode_get_project` | Active project context |
+| `opencode_runs(action=...)` | start / status / list / cancel agent runs |
+| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
+| `opencode_depot(action=...)` | **session depot** — list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB (works offline) |
+| `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
+| `opencode_mcpb_install(...)` | install `.mcpb` bundles into opencode config |
+| `opencode_shutdown(confirm=...)` | graceful self-termination |
+
+15 legacy atomic aliases remain mounted through 0.2.x (`opencode_run_agent`, `opencode_list_sessions`, `opencode_get_session`, `opencode_send_message`, `opencode_get_messages`, `opencode_session_diff`, `opencode_server_status`, `opencode_list_providers`, `opencode_get_project`, `opencode_get_config`, `opencode_get_health`, `opencode_get_run_status`, `opencode_list_runs`, `opencode_cancel_run`, `opencode_launch_ui`, plus `opencode_session_grep` / `opencode_export_session` / `opencode_config_drift` / `opencode_mcp_pulse`).
 
 ---
 

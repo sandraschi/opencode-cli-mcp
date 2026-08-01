@@ -6,6 +6,12 @@ import pytest
 from opencode_cli_mcp import job_store
 
 
+async def _job(jid: str) -> dict:
+    job = await job_store.get_job(jid)
+    assert job is not None
+    return job
+
+
 @pytest.fixture(autouse=True)
 def _reset_job_store():
     job_store._reset_state_for_tests()
@@ -17,7 +23,7 @@ def _reset_job_store():
 async def test_create_job():
     jid = await job_store.create_job("test prompt", None)
     assert len(jid) == 12
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job is not None
     assert job["prompt"] == "test prompt"
     assert job["status"] == "queued"
@@ -30,7 +36,7 @@ async def test_create_job():
 @pytest.mark.asyncio
 async def test_create_job_with_project():
     jid = await job_store.create_job("build", "D:/repos/test")
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["project"] == "D:/repos/test"
 
 
@@ -68,7 +74,7 @@ async def test_list_jobs_limit():
 async def test_update_job_status():
     jid = await job_store.create_job("test", None)
     await job_store.update_job(jid, status="running")
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "running"
     assert job["completed_at"] is None
 
@@ -77,7 +83,7 @@ async def test_update_job_status():
 async def test_update_job_completion():
     jid = await job_store.create_job("test", None)
     await job_store.update_job(jid, status="completed", exit_code=0)
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "completed"
     assert job["exit_code"] == 0
     assert job["completed_at"] is not None
@@ -87,7 +93,7 @@ async def test_update_job_completion():
 async def test_update_job_failed():
     jid = await job_store.create_job("test", None)
     await job_store.update_job(jid, status="failed", exit_code=1, error="broken")
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "failed"
     assert job["exit_code"] == 1
     assert job["error"] == "broken"
@@ -105,7 +111,7 @@ async def test_append_output():
     await job_store.append_output(jid, "stdout", "line1\n")
     await job_store.append_output(jid, "stdout", "line2\n")
     await job_store.append_output(jid, "stderr", "error\n")
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["stdout"] == "line1\nline2\n"
     assert job["stderr"] == "error\n"
 
@@ -121,7 +127,7 @@ async def test_cancel_job_running():
     await job_store.update_job(jid, status="running")
     ok = await job_store.cancel_job(jid)
     assert ok is True
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "cancelled"
 
 
@@ -130,7 +136,7 @@ async def test_cancel_job_queued():
     jid = await job_store.create_job("test", None)
     ok = await job_store.cancel_job(jid)
     assert ok is True
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "cancelled"
 
 
@@ -177,7 +183,7 @@ async def test_get_job_excludes_process():
         pid = 99999
 
     await job_store.set_process(jid, FakeProcess())
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert "_process" not in job
     assert "proc_pid" not in job  # internal column, not exposed
 
@@ -215,7 +221,7 @@ async def test_reap_stuck_jobs_recent_untouched():
     jid = await job_store.create_job("recent", None)
     await job_store.update_job(jid, status="running")
     await job_store._reap_stuck_jobs()
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "running"
 
 
@@ -225,7 +231,7 @@ async def test_reap_stuck_jobs_old_marked_failed_not_deleted():
     await job_store.update_job(jid, status="running")
     job_store._set_created_at_for_tests(jid, time.time() - 7200)
     await job_store._reap_stuck_jobs()
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job is not None  # record preserved for inspection, not deleted
     assert job["status"] == "failed"
     assert "reaped" in job["error"]
@@ -240,14 +246,14 @@ async def test_reap_respects_long_job_timeout():
     await job_store.update_job(jid, status="running")
     job_store._set_created_at_for_tests(jid, time.time() - 3700)
     await job_store._reap_stuck_jobs()
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "running"
 
 
 @pytest.mark.asyncio
 async def test_create_job_stores_timeout():
     jid = await job_store.create_job("t", None, timeout=1234)
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["timeout"] == 1234
 
 
@@ -257,7 +263,7 @@ async def test_finalize_job_sets_terminal_status():
     await job_store.update_job(jid, status="running")
     changed = await job_store.finalize_job(jid, status="completed", exit_code=0)
     assert changed is True
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "completed"
     assert job["exit_code"] == 0
     assert job["completed_at"] is not None
@@ -270,7 +276,7 @@ async def test_finalize_does_not_overwrite_cancelled():
     await job_store.cancel_job(jid)
     changed = await job_store.finalize_job(jid, status="failed", exit_code=1)
     assert changed is False
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "cancelled"
 
 
@@ -278,7 +284,7 @@ async def test_finalize_does_not_overwrite_cancelled():
 async def test_try_mark_running_from_queued():
     jid = await job_store.create_job("test", None)
     assert await job_store._try_mark_running(jid) is True
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "running"
 
 
@@ -287,7 +293,7 @@ async def test_try_mark_running_skips_cancelled():
     jid = await job_store.create_job("test", None)
     await job_store.cancel_job(jid)
     assert await job_store._try_mark_running(jid) is False
-    job = await job_store.get_job(jid)
+    job = await _job(jid)
     assert job["status"] == "cancelled"
 
 

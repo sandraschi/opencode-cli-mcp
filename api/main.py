@@ -10,11 +10,13 @@ from api.routes.chat import router as chat_router
 from api.routes.docs import router as docs_router
 from api.routes.fleet import router as fleet_router
 from api.routes.logs import router as logs_router
+from api.routes.opencode_config import router as opencode_config_router
 from api.routes.opencode_tools import router as opencode_tools_router
 from api.routes.proxy import router as proxy_router
 from api.routes.settings import router as settings_router
 from api.routes.system import router as system_router
 from api.routes.tools import router as tools_router
+from opencode_cli_mcp.server import mcp_app as mcp_http_app
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "10951"))
 _tauri_desktop = os.environ.get("OPENCODE_CLI_MCP_TAURI", "").lower() in ("1", "true", "yes")
@@ -26,6 +28,10 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    # The FastMCP StreamableHTTPSessionManager needs its lifespan wired into
+    # the parent app, or every /mcp request fails with "task group was not
+    # initialized" (gofastmcp.com/deployment/asgi).
+    lifespan=mcp_http_app.lifespan,
 )
 
 app.add_middleware(
@@ -70,11 +76,18 @@ app.include_router(chat_router, prefix="/api")
 app.include_router(docs_router, prefix="/api")
 app.include_router(fleet_router, prefix="/api")
 app.include_router(logs_router, prefix="/api")
+app.include_router(opencode_config_router, prefix="/api")
 app.include_router(opencode_tools_router, prefix="/api")
 app.include_router(proxy_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
+
+# Unified surface: the FastMCP Streamable HTTP endpoint lives at /mcp on the
+# SAME port as the REST API. One backend process serves both the webapp
+# (/api/*) and MCP clients (/mcp). This is the single entry point used by
+# run_server.py (PyInstaller/NSIS) and the dev start config.
+app.mount("/mcp", mcp_http_app)
 
 
 def main():

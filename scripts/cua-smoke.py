@@ -33,6 +33,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from typing import Any, NoReturn
 
 # ── Config ────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ def _check_version():
             )
 
 
-def cfg(key: str, default=""):
+def cfg(key: str, default: Any = ""):
     return _CONFIG.get(key, default)
 
 
@@ -137,7 +138,7 @@ def _init_cua_client():
         pass
     # Try direct import
     try:
-        import pywinauto  # noqa: F401
+        import pywinauto  # noqa: F401  # pyright: ignore[reportMissingImports]
 
         log("pywinauto direct import OK")
         _CUA_CLIENT_OK = True
@@ -172,28 +173,34 @@ def _cua_call_direct(tool: str, params: dict) -> dict | None:
     """Run a pywinauto-mcp tool function directly via import."""
     try:
         if tool == "automation_windows":
-            from pywinauto_mcp.tools.portmanteau_windows import automation_windows
+            from pywinauto_mcp.tools.portmanteau_windows import (
+                automation_windows,  # pyright: ignore[reportMissingImports]
+            )
 
             op = params.get("operation", "find")
             result = automation_windows(op, **{k: v for k, v in params.items() if k != "operation"})
             return {"result": result}
         elif tool == "automation_visual":
-            from pywinauto_mcp.tools.portmanteau_visual import automation_visual
+            from pywinauto_mcp.tools.portmanteau_visual import (
+                automation_visual,  # pyright: ignore[reportMissingImports]
+            )
 
             result = automation_visual(**params)
             return {"result": result}
         elif tool == "automation_elements":
-            from pywinauto_mcp.tools.portmanteau_elements import automation_elements
+            from pywinauto_mcp.tools.portmanteau_elements import (
+                automation_elements,  # pyright: ignore[reportMissingImports]
+            )
 
             result = automation_elements(**params)
             return {"result": result}
         elif tool == "automation_mouse":
-            from pywinauto_mcp.tools.portmanteau_mouse import automation_mouse
+            from pywinauto_mcp.tools.portmanteau_mouse import automation_mouse  # pyright: ignore[reportMissingImports]
 
             result = automation_mouse(**params)
             return {"result": result}
         elif tool == "get_window_state":
-            from pywinauto_mcp.tools.window_state import get_window_state
+            from pywinauto_mcp.tools.window_state import get_window_state  # pyright: ignore[reportMissingImports]
 
             result = get_window_state(**params)
             return {"result": result}
@@ -218,7 +225,7 @@ def cua_find_window(title_re: str = "") -> dict | None:
             return windows[0]
     # Fallback to pywinauto directly
     try:
-        import pywinauto
+        import pywinauto  # pyright: ignore[reportMissingImports]
 
         app = pywinauto.Application(backend="uia").connect(title_re=title_re)
         win = app.window(title_re=title_re)
@@ -252,7 +259,7 @@ def cua_screenshot(window_handle: int = 0, output_path: str = "") -> str | None:
             if os.path.exists(path):
                 return path
     try:
-        import pywinauto
+        import pywinauto  # pyright: ignore[reportMissingImports]
 
         app = pywinauto.Application(backend="uia").connect(title_re=WINDOW_TITLE_RE)
         win = app.window(title_re=WINDOW_TITLE_RE)
@@ -280,19 +287,19 @@ def cua_ocr_text(window_handle: int = 0, image_path: str = "") -> str:
             return result["result"].get("data", {}).get("text", "")
     # Try direct pytesseract
     try:
-        import pytesseract
+        import pytesseract  # pyright: ignore[reportMissingImports]
 
         pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         if image_path and os.path.exists(image_path):
-            from PIL import Image
+            from PIL import Image  # pyright: ignore[reportMissingImports]
 
             return pytesseract.image_to_string(Image.open(image_path))
         if window_handle:
-            import pywinauto
+            import pywinauto  # pyright: ignore[reportMissingImports]
 
             app = pywinauto.Application(backend="uia").connect(title_re=WINDOW_TITLE_RE)
             win = app.window(title_re=WINDOW_TITLE_RE)
-            from PIL import Image
+            from PIL import Image  # pyright: ignore[reportMissingImports]
 
             capture = win.capture_as_image()
             return pytesseract.image_to_string(capture)
@@ -308,7 +315,7 @@ def cua_click(window_handle: int, x: int, y: int):
         return
     if _CUA_CLIENT_MODE == "direct":
         try:
-            import pywinauto.mouse
+            import pywinauto.mouse  # pyright: ignore[reportMissingImports]
 
             pywinauto.mouse.click(button="left", coords=(x, y))
         except Exception:
@@ -322,7 +329,7 @@ class PhaseFailedError(Exception):
     """Non-fatal phase failure — script continues to uninstall."""
 
 
-def fatal(msg: str):
+def fatal(msg: str) -> NoReturn:
     print(f"  [cua] FATAL: {msg}", flush=True)
     sys.exit(1)
 
@@ -512,11 +519,13 @@ def nav_click_through(output_dir: str):
     wy = r.get("top", 0) or 0
     snap_dir = os.path.join(output_dir, "nav")
 
+    # Initialized before the loop: referenced after it (return-to-dashboard click).
+    sidebar_click_x = int(cfg("sidebar_click_x", 30))
+    sidebar_first_y = int(cfg("sidebar_first_y", 90))
+
     for label, expected_header in nav_routes:
         try:
             idx = next((i for i, (item, _) in enumerate(nav_routes) if item == label), 0)
-            sidebar_click_x = int(cfg("sidebar_click_x", 30))
-            sidebar_first_y = int(cfg("sidebar_first_y", 90))
             sidebar_step_y = int(cfg("sidebar_step_y", 55))
             click_x = wx + sidebar_click_x
             click_y = wy + sidebar_first_y + idx * sidebar_step_y

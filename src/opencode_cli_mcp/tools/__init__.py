@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from opencode_cli_mcp.tools.agent import opencode_launch_ui, opencode_run_agent
+from opencode_cli_mcp.tools.depot import opencode_depot
 from opencode_cli_mcp.tools.mcpb_install import opencode_mcpb_install
 from opencode_cli_mcp.tools.portmanteau import (
     opencode_runs,
@@ -72,6 +73,7 @@ TOOL_REGISTRY: list[ToolEntry] = [
     # --- portmanteaus (primary surface, TOOL_DESIGN_STANDARDS SS2) ---
     ToolEntry(opencode_runs, {"title": "OpenCode Runs", **_DESTRUCTIVE}),
     ToolEntry(opencode_sessions, {"title": "OpenCode Sessions", **_MUTATING}),
+    ToolEntry(opencode_depot, {"title": "OpenCode Session Depot", **_DESTRUCTIVE}),
     ToolEntry(opencode_system, {"title": "OpenCode System", **_MUTATING}),
     # --- legacy atomic tools (aliases through 0.2.x, removal in 0.3.0) ---
     ToolEntry(opencode_run_agent, _MUTATING, legacy=True),
@@ -98,6 +100,7 @@ __all__ = [
     "opencode_shutdown",
     "opencode_runs",
     "opencode_sessions",
+    "opencode_depot",
     "opencode_system",
     "opencode_launch_ui",
     "opencode_run_agent",

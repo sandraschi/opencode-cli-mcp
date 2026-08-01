@@ -114,6 +114,54 @@ export interface OpenCodeToolDef {
   source: string;
 }
 
+export interface McpServerEntry {
+  name: string;
+  type: string;
+  enabled: boolean;
+  command?: string;
+  url?: string;
+  environment?: Record<string, string>;
+  summary?: string;
+}
+
+export interface PluginEntry {
+  index: number;
+  name: string;
+  display: string;
+  source: string;
+}
+
+export interface PluginDirEntry {
+  name: string;
+  path: string;
+  size: number;
+  source: string;
+}
+
+export interface OConfigResponse {
+  success: boolean;
+  data: {
+    path: string;
+    mcp_servers: McpServerEntry[];
+    mcp_count: number;
+    plugins: PluginEntry[];
+    plugin_count: number;
+    plugin_dir_plugins: PluginDirEntry[];
+    plugin_dir: string;
+    plugin_dir_count: number;
+  };
+}
+
+export function pluginDisplay(p: unknown): string {
+  if (typeof p === "string") return p;
+  if (Array.isArray(p) && p.length > 0) return String(p[0]);
+  try {
+    return JSON.stringify(p);
+  } catch {
+    return String(p);
+  }
+}
+
 export const api = {
   getCapabilities: () => fetchJson<CapabilitiesResponse>("/capabilities"),
   getHealth: () => fetchJson<{ status: string }>("/health"),
@@ -142,4 +190,29 @@ export const api = {
 
   listOpenCodeTools: () =>
     fetchJson<{ success: boolean; data: { tools: OpenCodeToolDef[]; install_path: string } }>("/opencode-tools"),
+
+  getOConfig: () => fetchJson<OConfigResponse>("/occonfig"),
+  addMcpServer: (body: Record<string, unknown>) =>
+    fetchJson<{ success: boolean; message: string }>("/occonfig/mcp", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  removeMcpServer: (name: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/occonfig/mcp/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    }),
+  patchMcpServer: (name: string, body: Record<string, unknown>) =>
+    fetchJson<{ success: boolean; message: string }>(`/occonfig/mcp/${encodeURIComponent(name)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  addPlugin: (plugin: unknown) =>
+    fetchJson<{ success: boolean; message: string }>("/occonfig/plugin", {
+      method: "POST",
+      body: JSON.stringify({ plugin }),
+    }),
+  removePlugin: (index: number) =>
+    fetchJson<{ success: boolean; message: string }>(`/occonfig/plugin/${index}`, {
+      method: "DELETE",
+    }),
 };

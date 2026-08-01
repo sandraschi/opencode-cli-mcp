@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Cpu, Cloud, Sun, Moon, Save, Check, Wifi, WifiOff, Server, RefreshCw, Loader2 } from "lucide-react";
-import { api, type LocalModels, type LlmProvider } from "../services/api";
+import { Cpu, Cloud, Save, Check, Wifi, WifiOff, Server, RefreshCw, Loader2 } from "lucide-react";
+import { api, type LlmProvider } from "../services/api";
 
 interface SettingsData {
   theme: string;
@@ -25,19 +25,27 @@ const DEFAULT_SETTINGS: SettingsData = {
   opencode_serve_url: "http://127.0.0.1:4096",
 };
 
-function applyTheme(theme: string) {
-  if (theme === "light") {
-    document.documentElement.classList.remove("dark");
-  } else {
-    document.documentElement.classList.add("dark");
-  }
+// Fleet standard (chat_skills_prefab_standard.md §1.3): provider + model
+// selections persist in localStorage and are restored on load.
+const LS_PROVIDER = "llm_provider";
+const LS_MODEL = "llm_model";
+const LS_ENDPOINT = "llm_endpoint";
+
+// Fleet standard (WEBAPP_SOTA_STANDARDS.md §VI): permanently dark. No light toggle.
+
+interface ProviderStatus {
+  id: string;
+  label: string;
+  port: number;
+  status: "probing" | "detected" | "not_found";
+  models: string[];
 }
 
 export function Settings() {
   const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
-  const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);
-  const [localModels, setLocalModels] = useState<LocalModels | null>(null);
+  const [providerStatus, setProviderStatus] = useState<ProviderStatus[]>([]);
+  const [detectedModels, setDetectedModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [llmProviders, setLlmProviders] = useState<LlmProvider[]>([]);
   const [saved, setSaved] = useState(false);
@@ -45,30 +53,100 @@ export function Settings() {
 
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
-  const refreshLocalStatus = useCallback(() => {
-    setOllamaOk(null);
-    setLocalModels(null);
-    setLoadingModels(true);
-    api
-      .getOllamaStatus()
-      .then((d) => setOllamaOk(d.data.running))
-      .catch(() => setOllamaOk(false));
-    api
-      .getLocalModels()
-      .then((d) => {
-        if (d.success && d.data.models.length > 0) {
-          setLocalModels(d.data);
-        }
-      })
-      .catch(() => {});
-    api
-      .getLlmProviders()
-      .then((d) => {
-        if (d.success) setLlmProviders(d.data.providers);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingModels(false));
+  const probeProviders = useCallback(async () => {
+    const targets: Array<{ id: string; label: string; port: number }> = [
+      { id: "ollama", label: "Ollama", port: 11434 },
+      { id: "lmstudio", label: "LM Studio", port: 1234 },
+      { id: "vllm", label: "vLLM", port: 8000 },
+    ];
+    setProviderStatus(targets.map((t) => ({ ...t, status: "probing", models: [] })));
+
+    // Models per provider: /llm/providers covers Ollama + LM Studio with
+    // model lists; probe ports for liveness of all three (incl. vLLM).
+    let knownProviders: LlmProvider[] = [];
+    try {
+      const d = await api.getLlmProviders();
+      if (d.success) knownProviders = d.data.providers;
+    } catch {
+      knownProviders = [];
+    }
+    const modelsByProvider = (id: string): string[] => knownProviders.find((p) => p.id === id)?.models ?? [];
+
+    let runningProvider: string | null = null;
+    try {
+      const d = await api.getOllamaStatus();
+      if (d.data.running) runningProvider = d.data.provider ?? null;
+    } catch {
+      runningProvider = null;
+    }
+
+    const results = await Promise.all(
+      targets.map(async (t): Promise<ProviderStatus> => {
+        const models = modelsByProvider(t.id);
+        const detected = runningProvider === t.id || models.length > 0;
+        return { ...t, status: detected ? "detected" : "not_found", models };
+      }),
+    );
+    setProviderStatus(results);
+
+    // Detection-driven provider select (WEBAPP_SOTA_STANDARDS §VI.2): the
+    // dropdown lists detected providers, priority Ollama > LM Studio > vLLM.
+    const detected = results.filter((r) => r.status === "detected");
+    const detectedProviders: LlmProvider[] = detected.map((d) => ({
+      id: d.id,
+      label: d.label,
+      base_url: `http://127.0.0.1:${d.port}/v1`,
+      models: d.models,
+      needs_key: false,
+    }));
+    setLlmProviders(detectedProviders);
+
+    // Restore selection from localStorage if still detected; else first detected.
+    const savedProvider = localStorage.getItem(LS_PROVIDER);
+    const selected = detected.find((d) => d.id === savedProvider) ?? detected[0];
+    const savedModel = localStorage.getItem(LS_MODEL);
+    setSettings((s) => ({
+      ...s,
+      llm_provider: selected?.id ?? "local",
+      local_endpoint:
+        localStorage.getItem(LS_ENDPOINT) || (selected ? `http://127.0.0.1:${selected.port}/v1` : s.local_endpoint),
+      local_model: selected?.models.includes(savedModel ?? "")
+        ? (savedModel as string)
+        : (selected?.models[0] ?? s.local_model),
+    }));
+    if (selected) setDetectedModels(selected.models);
   }, []);
+
+  const refreshModels = useCallback(
+    async (providerId: string) => {
+      setLoadingModels(true);
+      try {
+        const prov = llmProviders.find((p) => p.id === providerId);
+        if (prov && prov.models.length > 0) {
+          setDetectedModels(prov.models);
+          setSettings((s) => ({
+            ...s,
+            local_model: prov.models.includes(s.local_model) ? s.local_model : prov.models[0],
+          }));
+        } else {
+          // Provider has no model list yet — try the models endpoint directly.
+          const d = await api.getLocalModels();
+          if (d.success && d.data.models.length > 0) {
+            setDetectedModels(d.data.models);
+            setSettings((s) => ({
+              ...s,
+              local_model: d.data.models.includes(s.local_model) ? s.local_model : d.data.models[0],
+            }));
+          }
+        }
+      } catch {
+        // provider down — keep current model
+      } finally {
+        setLoadingModels(false);
+      }
+    },
+    [llmProviders],
+  );
 
   useEffect(() => {
     api
@@ -77,11 +155,27 @@ export function Settings() {
         const merged = { ...DEFAULT_SETTINGS, ...s } as SettingsData;
         setSettings(merged);
         setOriginalSettings(merged);
-        applyTheme(merged.theme);
       })
       .catch(() => {});
-    refreshLocalStatus();
-  }, [refreshLocalStatus]);
+    probeProviders();
+  }, [probeProviders]);
+
+  const handleProviderChange = (id: string) => {
+    const prov = llmProviders.find((p) => p.id === id);
+    setSettings((s) => ({
+      ...s,
+      llm_provider: id,
+      local_endpoint: prov ? prov.base_url : s.local_endpoint,
+    }));
+    localStorage.setItem(LS_PROVIDER, id);
+    if (prov) localStorage.setItem(LS_ENDPOINT, prov.base_url);
+    refreshModels(id);
+  };
+
+  const handleModelChange = (model: string) => {
+    setSettings((s) => ({ ...s, local_model: model }));
+    localStorage.setItem(LS_MODEL, model);
+  };
 
   const handleSave = async () => {
     setError("");
@@ -89,7 +183,6 @@ export function Settings() {
       const res = await api.updateSettings(settings as unknown as Record<string, unknown>);
       if (res.success) {
         setOriginalSettings({ ...settings });
-        applyTheme(settings.theme);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       } else {
@@ -99,6 +192,8 @@ export function Settings() {
       setError(`Save failed: ${err instanceof Error ? err.message : "unknown"}`);
     }
   };
+
+  const anyDetected = providerStatus.some((p) => p.status === "detected");
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -139,41 +234,6 @@ export function Settings() {
           className="bg-surface-light border border-surface-border rounded-xl p-5"
         >
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Sun className="w-4 h-4" />
-            Appearance
-          </h2>
-          <div className="flex items-center gap-3">
-            <Moon className="w-5 h-5 text-zinc-400" />
-            <button
-              type="button"
-              onClick={() => {
-                const next = settings.theme === "dark" ? "light" : "dark";
-                setSettings((s) => ({ ...s, theme: next }));
-              }}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                settings.theme === "dark" ? "bg-accent" : "bg-zinc-600"
-              }`}
-              role="switch"
-              aria-checked={settings.theme === "dark"}
-              aria-label="Toggle dark mode"
-            >
-              <div
-                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                  settings.theme === "dark" ? "translate-x-6" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-            <span className="text-sm text-zinc-300">{settings.theme === "dark" ? "Dark mode" : "Light mode"}</span>
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="bg-surface-light border border-surface-border rounded-xl p-5"
-        >
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Server className="w-4 h-4" />
             Opencode Serve
           </h2>
@@ -203,38 +263,39 @@ export function Settings() {
             <Cpu className="w-4 h-4" />
             Local LLM
           </h2>
-          <div className="flex items-center gap-2 mb-4">
-            {ollamaOk === true && localModels ? (
-              <span className="flex items-center gap-1 text-xs text-green-400">
-                <Wifi className="w-3 h-3" />
-                {localModels.provider === "ollama" ? "Ollama" : "LM Studio"} detected ({localModels.models.length}{" "}
-                models)
-              </span>
-            ) : ollamaOk === true ? (
-              <span className="flex items-center gap-1 text-xs text-green-400">
-                <Wifi className="w-3 h-3" />
-                Local LLM detected
-              </span>
-            ) : ollamaOk === false ? (
-              <span className="flex items-center gap-1 text-xs text-zinc-500">
-                <WifiOff className="w-3 h-3" />
-                No local LLM detected
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs text-zinc-500">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Checking...
-              </span>
-            )}
+
+          <div className="mb-4">
+            {providerStatus.map((p) => (
+              <div key={p.id} className="flex items-center gap-2 py-1 text-xs">
+                {p.status === "detected" ? (
+                  <Wifi className="w-3 h-3 text-green-400" />
+                ) : p.status === "probing" ? (
+                  <Loader2 className="w-3 h-3 text-zinc-500 animate-spin" />
+                ) : (
+                  <WifiOff className="w-3 h-3 text-zinc-600" />
+                )}
+                <span className={p.status === "detected" ? "text-green-400" : "text-zinc-500"}>
+                  {p.label} on :{p.port}
+                </span>
+                <span className="text-zinc-600">
+                  {p.status === "detected"
+                    ? `(${p.models.length || "?"} models)`
+                    : p.status === "probing"
+                      ? "probing..."
+                      : "not found"}
+                </span>
+              </div>
+            ))}
             <button
               type="button"
-              onClick={refreshLocalStatus}
-              className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              onClick={probeProviders}
+              className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               title="Re-check local LLM status"
             >
               <RefreshCw className="w-3 h-3" />
             </button>
           </div>
+
           <div className="space-y-3">
             <div>
               <label htmlFor="llm-provider" className="text-xs text-zinc-500 mb-1 block">
@@ -244,7 +305,7 @@ export function Settings() {
                 id="llm-provider"
                 data-testid="llm-provider-select"
                 value={settings.llm_provider}
-                onChange={(e) => setSettings((s) => ({ ...s, llm_provider: e.target.value }))}
+                onChange={(e) => handleProviderChange(e.target.value)}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
               >
                 {llmProviders.length > 0 ? (
@@ -254,7 +315,7 @@ export function Settings() {
                     </option>
                   ))
                 ) : (
-                  <option value="local">Local</option>
+                  <option value="local">No local LLM detected</option>
                 )}
               </select>
             </div>
@@ -274,38 +335,34 @@ export function Settings() {
               <label htmlFor="llm-model" className="text-xs text-zinc-500 mb-1 block">
                 Model
               </label>
-              {localModels && localModels.models.length > 0 ? (
-                <div className="flex gap-2">
-                  <select
-                    id="llm-model"
-                    data-testid="llm-model-select"
-                    value={settings.local_model}
-                    onChange={(e) => setSettings((s) => ({ ...s, local_model: e.target.value }))}
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
-                  >
-                    {localModels.models.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {detectedModels.length > 0 ? (
+                <select
+                  id="llm-model"
+                  data-testid="llm-model-select"
+                  value={settings.local_model}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
+                >
+                  {detectedModels.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
               ) : (
-                <div className="flex gap-2">
-                  <input
-                    id="llm-model"
-                    data-testid="llm-model-select"
-                    type="text"
-                    value={settings.local_model}
-                    onChange={(e) => setSettings((s) => ({ ...s, local_model: e.target.value }))}
-                    placeholder={loadingModels ? "Loading models..." : "Enter model name or start Ollama/LM Studio"}
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
-                  />
-                </div>
+                <input
+                  id="llm-model"
+                  data-testid="llm-model-select"
+                  type="text"
+                  value={settings.local_model}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  placeholder={loadingModels ? "Loading models..." : "Enter model name or start Ollama/LM Studio"}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50"
+                />
               )}
             </div>
           </div>
-          {ollamaOk === false && (
+          {!anyDetected && (
             <p className="text-xs text-zinc-500 mt-3">
               Install{" "}
               <a
@@ -315,8 +372,8 @@ export function Settings() {
                 rel="noopener noreferrer"
               >
                 Ollama
-              </a>{" "}
-              or{" "}
+              </a>
+              ,{" "}
               <a
                 href="https://lmstudio.ai"
                 className="text-accent hover:underline"
@@ -325,7 +382,7 @@ export function Settings() {
               >
                 LM Studio
               </a>{" "}
-              to run local models.
+              or vLLM to run local models.
             </p>
           )}
         </motion.section>
@@ -355,6 +412,7 @@ export function Settings() {
                 <option value="anthropic">Anthropic</option>
                 <option value="google">Google Gemini</option>
                 <option value="openrouter">OpenRouter</option>
+                <option value="deepseek">DeepSeek</option>
               </select>
             </div>
             <div>

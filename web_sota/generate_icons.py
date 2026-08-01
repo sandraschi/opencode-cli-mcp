@@ -1,7 +1,7 @@
 import math
 import os
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont  # pyright: ignore[reportMissingImports]
 
 OUT = r"D:\Dev\repos\opencode-cli-mcp\web_sota\public\icons"
 SIZE = 256

@@ -12,7 +12,7 @@
 > 📖 **[Onboarding](docs/ONBOARDING.md)** — 5-minute first-run guide
 > 📖 **[Full reference](llms-full.txt)** — tools, endpoints, env vars, architecture
 
-MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into 20 FastMCP tools (5 primary portmanteaus + 15 legacy aliases). Also includes a FastAPI REST bridge, a Vite/React fleet-standard dashboard, and [OpenCode custom tools](.opencode/tools/) that extend opencode itself.
+MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into 21 FastMCP tools (6 primary portmanteaus + 15 legacy aliases). Also includes a FastAPI REST bridge (unified with the MCP endpoint on one port), a Vite/React fleet-standard dashboard, and [OpenCode custom tools](.opencode/tools/) that extend opencode itself.
 
 **Pattern: Plan with Claude, implement with opencode.** Claude (expensive, high-judgment) orchestrates and supervises; opencode handles implementation grunt work on cheaper models (DeepSeek V4 Flash/Pro).
 
@@ -35,19 +35,20 @@ If you don't have `just` installed:
 - Node.js 18+
 ### Run Everything
 .\start.ps1
-Starts: opencode serve (`:4096`) + FastAPI backend (`:10951`) + Vite frontend (`:10950`).
+Starts: opencode serve (`:4096`) + unified backend (`:10951`, REST `/api/*` + MCP `/mcp` on one port) + Vite frontend (`:10950`).
 ### MCP Server Only
 uv run -m opencode_cli_mcp.server
 Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/integration-guide.md)).
 
 ## MCP Tools
 
-Primary surface — three portmanteaus (operation discriminator) plus two atomic tools:
+Primary surface — four portmanteaus (operation discriminator) plus two atomic tools:
 
 | Tool | Purpose |
 |------|---------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
 | `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
+| `opencode_depot(action=...)` | **session depot** — list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline (no `opencode serve` needed) and covers operations the serve API lacks (unarchive, delete, global transcript search). |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install `.mcpb` bundles into opencode config |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |

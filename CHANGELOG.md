@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.3 — 2026-08-01 (session depot + unified backend)
+
+### Added
+- `opencode_depot` portmanteau (6th primary tool): list/get/archive/unarchive/rename/delete/search/stats directly over the opencode SQLite depot (`~/.local/share/opencode/opencode.db`). Works without `opencode serve`; adds unarchive (missing in opencode UI), permanent delete (FK cascade), global transcript search, depot stats. `OPENCODE_DB_PATH` env override for tests/alt installs.
+- Experimental light-mode toggle (CSS invert hack, topbar Sun/Moon, persisted `ocmcp-light-mode`). Marked EXPERIMENTAL + reversible per `chat_skills_prefab_standard.md` §7.1.
+- CI: `pyright` step (blocking, `src/` + `api/`) — five-gate standard.
+- `tests/test_depot.py` (23 tests: filters, pagination, archive round-trip, delete cascade, search, stats, tool surface).
+
+### Fixed
+- **Unified backend**: `api.main:app` now serves BOTH REST (`/api/*`) and the FastMCP Streamable HTTP endpoint (`/mcp`, with its lifespan wired) on one port. `fleet-start.config.ps1` points at `api.main:app` — fixes the `/api/v1/health` 404 and the missing MCP mount on the PyInstaller path.
+- **opencode serve autostart**: `OPENCODE_BINARY` now resolved via `shutil.which()` — npm-installed `opencode.CMD` shims were never found by `Popen` (CreateProcess only appends `.exe`), so autostart silently failed and the dashboard showed offline.
+- Settings page SOTA rewrite: detection-driven provider select (Ollama/LM Studio/vLLM), localStorage persistence (`llm_provider`/`llm_model`), per-provider model lists, vLLM probe, DeepSeek cloud option. Light-mode toggle removed from Settings (it lives in the topbar now).
+- pyright: 0 errors across `src/` + `api/` (incl. pre-existing prefab `Div()` runtime bug, `_job` helper typing, cua-smoke `cfg()` typing).
+
 ## 0.2.2 — 2026-08-01 (assfix)
 
 ### Added

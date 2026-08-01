@@ -46,8 +46,8 @@ def agent_instructions():
 **Primary tools (portmanteaus):**
 - `opencode_runs(action=...)` — start / status / list / cancel agent runs
 - `opencode_sessions(action=...)` — list / get / messages / send / diff sessions
+- `opencode_depot(action=...)` — session depot: list/archive/unarchive/rename/delete/search/stats via SQLite (works offline)
 - `opencode_system(action=...)` — status / providers / project / launch_ui / mcp_pulse / config_drift
-- `opencode_sessions(action=...)` — list / get / messages / send / diff / grep / export
 
 The granular `opencode_*` tools (run_agent, get_run_status, list_sessions, ...)
 are legacy aliases for the same operations and will be removed in 0.3.0.
@@ -71,8 +71,12 @@ are legacy aliases for the same operations and will be removed in 0.3.0.
 
 
 # ASGI app for uvicorn (fleet standard: serve mcp.http_app(), never the raw FastMCP object)
+# The unwrapped app is what api/main.py mounts at /mcp (it carries .lifespan,
+# which CORSMiddleware would hide).
+mcp_app = app.http_app()
+
 http_app = CORSMiddleware(
-    app.http_app(),
+    mcp_app,
     allow_origins=[
         "http://localhost:10950",
         "http://127.0.0.1:10950",

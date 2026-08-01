@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Terminal,
@@ -16,6 +17,10 @@ import {
   Code2,
   Puzzle,
   ScrollText,
+  Sun,
+  Moon,
+  Plug,
+  Network,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "./store";
@@ -30,6 +35,8 @@ const navItems = [
   { path: "/oc-tools", label: "OC Tools", icon: Puzzle },
   { path: "/apps", label: "Apps Hub", icon: AppWindow },
   { path: "/mcpb", label: "MCPB Install", icon: Box },
+  { path: "/mcp-servers", label: "MCP Servers", icon: Network },
+  { path: "/plugins", label: "Plugins", icon: Plug },
   { path: "/chat", label: "Chat", icon: MessageSquareText },
   { path: "/help", label: "Help", icon: BookOpen },
   { path: "/settings", label: "Settings", icon: Settings2 },
@@ -38,11 +45,38 @@ const navItems = [
   { path: "/logs", label: "Logs", icon: ScrollText },
 ];
 
+// EXPERIMENTAL light mode (invert hack). Not fleet standard — see index.css.
+// Toggling `.dark` off the root flips the invert filter; persisted so the
+// choice survives reloads. Delete this + the CSS block to revert.
+const THEME_KEY = "ocmcp-light-mode";
+
+function useExperimentalTheme() {
+  const [light, setLight] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", !light);
+    try {
+      localStorage.setItem(THEME_KEY, light ? "1" : "0");
+    } catch {
+      // ignore storage errors
+    }
+  }, [light]);
+
+  return { light, toggle: () => setLight((v) => !v) };
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const { zoom } = useZoom();
+  const { light, toggle } = useExperimentalTheme();
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -96,6 +130,15 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
           <span className="text-sm text-zinc-500">opencode-cli-mcp</span>
           <div className="flex-1" />
+          <button
+            type="button"
+            onClick={toggle}
+            className="text-zinc-400 hover:text-zinc-200 transition-colors"
+            title={light ? "Switch to dark (experimental light mode)" : "Switch to light (experimental, ugly)"}
+            aria-label="Toggle light mode (experimental)"
+          >
+            {light ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </button>
           <BackendStatus />
           <span className="text-xs text-zinc-600 ml-2" title={`Zoom ${Math.round(zoom * 100)}%`}>
             {Math.round(zoom * 100)}%

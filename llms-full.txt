@@ -1,6 +1,6 @@
 # opencode-cli-mcp — Full Context
 
-**Version:** 0.2.1
+**Version:** 0.2.3
 **FastMCP:** 3.4.4+
 **Python:** 3.12+
 **License:** MIT
@@ -27,44 +27,55 @@ Bridges [opencode](https://opencode.ai/) (the open source AI coding agent) into 
                                                                   └────────────┘
 
 ┌────────────────┐   proxy   ┌──────────────────┐   httpx    ┌──────────────────┐
-│ Vite/React SPA │──────────►│  FastAPI Backend  │──────────►│  opencode serve  │
-│    :10950      │  /api/*   │     :10951        │   :4096   │                  │
-└────────────────┘           └──────────────────┘            └──────────────────┘
+│ Vite/React SPA │──────────►│  Unified Backend  │──────────►│  opencode serve  │
+│    :10950      │  /api/*   │  api.main:app     │   :4096   │                  │
+└────────────────┘           │  :10951           │            └──────────────────┘
+                             │  REST /api/*      │
+                             │  + MCP /mcp       │
+                             └───────────────────┘
 ```
+
+The backend is a single ASGI app (`api.main:app`): REST routes under `/api/*`
+plus the FastMCP Streamable HTTP endpoint mounted at `/mcp` (with its lifespan
+wired) on the same port. One process serves the webapp and MCP clients.
 
 ## Repository Structure
 
 ```
 opencode-cli-mcp/
 ├── api/
-│   ├── main.py              # FastAPI app entry
+│   ├── main.py              # Unified ASGI app: REST /api/* + FastMCP /mcp
 │   └── routes/
-│       ├── capabilities.py  # GET /api/capabilities
+│       ├── capabilities.py  # GET /api/capabilities, /api/health, /api/v1/health
 │       ├── fleet.py         # GET /api/fleet (port scanner)
-│       ├── proxy.py         # CORS proxy for frontend
+│       ├── proxy.py         # opencode serve proxy routes
 │       ├── settings.py      # GET/PUT /api/settings
-│       ├── system.py        # GET /api/system, /api/health
+│       ├── system.py        # GET /api/system, /api/llm/providers, /api/ollama/*
+│       ├── logs.py          # GET /api/logs (+ export, DELETE)
 │       └── tools.py         # GET /api/tools (from registry)
 ├── src/opencode_cli_mcp/
-│   ├── server.py            # FastMCP 3.2 app
-│   ├── client.py            # httpx client → opencode serve
+│   ├── server.py            # FastMCP 3.4 app + mcp_app/http_app
+│   ├── client.py            # httpx client → opencode serve (shutil.which binary)
+│   ├── depot.py             # Direct SQLite access to opencode.db (depot ops)
 │   ├── job_store.py         # Async job tracking
 │   ├── registry.py          # Shared tool definitions
 │   └── tools/
 │       ├── agent.py         # opencode_run_agent
+│       ├── depot.py         # opencode_depot portmanteau
 │       ├── runs.py          # Job status/polling
 │       ├── sessions.py      # Session CRUD
 │       └── status.py        # opencode health/config
 ├── tests/
 │   ├── conftest.py
-│   └── test_server.py       # 3 registration tests
+│   ├── test_depot.py        # Depot layer + tool tests
+│   └── test_server.py       # Registration tests
 ├── web_sota/                # React dashboard
 │   ├── src/
-│   │   ├── App.tsx          # Router (9 pages)
-│   │   ├── Layout.tsx       # Shell
+│   │   ├── App.tsx          # Router (13 pages)
+│   │   ├── Layout.tsx       # Shell (+ experimental light-mode toggle)
 │   │   ├── store.ts         # Zustand state
 │   │   ├── services/api.ts  # HTTP client
-│   │   └── pages/           # Dashboard, Sessions, Chat, Tools, etc.
+│   │   └── pages/           # Dashboard, Sessions, Settings, etc.
 │   ├── vite.config.ts       # :10950, proxy /api → :10951
 │   └── package.json
 ├── start.ps1                # Fleet-standard startup
@@ -76,7 +87,7 @@ opencode-cli-mcp/
 └── llms-full.txt            # This file (full context)
 ```
 
-## MCP Tools (20 total: 5 primary + 15 legacy aliases)
+## MCP Tools (21 total: 6 primary + 15 legacy aliases)
 
 Primary surface (portmanteaus + atomic):
 
@@ -84,6 +95,7 @@ Primary surface (portmanteaus + atomic):
 |------|-------------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
 | `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
+| `opencode_depot(action=...)` | **session depot** — list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline; covers ops the serve API lacks (unarchive, delete, global transcript search). |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install .mcpb bundles into opencode config (dry-run support) |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |
@@ -98,20 +110,27 @@ Prompt: `agent_instructions`.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /api/health | Service health |
+| GET | /api/v1/health | Canonical fleet health (probed by start.ps1 / CUA) |
 | GET | /api/system | System stats (CPU, mem, GPU) |
 | GET | /api/tools | Tool list from MCP registry |
 | GET | /api/capabilities | Server capabilities |
 | GET | /api/fleet | Fleet port scanner |
-| GET | /api/opencode/status | opencode serve health |
+| GET | /api/opencode/status | opencode serve health (autostarts serve if down) |
 | GET | /api/opencode/sessions | Session list |
 | GET | /api/opencode/sessions/{id} | Session detail |
 | GET | /api/opencode/sessions/{id}/diff | File diffs |
-| GET | /api/opencode/sessions/{id}/files | File list |
 | GET | /api/runs | Run list |
 | GET | /api/runs/{id} | Run detail |
 | GET | /api/settings | Get settings |
 | PUT | /api/settings | Update settings |
-| GET | /api/ollama/status | Ollama availability |
+| GET | /api/ollama/status | Ollama/LM Studio availability |
+| GET | /api/ollama/models | Model lists |
+| GET | /api/llm/providers | Detection-driven provider list (+ models) |
+| GET | /api/logs | Ring-buffer request logs |
+| GET | /api/logs/export | Export logs |
+| DELETE | /api/logs | Clear logs |
+| POST | /api/shutdown | Graceful server shutdown |
+| POST | /mcp | FastMCP Streamable HTTP endpoint (same port) |
 
 ## Startup
 
@@ -122,18 +141,21 @@ Prompt: `agent_instructions`.
 
 Run individually:
 ```powershell
-uv run python -m api.main           # Backend :10951
+uv run python -m api.main           # Unified backend :10951 (REST + MCP /mcp)
 Set-Location web_sota; npm run dev  # Frontend :10950
-opencode serve --port 4096          # opencode HTTP API
+opencode serve --port 4096          # opencode HTTP API (autostarted by proxy if down)
 ```
 
 ## Build/Test
 
 ```powershell
-uv run pytest              # 3 tests
+uv run pytest              # 114 tests
 just test                  # same
 just lint                  # ruff check
-just check                 # tsc --noEmit (frontend)
+just type-check            # pyright src/ api/
+just check                 # ruff + pyright + pytest (backend gates)
+cd web_sota; npx tsc --noEmit  # frontend types
+cd web_sota; npm run biome:ci   # frontend lint
 ```
 
 ## Ports
@@ -141,20 +163,23 @@ just check                 # tsc --noEmit (frontend)
 | Port | Service |
 |------|---------|
 | 10950 | Vite dev server (React) |
-| 10951 | FastAPI backend |
+| 10951 | Unified backend (REST `/api/*` + MCP `/mcp`) |
 | 4096 | opencode serve HTTP API |
 
 ## Dependencies
 
-**Python:** fastmcp>=3.2.4, fastapi>=0.136.1, uvicorn>=0.30.0, httpx>=0.28.0, pydantic>=2.13.0
-**Node:** react 19, vite 5.4, tailwindcss 3.4, framer-motion 11, zustand 5, lucide-react
-**Dev:** ruff, pytest, pytest-asyncio, typescript
+**Python:** fastmcp>=3.4.4, fastapi>=0.115, uvicorn>=0.34, httpx>=0.28, pydantic>=2.0, prefab-ui>=0.14, psutil>=6.0
+**Node:** react 18, vite 5.4, tailwindcss 3.4, framer-motion, zustand, lucide-react, @tauri-apps/api
+**Dev:** ruff, pyright, pytest, pytest-asyncio, pytest-cov, pre-commit, typescript
 
-**Run via:** uv (Python), npm/Node 24 (frontend)
+**Run via:** uv (Python), npm (frontend)
 
 ## Notes
 
-- `opencode serve` must be running separately (installed globally via npm)
+- `opencode serve` autostarts on first tool call if down (binary resolved via `shutil.which` — npm `.cmd` shims work)
+- The backend is one ASGI app: REST + FastMCP on a single port (10951)
+- `opencode_depot` reads the opencode SQLite DB directly (`~/.local/share/opencode/opencode.db`, `OPENCODE_DB_PATH` override) — works offline, no serve needed
 - Frontend proxies `/api/*`, `/docs`, `/openapi.json`, `/redoc` to backend
+- Experimental light-mode toggle in the topbar (CSS invert hack, `ocmcp-light-mode` key)
 - Fleet port scanner in fleet.py probes all WEBAPP_PORTS.md entries
-- Ollama auto-detected on port 11434
+- Ollama/LM Studio/vLLM auto-detected for the local LLM settings
