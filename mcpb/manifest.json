@@ -1,0 +1,27 @@
+{
+  "manifest_version": "0.2",
+  "name": "opencode-cli-mcp",
+  "version": "0.2.3",
+  "description": "MCP server wrapping the opencode CLI (opencode serve) for AI agent orchestration: launch/poll/cancel agent runs, inspect and steer sessions, offline session depot over the opencode SQLite DB, MCPB bundle installs, and graceful shutdown.",
+  "author": { "name": "sandraschi" },
+  "server": {
+    "type": "python",
+    "entry_point": "src/opencode_cli_mcp/server.py",
+    "mcp_config": {
+      "command": "python",
+      "args": ["-m", "opencode_cli_mcp.server"],
+      "env": {
+        "PYTHONPATH": "${PWD}/src",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  },
+  "tools": [
+    { "name": "opencode_runs", "description": "Agent run lifecycle: start (fire-and-forget or blocking), status, list, cancel" },
+    { "name": "opencode_sessions", "description": "Session inspection and steering: list, get, messages, send, diff, grep, export" },
+    { "name": "opencode_depot", "description": "Offline session depot over the opencode SQLite DB: list, get, archive, unarchive, rename, delete, search, stats" },
+    { "name": "opencode_system", "description": "Environment and fleet: status, providers, project, launch_ui, mcp_pulse, config_drift" },
+    { "name": "opencode_mcpb_install", "description": "Install .mcpb bundles into opencode config (dry-run support)" },
+    { "name": "opencode_shutdown", "description": "Graceful self-termination (confirm-gated)" }
+  ]
+}

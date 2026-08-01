@@ -11,7 +11,14 @@
         # Unified app: REST /api/* + FastMCP /mcp on the same port (api/main.py
         # mounts opencode_cli_mcp.server:http_app at /mcp with its lifespan).
         UvicornTarget = 'api.main:app'
-        Env           = @{ WEB_PORT = '10951' }
+        Env           = @{
+            WEB_PORT = '10951'
+            # Dedicated opencode serve port (4097), NOT 4096: the official
+            # OpenCode desktop app spawns a password-protected serve on 4096
+            # (OPENCODE_SERVER_PASSWORD) that this backend cannot authenticate
+            # against. The backend autostarts its own serve on 4097.
+            OPENCODE_SERVE_URL = 'http://127.0.0.1:4097'
+        }
     }
     Frontend = @{
         Kind           = 'vite-npm'

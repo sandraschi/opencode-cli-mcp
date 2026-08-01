@@ -53,3 +53,8 @@ _dashboard/
 
 # Assessment artifacts
 reports/
+
+mcpb/src/
+mcpb/assets/
+mcpb/README.md
+mcpb/CHANGELOG.md

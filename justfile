@@ -6,6 +6,11 @@ NAME := "opencode-cli-mcp"
 DESC := "MCP server wrapping opencode CLI"
 VER := "0.2.3"
 
+# Dedicated opencode serve port for this server (NOT 4096 - the official
+# OpenCode desktop app owns 4096 with a per-session password). Exported so
+# every recipe (serve/api/start) talks to our own serve on 4097.
+export OPENCODE_SERVE_URL := "http://127.0.0.1:4097"
+
 # Open the interactive recipe dashboard in the browser
 default:
     @just --list
@@ -26,7 +31,7 @@ api:
 
 # Run the webapp frontend
 web:
-    cd web_sota && npm run dev
+    cd web_sota; npm run dev
 
 # Start everything via start.ps1
 start:
@@ -86,7 +91,7 @@ certify:
 # ── Build ───────────────────────────────────────────────
 # Build webapp
 build-web:
-    cd web_sota && npm run build
+    cd web_sota; npm run build
 
 # ── Native (Tauri) ──────────────────────────────────────────────────────────
 

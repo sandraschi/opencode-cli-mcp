@@ -86,7 +86,13 @@ app.include_router(tools_router, prefix="/api")
 # SAME port as the REST API. One backend process serves both the webapp
 # (/api/*) and MCP clients (/mcp). This is the single entry point used by
 # run_server.py (PyInstaller/NSIS) and the dev start config.
-app.mount("/mcp", mcp_http_app)
+#
+# Mounted at "/" (not "/mcp"): FastMCP's http_app() already routes its
+# Streamable HTTP endpoint at /mcp, so mounting at /mcp would double-prefix
+# it to /mcp/mcp and break every client configured with the documented URL.
+# The FastAPI routes (/api/*, /docs, /openapi.json) are registered before the
+# mount and match first; everything else falls through to the MCP app.
+app.mount("/", mcp_http_app)
 
 
 def main():
