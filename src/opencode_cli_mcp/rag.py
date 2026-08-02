@@ -42,6 +42,7 @@ DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 120
 MAX_PART_CHARS = 8000
+MAX_PARTS_PER_SESSION = 500
 _EMBED_BATCH = 32
 
 
@@ -173,16 +174,16 @@ def index_state() -> dict[str, Any]:
 
 
 def _collect_session_texts(conn: sqlite3.Connection, session_id: str, title: str) -> list[str]:
-    """Collect text-part bodies for one session (cap each part, skip empty)."""
+    """Collect text-part bodies for one session (tail-biased, skip empty)."""
     rows = conn.execute(
         """
         SELECT p.data FROM part p
         WHERE p.session_id = ?
           AND json_extract(p.data, '$.type') = 'text'
         ORDER BY p.time_created ASC
-        LIMIT 2000
+        LIMIT ?
         """,
-        (session_id,),
+        (session_id, MAX_PARTS_PER_SESSION),
     ).fetchall()
     out: list[str] = []
     for (data,) in rows:
@@ -196,39 +197,31 @@ def _collect_session_texts(conn: sqlite3.Connection, session_id: str, title: str
     return out
 
 
-def _index_sessions(sessions: list[dict[str, Any]], conn: sqlite3.Connection) -> int:
-    """Embed and upsert chunks for the given sessions. Returns chunk count."""
+def _add_session_chunks(session: dict[str, Any], chunks: list[str]) -> int:
+    """Embed one session's chunks and add them to the LanceDB table.
+
+    Adds per session (not per batch) so memory stays bounded and progress
+    is visible session-by-session.
+    """
     import pyarrow as pa
 
-    rows: list[dict[str, Any]] = []
-    for s in sessions:
-        texts = _collect_session_texts(conn, s["id"], s.get("title") or s.get("id") or "")
-        if not texts:
-            continue
-        chunks: list[str] = []
-        for t in texts:
-            chunks.extend(_split_chunks(t))
-        if not chunks:
-            continue
-        vectors = _encode_texts(chunks)
-        for idx, (body, vec) in enumerate(zip(chunks, vectors, strict=True)):
-            rows.append(
-                {
-                    "chunk_id": f"{s['id']}:{idx}",
-                    "session_id": s["id"],
-                    "title": (s.get("title") or s["id"])[:500],
-                    "agent": s.get("agent") or "",
-                    "directory": s.get("directory") or "",
-                    "chunk_idx": idx,
-                    "body": body[:4000],
-                    "vector": vec,
-                    "updated_ms": int(s.get("time_updated") or 0),
-                }
-            )
-
-    if not rows:
+    if not chunks:
         return 0
-
+    vectors = _encode_texts(chunks)
+    rows = [
+        {
+            "chunk_id": f"{session['id']}:{idx}",
+            "session_id": session["id"],
+            "title": (session.get("title") or session["id"])[:500],
+            "agent": session.get("agent") or "",
+            "directory": session.get("directory") or "",
+            "chunk_idx": idx,
+            "body": chunk[:4000],
+            "vector": vec,
+            "updated_ms": int(session.get("time_updated") or 0),
+        }
+        for idx, (chunk, vec) in enumerate(zip(chunks, vectors, strict=True))
+    ]
     db = _open_db()
     table = _open_table()
     batch = pa.Table.from_pylist(rows)
@@ -309,15 +302,25 @@ def index_new_sessions(limit_sessions: int | None = None, batch_size: int = 50) 
                     ).fetchall()
                 if not rows:
                     break
-                sessions = [dict(r) for r in rows]
-                done_chunks += _index_sessions(sessions, conn)
-                done_sessions += len(sessions)
-                if first_run:
-                    cursor = min(int(s["time_updated"] or 0) for s in sessions)
-                    seen_max = max(seen_max, max(int(s["time_updated"] or 0) for s in sessions))
-                else:
-                    watermark = max(int(s["time_updated"] or 0) for s in sessions)
-                _set_state(indexed_sessions=done_sessions, indexed_chunks=done_chunks)
+                for s in rows:
+                    session = dict(s)
+                    texts = _collect_session_texts(conn, session["id"], session.get("title") or "")
+                    chunks: list[str] = []
+                    for t in texts:
+                        chunks.extend(_split_chunks(t))
+                    done_chunks += _add_session_chunks(session, chunks)
+                    done_sessions += 1
+                    if first_run:
+                        ts = int(session.get("time_updated") or 0)
+                        cursor = ts if cursor is None else min(cursor, ts)
+                        seen_max = max(seen_max, ts)
+                    else:
+                        watermark = max(watermark, int(session.get("time_updated") or 0))
+                    _set_state(indexed_sessions=done_sessions, indexed_chunks=done_chunks)
+                    if limit_sessions is not None and done_sessions >= limit_sessions:
+                        break
+                if limit_sessions is not None and done_sessions >= limit_sessions:
+                    break
             last_ts = seen_max if first_run else watermark
         finally:
             conn.close()
