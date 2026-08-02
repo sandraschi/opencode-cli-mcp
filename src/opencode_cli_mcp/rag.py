@@ -197,16 +197,41 @@ def _collect_session_texts(conn: sqlite3.Connection, session_id: str, title: str
     return out
 
 
+def _delete_session_chunks(session_id: str) -> int:
+    """Remove all indexed chunks of one session (delete-then-add on re-index).
+
+    Sessions whose ``time_updated`` advanced get re-processed by
+    ``index_new_sessions``; without this their old chunks would linger and
+    duplicate the new embedding pass.
+    """
+    table = _open_table()
+    if table is None:
+        return 0
+    where = f"session_id = '{session_id.replace(chr(39), chr(39) * 2)}'"
+    try:
+        deleted = table.delete(where)
+    except Exception as e:  # pragma: no cover - version-dependent surface
+        logger.warning("[rag] delete-then-add for %s failed: %s", session_id, e)
+        return 0
+    count = int(getattr(deleted, "num_deleted_rows", 0) or 0)
+    if count:
+        logger.info("[rag] removed %d stale chunk(s) for %s", count, session_id)
+    return count
+
+
 def _add_session_chunks(session: dict[str, Any], chunks: list[str]) -> int:
     """Embed one session's chunks and add them to the LanceDB table.
 
     Adds per session (not per batch) so memory stays bounded and progress
-    is visible session-by-session.
+    is visible session-by-session. Delete-then-add: any previously indexed
+    chunks for this session are removed first so re-indexing never
+    duplicates rows.
     """
     import pyarrow as pa
 
     if not chunks:
         return 0
+    _delete_session_chunks(session["id"])
     vectors = _encode_texts(chunks)
     rows = [
         {

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.6 - 2026-08-02 (RAG delete-then-add fix)
+
+### Fixed
+- **RAG re-index duplication**: `_add_session_chunks` now deletes a session's
+  existing LanceDB chunks before re-adding (`table.delete` on `session_id`,
+  `num_deleted_rows` count). Previously a session whose `time_updated` advanced
+  (new messages) was re-embedded while its old chunks lingered - duplicate rows
+  and skewed semantic recall. The module docstring always claimed this; it is
+  now actually implemented.
+- `tests/test_rag.py` (4 tests): incremental watermark (no re-process when
+  unchanged), **re-index produces no duplicate chunk_ids** and exactly the
+  per-part chunk count (MAX_PART_CHARS 8000 cap modeled), reset clears the
+  table, status shape. Uses a throwaway DB + temp LanceDB dir with patched
+  embeddings (no model download); `importorskip` when the rag extras are absent.
+
 ## 0.2.5 - 2026-08-02 (eternal session memory: backups + RAG + docs)
 
 ### Added
