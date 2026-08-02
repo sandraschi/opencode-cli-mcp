@@ -84,6 +84,16 @@ async def depot_stats():
     return {"success": True, "message": "Depot stats", "data": data}
 
 
+@router.get("/usage")
+async def depot_usage(days: int = 30):
+    """Daily token/cost series from assistant messages (drives the Usage page)."""
+    try:
+        data = d.usage_series(days=min(max(days, 1), 365))
+    except d.DepotError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"success": True, "message": "Usage series", "data": data}
+
+
 @router.post("/sessions/{session_id}/archive")
 async def depot_archive(session_id: str):
     try:

@@ -374,3 +374,67 @@ async def test_tool_rag_unavailable_surfaces_error(monkeypatch):
     result = await opencode_depot(action="rag", query="anything")
     assert result["success"] is False
     assert "RAG deps" in result["message"]
+
+
+def _insert_usage_messages(depot_db):
+    """Add assistant messages with tokens/cost/role on two days (usage_series input)."""
+    import os
+
+    db_path = Path(os.environ["OPENCODE_DB_PATH"])
+    conn = sqlite3.connect(db_path)
+    now = int(datetime.now(UTC).timestamp() * 1000)
+    for i, day_offset in enumerate((1, 2)):
+        ts = now - day_offset * 86_400_000
+        conn.execute(
+            "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?,?,?,?,?)",
+            (
+                f"msg_usage_{i}",
+                "sess_active",
+                ts,
+                ts,
+                json.dumps(
+                    {
+                        "role": "assistant",
+                        "modelID": "deepseek-v4-flash",
+                        "variant": "default",
+                        "cost": 0.001,
+                        "tokens": {
+                            "input": 1000,
+                            "output": 100,
+                            "reasoning": 50,
+                            "cache": {"read": 100000, "write": 0},
+                        },
+                        "time": {"created": ts},
+                    }
+                ),
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+
+def test_usage_series_buckets(depot_db):
+    """Daily token/cost buckets from assistant messages, gaps filled."""
+    from opencode_cli_mcp.depot import usage_series
+
+    _insert_usage_messages(depot_db)
+    series = usage_series(days=30)
+    assert len(series["buckets"]) > 0
+    with_data = [b for b in series["buckets"] if b["messages"] > 0]
+    assert len(with_data) == 2, "expected two message days"
+    assert all(b["tokens_input"] == 1000 for b in with_data)
+    assert all(b["cost_stored"] > 0 for b in with_data)
+    assert series["totals"]["messages"] == sum(b["messages"] for b in series["buckets"])
+
+
+def test_usage_series_restate_cost(depot_db):
+    """Restated cost uses base rates for priceable models."""
+    from opencode_cli_mcp.depot import usage_series
+
+    _insert_usage_messages(depot_db)
+    series = usage_series(days=30)
+    # flash base rates: (1000*0.14 + 100*0.28 + 50*0.28 + 100000*0.0028)/1M
+    expected_per_day = round((140 + 28 + 14 + 280) / 1_000_000, 4)
+    for b in series["buckets"]:
+        if b["messages"] > 0:
+            assert abs(b["cost_est"] - expected_per_day) < 0.0001, b

@@ -260,3 +260,16 @@ class TestNotFound:
     def test_404_on_unknown_route(self):
         resp = client.get("/api/this-does-not-exist")
         assert resp.status_code == 404
+
+
+class TestDepotUsageRoute:
+    def test_usage_endpoint(self):
+        with patch(
+            "api.routes.depot.d.usage_series",
+            return_value={"days": 7, "buckets": [{"day": "2026-08-01", "messages": 1}], "totals": {}},
+        ):
+            resp = client.get("/api/depot/usage?days=7")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["data"]["buckets"][0]["day"] == "2026-08-01"

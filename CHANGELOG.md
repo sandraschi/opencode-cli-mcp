@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.9 - 2026-08-02 (Usage page: token/cost time series)
+
+### Added
+- **Usage page** (`/usage`): daily token + cost series from assistant
+  messages, with:
+  - stat cards: tokens (in/out/reason + cache reads), cost (est + stored),
+    messages, cumulative est. cost
+  - hand-rolled SVG area charts (no chart dependency): tokens per day
+    (stacked/layered, cache-read toggle), cost per day (est vs stored),
+    cumulative cost dots
+  - 7/30/90/365 day selector, **CSV export** of the daily buckets
+- `depot.usage_series(days)` - per-message aggregation into daily buckets
+  (time from message.data.time.created), gap-days zero-filled, restated
+  cost via `_cost_from_parts` (new shared helper, reused by `_restate_cost`).
+- REST `GET /api/depot/usage?days=N` (1-365).
+- Dashboard: new **Lifetime Cost** KPI card (est at base rates + stored),
+  next to the Eternal Memory card.
+- Tests: usage_series buckets + restate-cost math, usage route (157 total).
+
 ## 0.2.8 - 2026-08-02 (readable session transcript viewer)
 
 ### Added

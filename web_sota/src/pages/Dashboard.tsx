@@ -1,7 +1,18 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Server, Activity, ListTree, Cpu, AppWindow, HardDrive, Monitor, Terminal, Database } from "lucide-react";
+import {
+  Server,
+  Activity,
+  ListTree,
+  Cpu,
+  AppWindow,
+  HardDrive,
+  Monitor,
+  Terminal,
+  Database,
+  Coins,
+} from "lucide-react";
 import { api, type DepotStats, type FleetApp, type SystemInfo } from "../services/api";
 import { useStore } from "../store";
 
@@ -157,6 +168,17 @@ export function Dashboard() {
               : "read from opencode.db"
           }
           delay={0.32}
+        />
+        <StatCard
+          icon={Coins}
+          label="Lifetime Cost"
+          value={depotStats ? `$${depotStats.totals.estimated_cost.toFixed(2)} est` : "?"}
+          sub={
+            depotStats
+              ? `stored $${depotStats.totals.total_cost.toFixed(2)} · restated at base rates`
+              : "opencode.db cost accounting"
+          }
+          delay={0.36}
         />
       </div>
 

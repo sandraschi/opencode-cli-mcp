@@ -215,6 +215,34 @@ export interface DepotStats {
   };
 }
 
+export interface UsageBucket {
+  day: string;
+  messages: number;
+  tokens_input: number;
+  tokens_output: number;
+  tokens_reasoning: number;
+  tokens_cache_read: number;
+  tokens_cache_write: number;
+  cost_stored: number;
+  cost_est: number;
+  cost_est_known: number;
+}
+
+export interface UsageSeries {
+  days: number;
+  buckets: UsageBucket[];
+  totals: {
+    messages: number;
+    tokens_input: number;
+    tokens_output: number;
+    tokens_reasoning: number;
+    tokens_cache_read: number;
+    tokens_cache_write: number;
+    cost_stored: number;
+    cost_est: number;
+  };
+}
+
 export interface DepotSearchResult {
   session_id: string;
   title: string;
@@ -418,6 +446,8 @@ export const api = {
     ),
   depotStats: () =>
     fetchJson<{ success: boolean; message: string; data: DepotStats }>("/depot/stats", undefined, 60000),
+  depotUsage: (days: number) =>
+    fetchJson<{ success: boolean; message: string; data: UsageSeries }>(`/depot/usage?days=${days}`, undefined, 60000),
   depotArchive: (id: string) =>
     fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}/archive`, {
       method: "POST",

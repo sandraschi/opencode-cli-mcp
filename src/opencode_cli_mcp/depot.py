@@ -21,7 +21,7 @@ Safety model:
 import json
 import os
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -57,22 +57,24 @@ def _model_id(model_json: Any) -> str | None:
     return None
 
 
-def _restate_cost(row: Any) -> float | None:
-    """Estimate session cost at current pricing. None when unpriceable."""
-    model_id = _model_id(row["model"])
+def _cost_from_parts(model_id: str | None, t_in: float, t_out: float, t_reason: float, t_cache: float) -> float | None:
+    """Cost at current base rates for a model's token buckets. None when unpriceable."""
     prices = _MODEL_PRICES.get(model_id) if model_id else None
     if prices is None:
         return None
     p_in, p_out, p_reason, p_cache = prices
-    return round(
-        (
-            (row["tokens_input"] or 0) * p_in
-            + (row["tokens_output"] or 0) * p_out
-            + (row["tokens_reasoning"] or 0) * p_reason
-            + (row["tokens_cache_read"] or 0) * p_cache
-        )
-        / 1_000_000,
-        4,
+    return round((t_in * p_in + t_out * p_out + t_reason * p_reason + t_cache * p_cache) / 1_000_000, 4)
+
+
+def _restate_cost(row: Any) -> float | None:
+    """Estimate session cost at current pricing. None when unpriceable."""
+    model_id = _model_id(row["model"])
+    return _cost_from_parts(
+        model_id,
+        row["tokens_input"] or 0,
+        row["tokens_output"] or 0,
+        row["tokens_reasoning"] or 0,
+        row["tokens_cache_read"] or 0,
     )
 
 
@@ -478,5 +480,107 @@ def depot_stats(*, db_path: Path | None = None) -> dict[str, Any]:
                 for r in top_cost
             ],
         }
+    finally:
+        conn.close()
+
+
+def usage_series(*, days: int = 30, db_path: Path | None = None) -> dict[str, Any]:
+    """Daily buckets of tokens + cost from assistant messages.
+
+    Time source is the message's own ``time.created`` (provider usage arrives
+    per completion). Cost comes in two flavors: ``cost_stored`` (what opencode
+    recorded at message time, variant pricing included) and ``cost_est``
+    (restated at current base rates; only summed for priceable models, see
+    ``cost_est_known``). Gap days are filled with zero buckets so charts
+    render continuously.
+    """
+    conn = _connect(db_path, read_only=True)
+    try:
+        cutoff_ms = int(datetime.now(UTC).timestamp() * 1000) - days * 86_400_000
+        rows = conn.execute(
+            """
+            SELECT json_extract(data, '$.modelID') AS model_id,
+                   json_extract(data, '$.tokens.input') AS t_in,
+                   json_extract(data, '$.tokens.output') AS t_out,
+                   json_extract(data, '$.tokens.reasoning') AS t_reason,
+                   json_extract(data, '$.tokens.cache.read') AS t_cache,
+                   json_extract(data, '$.tokens.cache.write') AS t_cache_w,
+                   json_extract(data, '$.cost') AS cost,
+                   json_extract(data, '$.time.created') AS ts
+            FROM message
+            WHERE json_extract(data, '$.role') = 'assistant'
+              AND json_extract(data, '$.tokens.input') IS NOT NULL
+              AND json_extract(data, '$.time.created') >= ?
+            """,
+            (cutoff_ms,),
+        ).fetchall()
+
+        raw: dict[str, dict[str, Any]] = {}
+        for model_id, t_in, t_out, t_reason, t_cache, t_cache_w, cost, ts in rows:
+            if not ts:
+                continue
+            day = datetime.fromtimestamp(int(ts) / 1000, tz=UTC).strftime("%Y-%m-%d")
+            b = raw.setdefault(
+                day,
+                {
+                    "messages": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "cost_stored": 0.0,
+                    "cost_est": 0.0,
+                    "cost_est_known": 0,
+                },
+            )
+            b["messages"] += 1
+            b["tokens_input"] += t_in or 0
+            b["tokens_output"] += t_out or 0
+            b["tokens_reasoning"] += t_reason or 0
+            b["tokens_cache_read"] += t_cache or 0
+            b["tokens_cache_write"] += t_cache_w or 0
+            b["cost_stored"] += cost or 0
+            est = _cost_from_parts(model_id, t_in or 0, t_out or 0, t_reason or 0, t_cache or 0)
+            if est is not None:
+                b["cost_est"] += est
+                b["cost_est_known"] += 1
+
+        # Fill gap days so charts are continuous.
+        if raw:
+            first = min(raw)
+            last = max(raw)
+            cursor = datetime.strptime(first, "%Y-%m-%d")
+            end = datetime.strptime(last, "%Y-%m-%d")
+            while cursor < end:
+                key = cursor.strftime("%Y-%m-%d")
+                raw.setdefault(
+                    key,
+                    {
+                        "messages": 0,
+                        "tokens_input": 0,
+                        "tokens_output": 0,
+                        "tokens_reasoning": 0,
+                        "tokens_cache_read": 0,
+                        "tokens_cache_write": 0,
+                        "cost_stored": 0.0,
+                        "cost_est": 0.0,
+                        "cost_est_known": 0,
+                    },
+                )
+                cursor += timedelta(days=1)
+
+        buckets = [{"day": day, **raw[day]} for day in sorted(raw)]
+        totals = {
+            "messages": sum(b["messages"] for b in buckets),
+            "tokens_input": sum(b["tokens_input"] for b in buckets),
+            "tokens_output": sum(b["tokens_output"] for b in buckets),
+            "tokens_reasoning": sum(b["tokens_reasoning"] for b in buckets),
+            "tokens_cache_read": sum(b["tokens_cache_read"] for b in buckets),
+            "tokens_cache_write": sum(b["tokens_cache_write"] for b in buckets),
+            "cost_stored": round(sum(b["cost_stored"] for b in buckets), 4),
+            "cost_est": round(sum(b["cost_est"] for b in buckets), 4),
+        }
+        return {"days": days, "buckets": buckets, "totals": totals}
     finally:
         conn.close()
