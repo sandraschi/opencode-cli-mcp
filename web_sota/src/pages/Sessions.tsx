@@ -311,7 +311,11 @@ export function Sessions() {
                 onClick={() => viewSession(s.id)}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-sm truncate">{s.id}</span>
+                  <span
+                    className={`text-sm truncate ${s.title ? "font-semibold text-zinc-100" : "font-mono text-zinc-300"}`}
+                  >
+                    {s.title || s.id}
+                  </span>
                   <span className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
@@ -344,7 +348,7 @@ export function Sessions() {
                     <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
                   </span>
                 </div>
-                {s.title && <div className="text-xs text-zinc-400 mt-1 truncate">{s.title}</div>}
+                {s.title && <div className="text-xs text-zinc-600 font-mono mt-0.5 truncate">{s.id}</div>}
               </motion.div>
             ))}
           </div>
