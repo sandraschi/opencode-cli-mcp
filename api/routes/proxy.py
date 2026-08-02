@@ -29,7 +29,7 @@ async def proxy_mcp_status():
     """Per-server MCP connection status from opencode serve (GET /mcp).
 
     Powers the webapp MCP Servers page status dots (Cursor-style). Can be
-    slow when many configured servers are down — serve probes each one.
+    slow when many configured servers are down - serve probes each one.
     """
     client = await _get_client()
     try:

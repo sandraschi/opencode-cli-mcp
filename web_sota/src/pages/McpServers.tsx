@@ -235,7 +235,7 @@ export function McpServers() {
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
             {servers.length} server{servers.length === 1 ? "" : "s"} in opencode global config
-            {configPath ? ` — ${configPath}` : ""}
+            {configPath ? ` - ${configPath}` : ""}
           </p>
         </div>
         <div className="flex gap-2">

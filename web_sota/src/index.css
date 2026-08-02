@@ -17,7 +17,7 @@
   }
 }
 
-/* EXPERIMENTAL light mode (invert hack) — NOT fleet standard, reversible.
+/* EXPERIMENTAL light mode (invert hack) - NOT fleet standard, reversible.
    Toggling `.dark` off `<html>` inverts the whole UI. Remove this block to
    revert to permanently-dark. */
 html:not(.dark) {

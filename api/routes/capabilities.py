@@ -90,7 +90,7 @@ async def v1_diagnostics():
 
     cua_status.window_found is always False: this backend process has no
     window of its own to introspect (that's the Tauri shell's UI, a
-    separate process) — the CUA smoke test is expected to fill this in
+    separate process) - the CUA smoke test is expected to fill this in
     from its own pywinauto probe, not trust this endpoint for it.
     """
     try:

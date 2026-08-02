@@ -47,7 +47,7 @@ const navItems = [
   { path: "/logs", label: "Logs", icon: ScrollText },
 ];
 
-// EXPERIMENTAL light mode (invert hack). Not fleet standard — see index.css.
+// EXPERIMENTAL light mode (invert hack). Not fleet standard - see index.css.
 // Toggling `.dark` off the root flips the invert filter; persisted so the
 // choice survives reloads. Delete this + the CSS block to revert.
 const THEME_KEY = "ocmcp-light-mode";

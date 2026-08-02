@@ -15,7 +15,7 @@ export function ToolsHub() {
       .listToolDetails()
       .then((r) => setTools(r.data.tools))
       .catch(() => {
-        // backend down — empty state covers it
+        // backend down - empty state covers it
       })
       .finally(() => setLoading(false));
   }, []);
@@ -30,7 +30,7 @@ export function ToolsHub() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Tools Hub</h1>
-          <p className="text-sm text-zinc-500 mt-1">{tools.length} atomic MCP tools — click for details</p>
+          <p className="text-sm text-zinc-500 mt-1">{tools.length} atomic MCP tools - click for details</p>
         </div>
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />

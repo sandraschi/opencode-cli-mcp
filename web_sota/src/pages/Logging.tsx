@@ -61,7 +61,7 @@ export default function Logging() {
           afterIdRef.current = d.entries[d.entries.length - 1].id;
         }
       } catch {
-        // Log fetch failed (backend down or /api/logs unreachable) — entries
+        // Log fetch failed (backend down or /api/logs unreachable) - entries
         // just stay as-is; the next poll/tail tick will retry.
       } finally {
         setLoading(false);

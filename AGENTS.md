@@ -1,4 +1,4 @@
-# opencode-cli-mcp — Agent Guide
+# opencode-cli-mcp - Agent Guide
 
 ## Overview
 
@@ -28,7 +28,7 @@ the opencode SQLite DB, `.mcpb` installs, and graceful shutdown. Ships a unified
 
 ## Standards
 
-- FastMCP 3.2+ portmanteau tool pattern — tools use `operation` enum param; responses are
+- FastMCP 3.2+ portmanteau tool pattern - tools use `operation` enum param; responses are
   structured dicts with `success`, `message`, domain-specific fields.
 - 6 primary tools (`opencode_runs`, `opencode_sessions`, `opencode_depot`, `opencode_system`,
   `opencode_mcpb_install`, `opencode_shutdown`) + 15 legacy atomic aliases (0.3.0 removes them).

@@ -15,7 +15,7 @@ def _serve_auth() -> httpx.BasicAuth | None:
     """Basic auth for password-protected opencode serve (desktop app env).
 
     The opencode desktop app sets OPENCODE_SERVER_PASSWORD in the environment,
-    inherited by every child process — including our spawned `opencode serve` —
+    inherited by every child process - including our spawned `opencode serve` -
     and a password-protected serve returns 401 without Basic auth. Read the
     env lazily (not at import) so a desktop app that sets the password after
     our backend starts is still picked up.
@@ -197,7 +197,7 @@ class OpencodeClient:
 
         Returns {name: {"status": "connected" | "connecting" | "error" | ...}}.
         Serve probes each configured server, so this can take tens of seconds
-        when many servers are down — use a long per-request timeout.
+        when many servers are down - use a long per-request timeout.
         """
         r = await self._http.get("/mcp", timeout=45.0)
         r.raise_for_status()

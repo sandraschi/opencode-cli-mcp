@@ -1,8 +1,8 @@
-"""PyInstaller entry point — starts the HTTP/uvicorn backend.
+"""PyInstaller entry point - starts the HTTP/uvicorn backend.
 
 Port resolution order matches what native/src/backend.rs actually sets
 (OPENCODE_CLI_MCP_PORT); BACKEND_PORT matches api.main's dev-mode env.
-Default 10951 is this repo's registered backend port — 10700 belongs to
+Default 10951 is this repo's registered backend port - 10700 belongs to
 virtualization-mcp and must never be used here.
 """
 

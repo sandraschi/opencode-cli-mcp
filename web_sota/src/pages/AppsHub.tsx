@@ -23,7 +23,7 @@ export function AppsHub() {
       const res = await api.getFleet();
       setApps(res.data.apps);
     } catch {
-      // Fleet scan failed (backend down or /api/fleet unreachable) — apps list
+      // Fleet scan failed (backend down or /api/fleet unreachable) - apps list
       // just stays empty; the loading skeleton clears and shows zero results.
     } finally {
       setLoading(false);
@@ -43,7 +43,7 @@ export function AppsHub() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Apps Hub</h1>
-          <p className="text-sm text-zinc-500 mt-1">Fleet Discovery — MCP webapps on this machine</p>
+          <p className="text-sm text-zinc-500 mt-1">Fleet Discovery - MCP webapps on this machine</p>
         </div>
         <button
           type="button"

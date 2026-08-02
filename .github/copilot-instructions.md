@@ -1,4 +1,4 @@
-# Copilot Instructions — opencode-cli-mcp
+# Copilot Instructions - opencode-cli-mcp
 
 ## Session Context (opencode-cli-mcp)
 

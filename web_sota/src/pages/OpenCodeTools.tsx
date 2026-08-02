@@ -19,7 +19,7 @@ import type { OpenCodeToolDef } from "../services/api";
 const INSTALL_STEPS = [
   "Copy the tool files from this project's <code>.opencode/tools/</code> directory",
   "Paste them into your opencode project's <code>.opencode/tools/</code> directory",
-  "Restart opencode — tools are auto-loaded on start",
+  "Restart opencode - tools are auto-loaded on start",
   'Use the tool by name (e.g. "fleet_status", "system") in your opencode session',
 ];
 
@@ -105,7 +105,7 @@ export function OpenCodeTools() {
         <div className="mt-4 p-3 bg-zinc-900 border border-zinc-800 rounded-lg">
           <div className="flex items-center gap-2 text-xs text-zinc-400 mb-1">
             <Terminal className="w-3 h-3" />
-            Quick copy — run in your opencode project root:
+            Quick copy - run in your opencode project root:
           </div>
           <code className="text-xs text-zinc-300 font-mono">
             cp -r path/to/opencode-cli-mcp/.opencode/tools/* .opencode/tools/

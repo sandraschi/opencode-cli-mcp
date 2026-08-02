@@ -1,6 +1,6 @@
 """LanceDB semantic search over the opencode session depot.
 
-Fleet reference: arxiv-mcp ``services/vector_rag.py`` — LanceDB + FastEmbed
+Fleet reference: arxiv-mcp ``services/vector_rag.py`` - LanceDB + FastEmbed
 with ``BAAI/bge-small-en-v1.5`` (384-dim) as the default embedding model.
 
 Optional deps: ``lancedb``, ``fastembed``, ``pyarrow`` (``uv sync --extra

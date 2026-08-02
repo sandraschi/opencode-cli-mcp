@@ -101,7 +101,7 @@ async def opencode_mcpb_install(
         Field(description="Show what would be written without modifying the config."),
     ] = False,
 ) -> dict[str, Any]:
-    """OPENCODE_MCPB_INSTALL — Install an MCPB bundle into opencode config.
+    """OPENCODE_MCPB_INSTALL - Install an MCPB bundle into opencode config.
 
     Unpacks the .mcpb (or reads an unpacked directory), extracts the manifest,
     and merges the server definition into the opencode config file's `mcp` section.

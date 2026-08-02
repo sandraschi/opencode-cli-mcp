@@ -2,7 +2,7 @@
 
 The opencode serve API exposes config read-only. The webapp needs full
 management of the `mcp` and `plugin` sections (the winapp UI shows truncated
-paths and no server info — this fills the gap). Writes go directly to the
+paths and no server info - this fills the gap). Writes go directly to the
 config file with:
 
 - a timestamped `.bak` backup BEFORE every write (fleet batch-mutation rule)
@@ -10,7 +10,7 @@ config file with:
 - atomic write via temp file + os.replace (no partial files)
 
 Config location: global `~/.config/opencode/opencode.json` (project configs
-are out of scope — the global file is where the winapp and this webapp share
+are out of scope - the global file is where the winapp and this webapp share
 state).
 """
 
@@ -123,7 +123,7 @@ async def get_occonfig():
     """Full opencode config: mcp servers (readable info), plugins, path.
 
     Each MCP server entry is enriched with a human-readable summary
-    (command joined, url, type, enabled) — the winapp only shows a
+    (command joined, url, type, enabled) - the winapp only shows a
     truncated path.
     """
     config = _read_config()

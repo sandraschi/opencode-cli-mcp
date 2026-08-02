@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CUA webapp test — pre-Tauri / no-Tauri webapp smoke test.
+"""CUA webapp test - pre-Tauri / no-Tauri webapp smoke test.
 
 Same idea as cua-smoke.py but WITHOUT the NSIS install/uninstall phases:
 spins up backend + frontend (via the repo's start.ps1), waits for the
@@ -14,7 +14,7 @@ Phases:
     3. Wait for backend health (config backend_port / health_path)
     4. Wait for frontend (config frontend_port) HTTP 200
     5. Open browser to frontend URL
-    6. Wait for "Connected" badge (OCR, retry w/ timeout — the wrinkle)
+    6. Wait for "Connected" badge (OCR, retry w/ timeout - the wrinkle)
     7. Nav walk: title-matching sidebar clicks, per-page screenshots
     8. Diagnostics check (if backend exposes /api/v1/diagnostics)
     9. Cleanup: kill spawned processes
@@ -140,7 +140,7 @@ def start_stack():
     # Fallback: direct spawn of backend via uv + python module (config: backend_module)
     module = cfg("backend_module", "")
     if not module:
-        log("No backend_module in config — cannot direct-spawn backend")
+        log("No backend_module in config - cannot direct-spawn backend")
         return False
     log(f"Direct spawn fallback: python -m {module}")
     subprocess.Popen(
@@ -176,7 +176,7 @@ def wait_backend():
 def wait_frontend():
     """Poll frontend port until HTTP 200 or timeout."""
     if not FRONTEND_PORT:
-        log("No frontend_port in config — skipping frontend wait")
+        log("No frontend_port in config - skipping frontend wait")
         return True
     url = f"http://127.0.0.1:{FRONTEND_PORT}"
     deadline = time.time() + int(cfg("frontend_timeout", 30))
@@ -277,7 +277,7 @@ def nav_click_through(output_dir, win):
     """Title-matching sidebar walk (same strategy as cua-smoke template v3)."""
     nav_routes = cfg("nav_routes", [])
     if not isinstance(nav_routes, list) or not nav_routes:
-        log("No nav_routes in config — nav walk skipped")
+        log("No nav_routes in config - nav walk skipped")
         return True
     os.makedirs(output_dir, exist_ok=True)
     try:
@@ -299,7 +299,7 @@ def nav_click_through(output_dir, win):
                     el[0].click_input()
                 else:
                     nav_failures.append((label, "no link found"))
-                    log(f"Nav '{label}': no link found — skipped")
+                    log(f"Nav '{label}': no link found - skipped")
                     continue
             time.sleep(2)
             path = os.path.join(output_dir, f"webapp-{label.lower().replace(' ', '-')}.png")
@@ -388,13 +388,13 @@ def main():
                 failed += 1
                 log(f"X {name}")
                 if critical:
-                    log(f"CRITICAL — aborting ({name})")
+                    log(f"CRITICAL - aborting ({name})")
                     break
         except Exception as e:
             failed += 1
             log(f"X {name}: {e}")
             if critical:
-                log(f"CRITICAL — aborting ({name})")
+                log(f"CRITICAL - aborting ({name})")
                 break
 
     log(f"Result: {passed}/{passed + failed}")

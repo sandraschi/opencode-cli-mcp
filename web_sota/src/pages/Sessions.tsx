@@ -15,7 +15,7 @@ export function Sessions() {
       const res = await api.listSessions();
       setSessions(res.data.sessions);
     } catch {
-      // backend down — keep last list; empty state covers first load
+      // backend down - keep last list; empty state covers first load
     } finally {
       setLoading(false);
     }

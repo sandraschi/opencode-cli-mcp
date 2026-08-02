@@ -21,7 +21,7 @@ MCP server that wraps opencode's `opencode serve` HTTP API into MCP tools, with 
 - Tools in `src/opencode_cli_mcp/tools/`: sessions, runs, agent, status
 - Shared tool registry in `src/opencode_cli_mcp/registry.py`
 - `ensure_server()` is wired into all session/status tools
-- OpenCode custom tools in `.opencode/tools/` — TS definitions calling backend API
+- OpenCode custom tools in `.opencode/tools/` - TS definitions calling backend API
 - Docs served via `GET /api/docs`, tool source via `GET /api/opencode-tools`
 - Ports: 10950 frontend / 10951 backend / 4096 opencode
 

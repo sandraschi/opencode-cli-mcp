@@ -44,17 +44,17 @@ def agent_instructions():
     return """You have access to opencode-cli-mcp tools which wrap opencode's agent capabilities.
 
 **Primary tools (portmanteaus):**
-- `opencode_runs(action=...)` — start / status / list / cancel agent runs
-- `opencode_sessions(action=...)` — list / get / messages / send / diff sessions
-- `opencode_depot(action=...)` — session depot: list/archive/unarchive/rename/delete/search/stats via SQLite (works offline)
-- `opencode_system(action=...)` — status / providers / project / launch_ui / mcp_pulse / config_drift
+- `opencode_runs(action=...)` - start / status / list / cancel agent runs
+- `opencode_sessions(action=...)` - list / get / messages / send / diff sessions
+- `opencode_depot(action=...)` - session depot: list/archive/unarchive/rename/delete/search/stats via SQLite (works offline)
+- `opencode_system(action=...)` - status / providers / project / launch_ui / mcp_pulse / config_drift
 
 The granular `opencode_*` tools (run_agent, get_run_status, list_sessions, ...)
 are legacy aliases for the same operations and will be removed in 0.3.0.
 
 **Running agents:**
-- `opencode_runs(action="start", prompt="...", wait=false)` for long tasks — returns job_id immediately
-- `wait=true` for short tasks — blocks until done
+- `opencode_runs(action="start", prompt="...", wait=false)` for long tasks - returns job_id immediately
+- `wait=true` for short tasks - blocks until done
 - Poll with `opencode_runs(action="status", job_id=...)` for incremental output
 - Cancel with `opencode_runs(action="cancel", job_id=...)` if stuck
 
@@ -62,11 +62,11 @@ are legacy aliases for the same operations and will be removed in 0.3.0.
 - `show_runs_app` / `show_sessions_app` / `show_status_app` render in-chat cards
 
 **Workflow pattern:**
-1. `opencode_system(action="status")` — verify opencode serve is reachable
-2. `opencode_runs(action="start", prompt="...")` — launch agent, get job_id
-3. `opencode_runs(action="status", job_id=...)` — poll until status=completed
-4. `opencode_sessions(action="list")` — find the resulting session
-5. `opencode_sessions(action="diff", session_id=...)` — review what changed
+1. `opencode_system(action="status")` - verify opencode serve is reachable
+2. `opencode_runs(action="start", prompt="...")` - launch agent, get job_id
+3. `opencode_runs(action="status", job_id=...)` - poll until status=completed
+4. `opencode_sessions(action="list")` - find the resulting session
+5. `opencode_sessions(action="diff", session_id=...)` - review what changed
 """
 
 

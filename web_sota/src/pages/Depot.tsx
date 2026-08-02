@@ -203,7 +203,7 @@ export function Depot() {
   };
 
   const fmtTokens = (n?: number | null) => {
-    if (!n) return "—";
+    if (!n) return "-";
     return n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}k` : String(n);
   };
 
@@ -352,7 +352,7 @@ export function Depot() {
               filters.searchMode === "transcript"
                 ? "Search session transcripts (3+ chars)..."
                 : filters.searchMode === "semantic"
-                  ? "Semantic search — describe what you want to find..."
+                  ? "Semantic search - describe what you want to find..."
                   : "Filter by session title..."
             }
             data-testid="depot-search"
@@ -393,7 +393,7 @@ export function Depot() {
                 ragStatus.pending_sessions !== undefined &&
                 ragStatus.pending_sessions > 0 && (
                   <span className="text-zinc-500">
-                    {ragStatus.pending_sessions} sessions pending — index to search them semantically
+                    {ragStatus.pending_sessions} sessions pending - index to search them semantically
                   </span>
                 )
               )}
@@ -415,7 +415,7 @@ export function Depot() {
               <span className="text-zinc-500">
                 {ragStatus.reason === "rag_disabled"
                   ? "RAG disabled (OPENCODE_CLI_MCP_RAG_ENABLED=0)"
-                  : `RAG deps missing — ${ragStatus.install_hint || "uv sync --extra rag"}`}
+                  : `RAG deps missing - ${ragStatus.install_hint || "uv sync --extra rag"}`}
               </span>
             </>
           )}
@@ -424,7 +424,7 @@ export function Depot() {
 
       {topCostLabel && (
         <div className="text-xs text-zinc-600 mb-3">
-          Most expensive session: <span className="text-zinc-400">{topCostLabel.title}</span> — $
+          Most expensive session: <span className="text-zinc-400">{topCostLabel.title}</span> - $
           {topCostLabel.cost.toFixed(2)}
         </div>
       )}
@@ -481,7 +481,7 @@ export function Depot() {
           {semanticResults.length === 0 ? (
             <div className="text-center py-12 text-zinc-500">
               <Sparkles className="w-8 h-8 mx-auto mb-3 opacity-40" />
-              <p>No semantic matches. Index sessions (RAG bar above) first — or the index is still empty.</p>
+              <p>No semantic matches. Index sessions (RAG bar above) first - or the index is still empty.</p>
             </div>
           ) : (
             semanticResults.map((r) => (
@@ -569,7 +569,7 @@ export function Depot() {
                   <p className="text-xs text-zinc-600 mt-0.5 truncate">{s.directory || s.project_id}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-zinc-500">
                     {s.agent && <span>agent: {s.agent}</span>}
-                    <span>updated: {s.time_updated_display || "—"}</span>
+                    <span>updated: {s.time_updated_display || "-"}</span>
                     <span>tokens: {fmtTokens((s.tokens_input ?? 0) + (s.tokens_output ?? 0))}</span>
                     <span>cost: ${(s.cost_est ?? s.cost ?? 0).toFixed(2)}</span>
                   </div>
@@ -639,35 +639,35 @@ export function Depot() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-zinc-400">
                     <div>
                       <span className="text-zinc-600 block">Created</span>
-                      {detail.time_created_display || "—"}
+                      {detail.time_created_display || "-"}
                     </div>
                     <div>
                       <span className="text-zinc-600 block">Archived</span>
-                      {detail.time_archived_display || "—"}
+                      {detail.time_archived_display || "-"}
                     </div>
                     <div>
                       <span className="text-zinc-600 block">Messages</span>
-                      {detail.message_count ?? "—"}
+                      {detail.message_count ?? "-"}
                     </div>
                     <div>
                       <span className="text-zinc-600 block">Parts</span>
-                      {detail.part_count ?? "—"}
+                      {detail.part_count ?? "-"}
                     </div>
                     <div>
                       <span className="text-zinc-600 block">Model</span>
-                      {detail.model ? String(detail.model).slice(0, 60) : "—"}
+                      {detail.model ? String(detail.model).slice(0, 60) : "-"}
                     </div>
                     <div>
                       <span className="text-zinc-600 block">Agent</span>
-                      {detail.agent || "—"}
+                      {detail.agent || "-"}
                     </div>
                     <div>
                       <span className="text-zinc-600 block">Project</span>
-                      {detail.project_id || "—"}
+                      {detail.project_id || "-"}
                     </div>
                     <div>
                       <span className="text-zinc-600 block">Slug</span>
-                      {detail.slug || "—"}
+                      {detail.slug || "-"}
                     </div>
                   </div>
                 </motion.div>

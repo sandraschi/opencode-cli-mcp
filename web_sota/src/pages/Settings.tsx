@@ -138,7 +138,7 @@ export function Settings() {
             return { ...s, local_model: nextModel };
           });
         } else {
-          // Provider has no model list yet — try the models endpoint directly.
+          // Provider has no model list yet - try the models endpoint directly.
           const d = await api.getLocalModels();
           if (d.success && d.data.models.length > 0) {
             setDetectedModels(d.data.models);
@@ -150,7 +150,7 @@ export function Settings() {
           }
         }
       } catch {
-        // provider down — keep current model
+        // provider down - keep current model
       } finally {
         setLoadingModels(false);
       }

@@ -51,7 +51,7 @@ export function BackendStatus() {
           }
         });
       } catch {
-        // Not inside Tauri — HTTP polling handles it
+        // Not inside Tauri - HTTP polling handles it
       }
     })();
     return () => {
@@ -66,7 +66,7 @@ export function BackendStatus() {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("start_backend");
     } catch {
-      setRestarting(false); // not in Tauri — HTTP poll will update
+      setRestarting(false); // not in Tauri - HTTP poll will update
     }
   }, []);
 

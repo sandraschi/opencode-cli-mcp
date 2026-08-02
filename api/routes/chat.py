@@ -72,7 +72,7 @@ async def chat(body: ChatRequest):
                     return {"success": True, "response": content, "provider": "lmstudio", "model": model}
                 return {"success": False, "response": f"LM Studio error: {r.status_code}", "provider": "lmstudio"}
 
-            # Ollama — try /api/chat first (Ollama 0.5+), fallback to /api/generate
+            # Ollama - try /api/chat first (Ollama 0.5+), fallback to /api/generate
             try:
                 r = await client.post(
                     f"{endpoint}/api/chat",

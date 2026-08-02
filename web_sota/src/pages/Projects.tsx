@@ -179,7 +179,7 @@ export function Projects() {
           data-testid="launch-run-form"
         >
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-            {runs.length === 0 ? "Populate this page — launch your first agent run" : "Launch an agent run"}
+            {runs.length === 0 ? "Populate this page - launch your first agent run" : "Launch an agent run"}
           </h2>
           <div className="space-y-3">
             <div>
@@ -198,7 +198,7 @@ export function Projects() {
             </div>
             <div>
               <label htmlFor="launch-project" className="text-xs text-zinc-500 mb-1 block">
-                Project directory (optional — defaults to opencode's working dir)
+                Project directory (optional - defaults to opencode's working dir)
               </label>
               <input
                 id="launch-project"
@@ -221,7 +221,7 @@ export function Projects() {
                 />
                 Wait for completion (blocks the request)
               </label>
-              <span className="text-xs text-zinc-600">Fire-and-forget is recommended — poll status instead.</span>
+              <span className="text-xs text-zinc-600">Fire-and-forget is recommended - poll status instead.</span>
             </div>
             {launchError && <div className="text-sm text-red-400">{launchError}</div>}
             <button
@@ -325,11 +325,11 @@ export function Projects() {
                   </div>
                   <div>
                     <span className="text-zinc-500 text-xs uppercase">Project</span>
-                    <p className="text-zinc-200 mt-0.5">{runDetail.project || "—"}</p>
+                    <p className="text-zinc-200 mt-0.5">{runDetail.project || "-"}</p>
                   </div>
                   <div>
                     <span className="text-zinc-500 text-xs uppercase">Exit Code</span>
-                    <p className="text-zinc-200 mt-0.5">{runDetail.exit_code ?? "—"}</p>
+                    <p className="text-zinc-200 mt-0.5">{runDetail.exit_code ?? "-"}</p>
                   </div>
                 </div>
                 <div>

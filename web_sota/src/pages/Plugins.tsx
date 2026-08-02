@@ -82,7 +82,7 @@ export function Plugins() {
             Plugins
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            opencode plugins — config entries and auto-discovered files in {pluginDir || "~/.config/opencode/plugins/"}
+            opencode plugins - config entries and auto-discovered files in {pluginDir || "~/.config/opencode/plugins/"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -172,7 +172,7 @@ export function Plugins() {
           <section>
             <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
               <FileCode2 className="w-4 h-4" />
-              Auto-discovered ({dirPlugins.length}) — plugins dir
+              Auto-discovered ({dirPlugins.length}) - plugins dir
             </h2>
             {dirPlugins.length === 0 ? (
               <p className="text-sm text-zinc-600">No plugin files in the plugins dir.</p>
@@ -216,7 +216,7 @@ export function Plugins() {
           <section>
             <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
               <Puzzle className="w-4 h-4" />
-              Config entries ({configPlugins.length}) — plugin array
+              Config entries ({configPlugins.length}) - plugin array
             </h2>
             {configPlugins.length === 0 ? (
               <p className="text-sm text-zinc-600">

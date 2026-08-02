@@ -79,14 +79,14 @@ e2e:
 type-check:
     uv run pyright
 
-# Run every gate: ruff, pytest, pyright, tsc, biome — abort on first failure
+# Run every gate: ruff, pytest, pyright, tsc, biome - abort on first failure
 certify:
     uv run ruff check .
     uv run pytest tests/ -q
     uv run pyright src/ api/
     cd web_sota; npx tsc --noEmit
     cd web_sota; npm run biome:ci
-    Write-Host "=== CERTIFY PASSED — all gates green ===" -ForegroundColor Green
+    Write-Host "=== CERTIFY PASSED - all gates green ===" -ForegroundColor Green
 
 # ── Build ───────────────────────────────────────────────
 # Build webapp

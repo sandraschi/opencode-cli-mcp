@@ -51,7 +51,7 @@ export function StatusAudit() {
           {
             timestamp: new Date().toISOString().slice(11, 19),
             level: "DEBUG",
-            message: `Heartbeat — CPU: ${Math.floor(Math.random() * 30 + 10)}%`,
+            message: `Heartbeat - CPU: ${Math.floor(Math.random() * 30 + 10)}%`,
           },
         ].slice(-200),
       );

@@ -12,6 +12,6 @@ export default tool({
     const { data } = await resp.json() as { success: boolean; data: { tools: Array<{ name: string; description: string }> } }
     let tools = data.tools
     if (args.search) tools = tools.filter(t => t.name.includes(args.search!) || t.description.includes(args.search!))
-    return tools.map(t => `- \`${t.name}\` — ${t.description}`).join("\n")
+    return tools.map(t => `- \`${t.name}\` - ${t.description}`).join("\n")
   },
 })

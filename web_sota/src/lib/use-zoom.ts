@@ -19,7 +19,7 @@ export function useZoom() {
       await getCurrentWebview().setZoom(level);
       return;
     } catch {
-      // dev browser — fall through to CSS zoom
+      // dev browser - fall through to CSS zoom
     }
     document.documentElement.style.zoom = String(level);
   }, []);

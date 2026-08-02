@@ -23,7 +23,7 @@ just serve       # start the server
 just web         # start the frontend (if applicable)
 ```
 
-> **Why not `pip install`?** MCP servers bundle webapps, configs, project scaffolding, and tooling that a flat Python package can't deliver. PyPI offers no safety advantage — it doesn't audit packages either. `just` gives you the complete, ready-to-run stack.
+> **Why not `pip install`?** MCP servers bundle webapps, configs, project scaffolding, and tooling that a flat Python package can't deliver. PyPI offers no safety advantage - it doesn't audit packages either. `just` gives you the complete, ready-to-run stack.
 
 ---
 
