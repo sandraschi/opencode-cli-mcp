@@ -125,7 +125,7 @@ Copy `.opencode/tools/*.ts` into your opencode project to give opencode's LLM di
 | [Usage Guide](docs/USAGE.md) | All tools, workflows, async patterns, webapp pages |
 | [Integration Guide](docs/integration-guide.md) | MCP client config (Claude Desktop, Cursor, Windsurf) |
 | [Advanced Usage](docs/advanced-usage.md) | Async patterns, session management, cross-project, custom tools |
-| [Improvement Plan](docs/IMPROVEMENTS_2026-05-02.md) | Known issues and roadmap |
+| [Improvement Plan](docs/IMPROVEMENTS.md) | Known issues and roadmap |
 | [Changelog](CHANGELOG.md) | Version history |
 
 ## Stack
