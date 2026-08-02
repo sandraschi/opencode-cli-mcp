@@ -17,15 +17,23 @@ import {
   Eye,
   Sparkles,
   Wand2,
+  FileCode2,
 } from "lucide-react";
-import { api, type DepotSession, type DepotStats, type RagSearchResult, type RagStatus } from "../services/api";
+import {
+  api,
+  type CodeSearchResult,
+  type DepotSession,
+  type DepotStats,
+  type RagSearchResult,
+  type RagStatus,
+} from "../services/api";
 
 const PAGE_SIZE = 25;
 
 interface Filters {
   status: "all" | "active" | "archived";
   search: string;
-  searchMode: "title" | "transcript" | "semantic";
+  searchMode: "title" | "transcript" | "semantic" | "code";
   timeframe: number | null;
 }
 
@@ -39,6 +47,8 @@ export function Depot() {
     Array<{ session_id: string; title: string; snippet: string; timestamp: string; archived: boolean }>
   >([]);
   const [semanticResults, setSemanticResults] = useState<RagSearchResult[]>([]);
+  const [codeResults, setCodeResults] = useState<CodeSearchResult[]>([]);
+  const [codePath, setCodePath] = useState("");
   const [ragStatus, setRagStatus] = useState<RagStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
@@ -127,6 +137,21 @@ export function Depot() {
     }
   }, []);
 
+  const runCodeSearch = useCallback(async (q: string, path: string) => {
+    setSearching(true);
+    setError("");
+    try {
+      const d = await api.depotCodeSearch(q, path);
+      setCodeResults(d.data.results);
+      setOffset(0);
+    } catch (e) {
+      setError(`Code search failed: ${e instanceof Error ? e.message : "unknown"}`);
+      setCodeResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (filters.searchMode === "transcript" && filters.search.trim().length >= 3) {
       const t = setTimeout(() => runTranscriptSearch(filters.search.trim()), 400);
@@ -136,9 +161,14 @@ export function Depot() {
       const t = setTimeout(() => runSemanticSearch(filters.search.trim()), 400);
       return () => clearTimeout(t);
     }
+    if (filters.searchMode === "code" && (filters.search.trim().length >= 3 || codePath.trim().length >= 3)) {
+      const t = setTimeout(() => runCodeSearch(filters.search.trim(), codePath.trim()), 400);
+      return () => clearTimeout(t);
+    }
     setTranscriptResults([]);
     setSemanticResults([]);
-  }, [filters.search, filters.searchMode, runTranscriptSearch, runSemanticSearch]);
+    setCodeResults([]);
+  }, [filters.search, filters.searchMode, codePath, runTranscriptSearch, runSemanticSearch, runCodeSearch]);
 
   const startIndexing = async () => {
     setError("");
@@ -209,6 +239,8 @@ export function Depot() {
 
   const inTranscriptMode = filters.searchMode === "transcript" && filters.search.trim().length >= 3;
   const inSemanticMode = filters.searchMode === "semantic" && filters.search.trim().length >= 3;
+  const inCodeMode =
+    filters.searchMode === "code" && (filters.search.trim().length >= 3 || codePath.trim().length >= 3);
   const hasNext = offset + PAGE_SIZE < total;
   const hasPrev = offset > 0;
 
@@ -341,6 +373,17 @@ export function Depot() {
           >
             <Sparkles className="w-2.5 h-2.5" /> Semantic
           </button>
+          <button
+            type="button"
+            onClick={() => setFilters((f) => ({ ...f, searchMode: "code" }))}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors ${
+              filters.searchMode === "code" ? "bg-accent/20 text-accent" : "text-zinc-500 hover:text-zinc-300"
+            }`}
+            title="Code recall: when an agent touched a file (patch paths + edits)"
+            data-testid="depot-mode-code"
+          >
+            <FileCode2 className="w-2.5 h-2.5" /> Code
+          </button>
         </div>
         <div className="relative flex-1 min-w-52">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
@@ -353,19 +396,33 @@ export function Depot() {
                 ? "Search session transcripts (3+ chars)..."
                 : filters.searchMode === "semantic"
                   ? "Semantic search - describe what you want to find..."
-                  : "Filter by session title..."
+                  : filters.searchMode === "code"
+                    ? "Code recall - describe the change, or leave empty for path-only..."
+                    : "Filter by session title..."
             }
             data-testid="depot-search"
             className="w-full bg-zinc-800 border border-zinc-700 rounded-md pl-8 pr-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
           />
         </div>
+        {filters.searchMode === "code" && (
+          <input
+            type="text"
+            value={codePath}
+            onChange={(e) => setCodePath(e.target.value)}
+            placeholder="path filter (e.g. auth_utils.py)"
+            data-testid="depot-code-path"
+            className="w-48 bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50 font-mono"
+          />
+        )}
         {searching && <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-500" />}
         <span className="text-xs text-zinc-500">
           {inTranscriptMode
             ? `${transcriptResults.length} transcript matches`
             : inSemanticMode
               ? `${semanticResults.length} semantic matches`
-              : `${total} shown`}
+              : inCodeMode
+                ? `${codeResults.length} code matches`
+                : `${total} shown`}
         </span>
       </div>
 
@@ -380,7 +437,10 @@ export function Depot() {
           </span>
           {ragStatus.available ? (
             <>
-              <span className="text-zinc-400">{ragStatus.indexed_chunks.toLocaleString()} chunks indexed</span>
+              <span className="text-zinc-400">{ragStatus.indexed_chunks.toLocaleString()} chunks</span>
+              {typeof ragStatus.indexed_code === "number" && (
+                <span className="text-zinc-400">{ragStatus.indexed_code.toLocaleString()} code rows</span>
+              )}
               <span className="text-zinc-600">model: {ragStatus.model}</span>
               {ragStatus.running ? (
                 <span className="flex items-center gap-1.5 text-amber-400">
@@ -501,6 +561,55 @@ export function Depot() {
                   <span className="text-xs text-zinc-600">{r.engine}</span>
                 </div>
                 <p className="text-xs text-zinc-400 whitespace-pre-wrap">{r.snippet}</p>
+                <button
+                  type="button"
+                  onClick={() => viewSession(r.session_id)}
+                  className="mt-2 text-xs text-accent hover:underline"
+                >
+                  Open session
+                </button>
+              </motion.div>
+            ))
+          )}
+        </div>
+      ) : inCodeMode ? (
+        <div className="space-y-2">
+          {codeResults.length === 0 ? (
+            <div className="text-center py-12 text-zinc-500">
+              <FileCode2 className="w-8 h-8 mx-auto mb-3 opacity-40" />
+              <p>No code matches. Index sessions (RAG bar above) first - or the code index is still empty.</p>
+            </div>
+          ) : (
+            codeResults.map((r) => (
+              <motion.div
+                key={`${r.session_id}-${r.path}-${r.updated_ms}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-surface-light border border-surface-border rounded-xl p-4"
+                data-testid={`depot-code-${r.session_id}`}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <FileCode2 className="w-3.5 h-3.5 text-accent" />
+                  <span className="font-mono text-xs text-zinc-200 break-all">{r.path}</span>
+                  <span
+                    className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
+                      r.kind === "patch" ? "bg-amber-900/60 text-amber-300" : "bg-zinc-800 text-zinc-300"
+                    }`}
+                  >
+                    {r.kind}
+                  </span>
+                  {r.rank !== null && r.rank !== undefined && (
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                      {(r.rank * 100).toFixed(0)}%
+                    </span>
+                  )}
+                  <span className="flex-1" />
+                  {r.updated_ms ? (
+                    <span className="text-xs text-zinc-600">{new Date(r.updated_ms).toLocaleDateString()}</span>
+                  ) : null}
+                </div>
+                <div className="text-xs text-zinc-500 font-mono mb-1">{r.title || r.session_id}</div>
+                <p className="text-xs text-zinc-400 whitespace-pre-wrap font-mono">{r.snippet}</p>
                 <button
                   type="button"
                   onClick={() => viewSession(r.session_id)}

@@ -131,6 +131,37 @@ async def depot_rag_status():
     return {"success": True, "message": "RAG status", "data": rag.rag_status()}
 
 
+@router.get("/rag/code")
+async def depot_rag_code(q: str = "", path: str = "", limit: int = 20):
+    """Code-recall search: when an agent touched a file (patch paths + edits).
+
+    ``path`` alone = lexical path recall; ``q`` (+ optional ``path``) =
+    vector search over edit bodies restricted to matching paths.
+    """
+    try:
+        hits = rag.code_search(query=q or None, path_filter=path or None, limit=min(max(limit, 1), 50))
+    except rag.RAGUnavailableError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {
+        "success": True,
+        "message": f"{len(hits)} code matches",
+        "data": {"results": hits, "query": q, "path": path},
+    }
+
+
+@router.post("/rag/code/index")
+async def depot_rag_code_index():
+    """Rebuild the code table from all sessions (code-only backfill)."""
+    global _index_task
+    if _index_task and not _index_task.done():
+        return {"success": True, "message": "Indexing already running", "data": rag.rag_status()}
+    try:
+        _index_task = asyncio.create_task(asyncio.to_thread(rag.reindex_code_all, 100))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start code index: {e}")
+    return {"success": True, "message": "Code indexing started", "data": rag.rag_status()}
+
+
 @router.post("/rag/index")
 async def depot_rag_index(limit_sessions: int | None = None, reset: bool = False):
     """Start (or resume) background indexing of depot sessions.

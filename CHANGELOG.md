@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.7 - 2026-08-02 (code recall index: when did an agent touch X)
+
+### Added
+- **Code index** (`session_code` LanceDB table): rows from `patch` parts
+  (file paths opencode recorded) and `tool` parts (code-mutating edits with
+  old/new content) - the evidence a refactor happened that the conversation
+  text index never sees.
+- `opencode_depot(action="code", query=..., path_filter=...)` - hybrid code
+  recall: path-only = lexical path recall; query = vector search over edit
+  bodies, optionally restricted to matching paths. `code_index` rebuilds the
+  code table from all sessions (code-only backfill); `code_status`.
+- REST `GET /api/depot/rag/code` + `POST /api/depot/rag/code/index`.
+- Depot webapp page: **Code** search mode (query + path filter inputs,
+  per-result kind/path/snippet, date, open-session).
+- Auto-migration: `index_new_sessions` forces a full re-index pass when the
+  text watermark advanced but the code table is missing.
+- Tests: 5 new (patch+edit extraction incl. camelCase fleet keys
+  filePath/newString/oldString, path recall, content recall, combined
+  filter, re-index no-duplicates, code-only backfill) - 152 total.
+- Docs: ETERNAL_MEMORY, README "What can you do?", llms-full updated.
+
+### Fixed
+- Code extraction read only snake_case input keys (`path`, `new_string`) -
+  fleet tools pass camelCase (`filePath`, `newString`, `oldString`), so
+  real edits were missed (14 rows vs ~5.2k real edit calls per 30k parts).
+  Both key styles are now accepted.
+
 ## 0.2.6 - 2026-08-02 (RAG delete-then-add fix)
 
 ### Fixed

@@ -100,6 +100,55 @@ def _add_text_part(conn, session_id: str, text: str, ts: int, idx: int) -> None:
     )
 
 
+def _add_patch_part(conn, session_id: str, files: list[str], ts: int, idx: int) -> None:
+    import json
+
+    conn.execute(
+        "INSERT INTO part (id, message_id, session_id, time_created, time_updated, data) VALUES (?,?,?,?,?,?)",
+        (
+            f"patch_{session_id}_{idx}",
+            f"msg_{session_id}_{idx}",
+            session_id,
+            ts,
+            ts,
+            json.dumps({"type": "patch", "hash": f"h{idx}", "files": files}),
+        ),
+    )
+
+
+def _add_tool_edit_part(conn, session_id: str, path: str, new_string: str, old_string: str, ts: int, idx: int) -> None:
+    import json
+
+    # Real fleet tools pass camelCase input keys (filePath/newString/oldString).
+    conn.execute(
+        "INSERT INTO part (id, message_id, session_id, time_created, time_updated, data) VALUES (?,?,?,?,?,?)",
+        (
+            f"tool_{session_id}_{idx}",
+            f"msg_{session_id}_{idx}",
+            session_id,
+            ts,
+            ts,
+            json.dumps(
+                {
+                    "type": "tool",
+                    "tool": "fileops_file_ops",
+                    "callID": f"call_{idx}",
+                    "state": {
+                        "status": "completed",
+                        "input": {
+                            "operation": "edit_file",
+                            "filePath": path,
+                            "oldString": old_string,
+                            "newString": new_string,
+                        },
+                        "output": '{"success": true}',
+                    },
+                }
+            ),
+        ),
+    )
+
+
 @pytest.fixture()
 def rag_env(tmp_path: Path, monkeypatch):
     db_path = tmp_path / "opencode.db"
@@ -112,6 +161,16 @@ def rag_env(tmp_path: Path, monkeypatch):
         ("ses_rag_1", "proj", "slug", str(tmp_path), "Santa Claus MCP Plan", "1", now, now, "claude"),
     )
     _add_text_part(conn, "ses_rag_1", LONG_TEXT, now, 1)
+    _add_patch_part(conn, "ses_rag_1", ["D:/Dev/repos/x/src/auth_utils.py", "D:/Dev/repos/x/src/other.py"], now, 100)
+    _add_tool_edit_part(
+        conn,
+        "ses_rag_1",
+        "D:/Dev/repos/x/src/auth_utils.py",
+        "def connect_timeout(timeout=30):\n    return _client(timeout)",
+        "def connect_timeout(timeout=10):\n    return _client(timeout)",
+        now,
+        200,
+    )
     conn.commit()
     conn.close()
 
@@ -183,6 +242,91 @@ def test_reset_index_clears(rag_env):
     assert _chunk_count() == 0
     st = rag.rag_status()
     assert st["available"] and st["indexed_chunks"] == 0
+
+
+def test_code_index_extracts_patch_and_edit(rag_env):
+    """Code rows come from patch file paths AND edit tool inputs."""
+    rag.index_new_sessions()
+    st = rag.rag_status()
+    assert st["indexed_code"] > 0, "no code rows indexed"
+
+    table = rag._open_code_table()
+    rows = table.to_arrow().to_pylist()
+    kinds = {r["kind"] for r in rows}
+    assert kinds == {"patch", "edit"}, f"expected patch+edit rows, got {kinds}"
+    paths = {r["path"] for r in rows}
+    assert any("auth_utils.py" in p for p in paths)
+    assert any("OLD:" in r["body"] for r in rows), "edit bodies must carry old/new content"
+
+
+def test_code_search_by_path(rag_env):
+    rag.index_new_sessions()
+    hits = rag.code_search(path_filter="auth_utils.py")
+    assert hits, "path recall returned nothing"
+    assert all("auth_utils.py" in h["path"] for h in hits)
+    assert all(h["kind"] in ("patch", "edit") for h in hits)
+
+
+def test_code_search_by_content(rag_env):
+    rag.index_new_sessions()
+    hits = rag.code_search(query="client timeout")
+    assert hits, "content recall returned nothing"
+    assert any("auth_utils.py" in h["path"] for h in hits)
+
+
+def test_code_search_combined_filter(rag_env):
+    rag.index_new_sessions()
+    hits = rag.code_search(query="timeout", path_filter="auth_utils")
+    assert hits
+    assert all("auth_utils" in h["path"] for h in hits)
+
+
+def test_code_reindex_no_duplicates(rag_env):
+    """Re-indexing an updated session must not duplicate code rows."""
+    tmp_path, db_path = rag_env
+    rag.index_new_sessions()
+    before = rag._open_code_table().count_rows()
+
+    conn = sqlite3.connect(db_path)
+    now = int(datetime.now(UTC).timestamp() * 1000)
+    conn.execute("UPDATE session SET time_updated = ? WHERE id = 'ses_rag_1'", (now + 1,))
+    _add_tool_edit_part(
+        conn,
+        "ses_rag_1",
+        "D:/Dev/repos/x/src/auth_utils.py",
+        "def connect_timeout(timeout=45):\n    return _client(timeout)",
+        "def connect_timeout(timeout=30):\n    return _client(timeout)",
+        now,
+        201,
+    )
+    conn.commit()
+    conn.close()
+
+    report = rag.index_new_sessions()
+    assert report["indexed_sessions"] == 1
+    table = rag._open_code_table()
+    rows = table.to_arrow().to_pylist()
+    ids = [r["chunk_id"] for r in rows]
+    assert len(ids) == len(set(ids)), "duplicate code rows after re-index"
+    # old (1 edit + 2 patches) replaced by new (2 edits + 2 patches) = 4 rows
+    assert len(rows) == 4, f"expected 4 code rows after re-index, got {len(rows)} (was {before})"
+
+
+def test_reindex_code_all_backfills(rag_env):
+    """reindex_code_all rebuilds the code table even when the watermark is advanced."""
+    rag.index_new_sessions()
+    assert rag._open_code_table().count_rows() == 3  # 1 edit + 2 patches
+
+    # Delete the code table to simulate an install where it was never built
+    # (e.g. before the code-index feature shipped).
+    rag._open_db().drop_table(rag.CODE_TABLE_NAME)
+    assert rag._open_code_table() is None
+
+    report = rag.reindex_code_all(batch_size=10)
+    assert report["success"] and report["indexed_sessions"] == 1
+    assert rag._open_code_table().count_rows() == 3
+    # text table untouched by the code-only rebuild
+    assert rag._open_table().count_rows() > 0
 
 
 def test_rag_status_shape(rag_env):

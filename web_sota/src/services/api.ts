@@ -198,6 +198,7 @@ export interface RagStatus {
   model?: string;
   db_path?: string;
   indexed_chunks: number;
+  indexed_code?: number;
   last_watermark_ms?: number;
   running?: boolean;
   indexed_sessions?: number;
@@ -216,6 +217,18 @@ export interface RagSearchResult {
   rank: number;
   distance: number;
   engine: string;
+}
+
+export interface CodeSearchResult {
+  session_id: string;
+  title: string;
+  agent: string;
+  directory: string;
+  path: string;
+  kind: "patch" | "edit";
+  snippet: string;
+  rank: number | null;
+  updated_ms: number;
 }
 
 export interface PluginEntry {
@@ -395,6 +408,12 @@ export const api = {
       undefined,
       60000,
     ),
+  depotCodeSearch: (q: string, path: string, limit = 20) =>
+    fetchJson<{
+      success: boolean;
+      message: string;
+      data: { results: CodeSearchResult[]; query: string; path: string };
+    }>(`/depot/rag/code?q=${encodeURIComponent(q)}&path=${encodeURIComponent(path)}&limit=${limit}`, undefined, 60000),
 };
 
 export interface BackupStatus {

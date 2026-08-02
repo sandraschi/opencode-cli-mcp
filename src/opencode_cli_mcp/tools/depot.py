@@ -51,6 +51,9 @@ async def opencode_depot(
             "rag",
             "rag_index",
             "rag_status",
+            "code",
+            "code_index",
+            "code_status",
         ],
         Field(
             description=(
@@ -59,8 +62,12 @@ async def opencode_depot(
                 " rename: set title. delete: permanently remove (cascades messages)."
                 " search: full-text across transcripts and titles (wayback find)."
                 " rag: semantic search over indexed transcripts (needs rag extras)."
-                " rag_index: index new sessions for semantic search."
+                " rag_index: index new sessions for semantic search (text + code)."
                 " rag_status: index state + availability."
+                " code: find WHEN an agent touched a file - by path (path_filter only)"
+                " or by content (query): patch paths + edit tool inputs from every session."
+                " code_index: rebuild the code table from all sessions (code-only backfill)."
+                " code_status: code index state."
                 " stats: aggregate cost/tokens by agent/project."
             )
         ),
@@ -69,7 +76,11 @@ async def opencode_depot(
         str | None, Field(description="Session ID (required for get/archive/unarchive/rename/delete)")
     ] = None,
     title: Annotated[str | None, Field(description="New title (rename)")] = None,
-    query: Annotated[str | None, Field(description="Search text (search/rag)")] = None,
+    query: Annotated[str | None, Field(description="Search text (search/rag/code)")] = None,
+    path_filter: Annotated[
+        str | None,
+        Field(description="File path substring (code): only rows whose path contains this"),
+    ] = None,
     status: Annotated[
         Literal["all", "active", "archived"],
         Field(description="Status filter (list): all, active, or archived"),
@@ -81,15 +92,17 @@ async def opencode_depot(
         Literal["updated", "created", "archived", "cost", "tokens", "title"],
         Field(description="Sort order (list)"),
     ] = "updated",
-    limit: Annotated[int, Field(description="Page size (list/search/rag)", ge=1, le=200)] = 50,
+    limit: Annotated[int, Field(description="Page size (list/search/rag/code)", ge=1, le=200)] = 50,
     offset: Annotated[int, Field(description="Page offset (list)", ge=0)] = 0,
 ) -> dict:
-    """Session depot: list, inspect, archive/unarchive, rename, delete, search transcripts, semantic RAG search, or stats.
+    """Session depot: list, inspect, archive/unarchive, rename, delete, search transcripts, semantic RAG search, code-recall search, or stats.
 
     Reads opencode's SQLite depot directly - works without `opencode serve`.
     Archive/unarchive/rename are reversible; delete is permanent (FK cascade).
     search = exact/full-text wayback find; rag = semantic similarity over
-    indexed transcripts (requires `uv sync --extra rag`, index first).
+    indexed transcripts; code = when an agent touched a file (patch paths +
+    edit tool inputs), by path or by content. rag/code need
+    `uv sync --extra rag` and an index pass (rag_index indexes both).
 
     ## Return Format
     {"success": bool, "message": str, "data": dict}
@@ -99,12 +112,16 @@ async def opencode_depot(
     opencode_depot(action="unarchive", session_id="sess_01")
     opencode_depot(action="search", query="power limit")
     opencode_depot(action="rag", query="what did we decide about the power limit")
+    opencode_depot(action="code", path_filter="auth_utils.py")
+    opencode_depot(action="code", query="extracted the auth module", path_filter="src")
     opencode_depot(action="rag_index")
     opencode_depot(action="stats")
     """
 
     try:
-        return await _dispatch(action, session_id, title, query, status, project, agent, search, sort, limit, offset)
+        return await _dispatch(
+            action, session_id, title, query, path_filter, status, project, agent, search, sort, limit, offset
+        )
     except depot.DepotError as e:
         return _wrap(action, False, str(e), {})
     except rag.RAGUnavailableError as e:
@@ -118,6 +135,7 @@ async def _dispatch(
     session_id: str | None,
     title: str | None,
     query: str | None,
+    path_filter: str | None,
     status: str,
     project: str | None,
     agent: str | None,
@@ -151,10 +169,24 @@ async def _dispatch(
 
     if action == "rag_index":
         result = await asyncio.to_thread(rag.index_new_sessions, None, 50)
-        return _wrap(action, True, "RAG indexing complete", result)
+        return _wrap(action, True, "Indexing complete (text + code)", result)
 
     if action == "rag_status":
         return _wrap(action, True, "RAG status", rag.rag_status())
+
+    if action == "code":
+        if not query and not path_filter:
+            return _missing(action, "query or path_filter")
+        hits = await asyncio.to_thread(rag.code_search, query, path_filter, min(limit, 50))
+        mode = f"path '{path_filter}'" if path_filter and not query else f"'{query}'"
+        return _wrap(action, True, f"{len(hits)} code matches for {mode}", {"results": hits})
+
+    if action == "code_index":
+        result = await asyncio.to_thread(rag.reindex_code_all, 100)
+        return _wrap(action, True, "Code index rebuilt from all sessions", result)
+
+    if action == "code_status":
+        return _wrap(action, True, "Code index status", rag.rag_status())
 
     if action == "stats":
         return _wrap(action, True, "Depot statistics", depot.depot_stats())

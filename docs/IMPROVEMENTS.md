@@ -21,9 +21,10 @@ Help page auto-lists every `docs/*.md`, so stale docs pollute it).
 
 ### RAG / code index
 
-1. **Code index migration** (in progress): first run forces a full re-index
-   because the text watermark already advanced. Consider an incremental
-   code-only backfill for old sessions so text chunks are not re-embedded.
+1. **Code index migration** (done 2026-08-02): `code_index` rebuilds the
+   code table from all sessions without re-embedding text chunks
+   (`reindex_code_all`, delete-then-add per session). Next: surface rebuild
+   progress on the Depot page (combined index pass already shows it).
 2. **Code-capable embedder for the code table**: bge-small-en-v1.5 is
    prose-tuned; evaluate bge-m3 / Qwen3-Embedding / jina code task for the
    `session_code` table (text table can keep the cheap model).
