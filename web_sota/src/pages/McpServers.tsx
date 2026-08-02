@@ -1,7 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Server, Plus, Trash2, Power, PowerOff, RefreshCw, Loader2, Terminal, Globe, Check, Copy } from "lucide-react";
-import { api, type McpServerEntry } from "../services/api";
+import {
+  Server,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Loader2,
+  Terminal,
+  Globe,
+  Check,
+  Copy,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  CircleAlert,
+} from "lucide-react";
+import { api, type McpServerEntry, type McpServerStatus } from "../services/api";
 
 interface AddForm {
   name: string;
@@ -14,15 +28,53 @@ interface AddForm {
 
 const EMPTY_FORM: AddForm = { name: "", type: "local", command: "", url: "", environment: "", enabled: true };
 
+type ServerState = "connected" | "connecting" | "error" | "disabled" | "unknown";
+
+const SECRET_KEY_RE = /(token|secret|password|passwd|api[-_]?key|_key|auth)/i;
+
+function displayEnvValue(key: string, value: string): string {
+  return SECRET_KEY_RE.test(key) ? "••••••••" : value;
+}
+
+function statusOf(s: McpServerEntry, status?: McpServerStatus): ServerState {
+  if (!s.enabled) return "disabled";
+  if (!status) return "unknown";
+  if (status.status === "connected") return "connected";
+  if (status.status === "connecting") return "connecting";
+  if (status.status === "error" || status.status === "failed") return "error";
+  return "unknown";
+}
+
+const DOT_CLASSES: Record<ServerState, string> = {
+  connected: "bg-green-500",
+  connecting: "bg-amber-400 animate-pulse",
+  error: "bg-red-500",
+  disabled: "bg-zinc-600",
+  unknown: "bg-zinc-500",
+};
+
+const LABEL_CLASSES: Record<ServerState, string> = {
+  connected: "text-green-400",
+  connecting: "text-amber-400",
+  error: "text-red-400",
+  disabled: "text-zinc-500",
+  unknown: "text-zinc-500",
+};
+
 export function McpServers() {
   const [servers, setServers] = useState<McpServerEntry[]>([]);
+  const [statuses, setStatuses] = useState<Record<string, McpServerStatus>>({});
+  const [statusNote, setStatusNote] = useState("");
   const [configPath, setConfigPath] = useState("");
   const [loading, setLoading] = useState(true);
+  const [statusLoading, setStatusLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<AddForm>(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState("");
+  const [search, setSearch] = useState("");
+  const [showEnv, setShowEnv] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,9 +90,50 @@ export function McpServers() {
     }
   }, []);
 
-  useEffect(() => {
+  const loadStatus = useCallback(async () => {
+    setStatusLoading(true);
+    setStatusNote("");
+    try {
+      const d = await api.getMcpStatus();
+      setStatuses(d.data.servers);
+    } catch (e) {
+      setStatusNote(e instanceof Error ? e.message : "status unavailable");
+      setStatuses({});
+    } finally {
+      setStatusLoading(false);
+    }
+  }, []);
+
+  const refresh = useCallback(() => {
     load();
-  }, [load]);
+    loadStatus();
+  }, [load, loadStatus]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const summary = useMemo(() => {
+    const counts: Record<ServerState, number> = {
+      connected: 0,
+      connecting: 0,
+      error: 0,
+      disabled: 0,
+      unknown: 0,
+    };
+    for (const s of servers) {
+      counts[statusOf(s, statuses[s.name])] += 1;
+    }
+    return counts;
+  }, [servers, statuses]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return servers;
+    return servers.filter(
+      (s) => s.name.toLowerCase().includes(q) || (s.summary || s.command || s.url || "").toLowerCase().includes(q),
+    );
+  }, [servers, search]);
 
   const toggleServer = async (s: McpServerEntry) => {
     try {
@@ -56,6 +149,11 @@ export function McpServers() {
     try {
       await api.removeMcpServer(name);
       setServers((prev) => prev.filter((x) => x.name !== name));
+      setStatuses((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
     } catch (e) {
       setError(`Remove failed: ${e instanceof Error ? e.message : "unknown"}`);
     }
@@ -108,7 +206,7 @@ export function McpServers() {
       await api.addMcpServer(body);
       setShowAdd(false);
       setForm(EMPTY_FORM);
-      await load();
+      await refresh();
     } catch (e) {
       setError(`Add failed: ${e instanceof Error ? e.message : "unknown"}`);
     } finally {
@@ -119,27 +217,36 @@ export function McpServers() {
   const inputCls =
     "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50 font-mono";
 
+  const summaryPills: Array<{ key: ServerState; label: string }> = [
+    { key: "connected", label: "Connected" },
+    { key: "connecting", label: "Connecting" },
+    { key: "error", label: "Errors" },
+    { key: "disabled", label: "Disabled" },
+    { key: "unknown", label: "Unknown" },
+  ];
+
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Server className="w-6 h-6 text-accent" />
             MCP Servers
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Servers configured in opencode global config{configPath ? ` — ${configPath}` : ""}
+            {servers.length} server{servers.length === 1 ? "" : "s"} in opencode global config
+            {configPath ? ` — ${configPath}` : ""}
           </p>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={load}
+            onClick={refresh}
             className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors"
-            title="Refresh"
+            title="Refresh servers and status"
             aria-label="Refresh MCP servers"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading || statusLoading ? "animate-spin" : ""}`} />
           </button>
           <button
             type="button"
@@ -150,6 +257,36 @@ export function McpServers() {
             <Plus className="w-4 h-4" />
             Add Server
           </button>
+        </div>
+      </div>
+
+      <div
+        className="flex flex-wrap items-center gap-2 mb-4 px-3 py-2 bg-surface-light border border-surface-border rounded-lg"
+        data-testid="mcp-servers-summary"
+      >
+        {summaryPills.map((p) => (
+          <span key={p.key} className="flex items-center gap-1.5 text-xs text-zinc-400">
+            <span className={`w-2 h-2 rounded-full ${DOT_CLASSES[p.key]}`} />
+            {p.label}: <span className="text-zinc-200 font-semibold">{summary[p.key]}</span>
+          </span>
+        ))}
+        {statusLoading && <Loader2 className="w-3 h-3 animate-spin text-zinc-500 ml-1" />}
+        {statusNote && (
+          <span className="flex items-center gap-1 text-xs text-zinc-600 ml-1" title={statusNote}>
+            <CircleAlert className="w-3 h-3" /> status unavailable
+          </span>
+        )}
+        <div className="flex-1" />
+        <div className="relative w-52">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search servers..."
+            data-testid="mcp-servers-search"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-md pl-8 pr-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          />
         </div>
       </div>
 
@@ -283,80 +420,126 @@ export function McpServers() {
           <p>No MCP servers in opencode config.</p>
           <p className="text-sm">Add one with the button above.</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-zinc-500">
+          <Search className="w-8 h-8 mx-auto mb-3 opacity-40" />
+          <p>No servers match "{search}"</p>
+        </div>
       ) : (
         <div className="space-y-2">
-          {servers.map((s) => (
-            <motion.div
-              key={s.name}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className={`bg-surface-light border rounded-xl p-4 transition-opacity ${
-                s.enabled ? "border-surface-border" : "border-surface-border opacity-50"
-              }`}
-              data-testid={`mcp-server-${s.name}`}
-            >
-              <div className="flex items-center gap-3">
-                {s.type === "remote" ? (
-                  <Globe className="w-4 h-4 text-accent" />
-                ) : (
-                  <Terminal className="w-4 h-4 text-accent" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-zinc-200">{s.name}</span>
-                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 border border-zinc-700 rounded px-1.5 py-0.5">
-                      {s.type}
-                    </span>
+          {filtered.map((s) => {
+            const state = statusOf(s, statuses[s.name]);
+            const envKeys = s.environment ? Object.keys(s.environment) : [];
+            const showEnvFor = !!showEnv[s.name];
+            return (
+              <motion.div
+                key={s.name}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`bg-surface-light border rounded-xl p-4 transition-opacity ${
+                  s.enabled ? "border-surface-border" : "border-surface-border opacity-60"
+                }`}
+                data-testid={`mcp-server-${s.name}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT_CLASSES[state]}`}
+                    data-testid={`mcp-server-status-${s.name}`}
+                    title={`${state}`}
+                  />
+                  {s.type === "remote" ? (
+                    <Globe className="w-4 h-4 text-accent flex-shrink-0" />
+                  ) : (
+                    <Terminal className="w-4 h-4 text-accent flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-semibold text-zinc-200">{s.name}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 border border-zinc-700 rounded px-1.5 py-0.5">
+                        {s.type}
+                      </span>
+                      <span className={`text-[10px] uppercase tracking-wider ${LABEL_CLASSES[state]}`}>{state}</span>
+                    </div>
+                    <p
+                      className="text-xs text-zinc-500 font-mono truncate mt-1 max-w-xl"
+                      title={s.summary || s.command || s.url}
+                    >
+                      {s.summary || s.command || s.url}
+                    </p>
+                    {envKeys.length > 0 && (
+                      <div className="mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowEnv((prev) => ({ ...prev, [s.name]: !prev[s.name] }))}
+                          className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-zinc-500 hover:text-zinc-300 transition-colors"
+                        >
+                          {showEnvFor ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                          env · {envKeys.join(", ")}
+                        </button>
+                        {showEnvFor && (
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {envKeys.map((k) => (
+                              <code
+                                key={k}
+                                className="text-[10px] font-mono text-zinc-400 bg-zinc-800/80 border border-zinc-700/60 rounded px-1.5 py-0.5"
+                              >
+                                {k}=
+                                <span className="text-zinc-500">{displayEnvValue(k, s.environment?.[k] ?? "?")}</span>
+                              </code>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyCommand(s)}
+                    className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    title="Copy command"
+                    aria-label={`Copy command for ${s.name}`}
+                  >
+                    {copied === s.name ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleServer(s)}
+                    className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    title={s.enabled ? "Disable" : "Enable"}
+                    aria-label={`${s.enabled ? "Disable" : "Enable"} ${s.name}`}
+                    data-testid={`mcp-server-toggle-${s.name}`}
+                  >
                     <span
-                      className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
-                        s.enabled ? "bg-green-900/40 text-green-400" : "bg-zinc-800 text-zinc-500"
+                      className={`block w-8 h-4 rounded-full transition-colors relative ${
+                        s.enabled ? "bg-accent/70" : "bg-zinc-700"
                       }`}
                     >
-                      {s.enabled ? "enabled" : "disabled"}
+                      <span
+                        className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${
+                          s.enabled ? "left-4" : "left-0.5"
+                        }`}
+                      />
                     </span>
-                  </div>
-                  <p className="text-xs text-zinc-500 font-mono truncate mt-1" title={s.summary || s.command || s.url}>
-                    {s.summary || s.command || s.url}
-                  </p>
-                  {s.environment && Object.keys(s.environment).length > 0 && (
-                    <p className="text-xs text-zinc-600 mt-0.5">env: {Object.keys(s.environment).join(", ")}</p>
-                  )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeServer(s.name)}
+                    className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                    title="Remove"
+                    aria-label={`Remove ${s.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => copyCommand(s)}
-                  className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  title="Copy command"
-                  aria-label={`Copy command for ${s.name}`}
-                >
-                  {copied === s.name ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleServer(s)}
-                  className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  title={s.enabled ? "Disable" : "Enable"}
-                  aria-label={`${s.enabled ? "Disable" : "Enable"} ${s.name}`}
-                >
-                  {s.enabled ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeServer(s.name)}
-                  className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
-                  title="Remove"
-                  aria-label={`Remove ${s.name}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
       <p className="text-xs text-zinc-600 mt-6">
-        Note: opencode reads config at startup. Restart opencode to apply changes.
+        Note: opencode reads config at startup. Restart opencode to apply changes. Status reflects the connection state
+        reported by opencode serve.
       </p>
     </div>
   );

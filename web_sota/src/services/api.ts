@@ -1,9 +1,9 @@
 const API_BASE = "/api";
 const FETCH_TIMEOUT = 15000;
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs: number = FETCH_TIMEOUT): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${API_BASE}${url}`, {
       headers: { "Content-Type": "application/json" },
@@ -124,6 +124,11 @@ export interface McpServerEntry {
   summary?: string;
 }
 
+export interface McpServerStatus {
+  status: string;
+  [key: string]: unknown;
+}
+
 export interface PluginEntry {
   index: number;
   name: string;
@@ -192,6 +197,12 @@ export const api = {
     fetchJson<{ success: boolean; data: { tools: OpenCodeToolDef[]; install_path: string } }>("/opencode-tools"),
 
   getOConfig: () => fetchJson<OConfigResponse>("/occonfig"),
+  getMcpStatus: () =>
+    fetchJson<{ success: boolean; data: { servers: Record<string, McpServerStatus> } }>(
+      "/mcp/status",
+      undefined,
+      50000,
+    ),
   addMcpServer: (body: Record<string, unknown>) =>
     fetchJson<{ success: boolean; message: string }>("/occonfig/mcp", {
       method: "POST",

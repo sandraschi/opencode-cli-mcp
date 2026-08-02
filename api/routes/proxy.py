@@ -22,6 +22,21 @@ async def proxy_status():
         raise HTTPException(status_code=502, detail=f"opencode server unreachable: {e}")
 
 
+@router.get("/mcp/status")
+async def proxy_mcp_status():
+    """Per-server MCP connection status from opencode serve (GET /mcp).
+
+    Powers the webapp MCP Servers page status dots (Cursor-style). Can be
+    slow when many configured servers are down — serve probes each one.
+    """
+    client = await _get_client()
+    try:
+        status = await client.get_mcp_status()
+        return {"success": True, "data": {"servers": status}}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"MCP status unavailable: {e}")
+
+
 @router.get("/opencode/sessions")
 async def proxy_sessions():
     client = await _get_client()

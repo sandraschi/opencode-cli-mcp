@@ -192,6 +192,18 @@ class OpencodeClient:
             result["config"] = {}
         return result
 
+    async def get_mcp_status(self) -> dict[str, Any]:
+        """Per-server MCP connection status from opencode serve (GET /mcp).
+
+        Returns {name: {"status": "connected" | "connecting" | "error" | ...}}.
+        Serve probes each configured server, so this can take tens of seconds
+        when many servers are down — use a long per-request timeout.
+        """
+        r = await self._http.get("/mcp", timeout=45.0)
+        r.raise_for_status()
+        data = r.json()
+        return data if isinstance(data, dict) else {}
+
 
 _shared_client: OpencodeClient | None = None
 
