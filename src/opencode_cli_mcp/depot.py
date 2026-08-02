@@ -242,6 +242,38 @@ def get_session(session_id: str, *, db_path: Path | None = None) -> dict[str, An
         conn.close()
 
 
+def get_session_transcript(session_id: str, *, limit: int = 200, db_path: Path | None = None) -> list[dict[str, Any]]:
+    """Text parts of a session with roles and timestamps, oldest first.
+
+    Reads straight from opencode.db (message.data carries role + time) so it
+    works offline, unlike the live serve-API transcript. Used by the Depot
+    page detail view.
+    """
+    conn = _connect(db_path, read_only=True)
+    try:
+        rows = conn.execute(
+            """
+            SELECT json_extract(m.data, '$.role') AS role,
+                   json_extract(m.data, '$.time.created') AS ts_ms,
+                   json_extract(p.data, '$.text') AS text
+            FROM part p
+            JOIN message m ON p.message_id = m.id
+            WHERE p.session_id = ? AND json_extract(p.data, '$.type') = 'text'
+            ORDER BY p.time_created ASC
+            LIMIT ?
+            """,
+            (session_id, max(1, min(limit, 1000))),
+        ).fetchall()
+        out = []
+        for role, ts_ms, text in rows:
+            if not text or not str(text).strip():
+                continue
+            out.append({"role": role or "unknown", "ts": ts_ms, "text": str(text)})
+        return out
+    finally:
+        conn.close()
+
+
 def search_transcripts(
     query: str,
     *,
@@ -401,6 +433,18 @@ def depot_stats(*, db_path: Path | None = None) -> dict[str, Any]:
             est = _restate_cost(r)
             return est if est is not None else round(r["cost"] or 0, 4)
 
+        db_path_resolved = db_path or default_db_path()
+        db_size = db_path_resolved.stat().st_size if db_path_resolved.exists() else 0
+        messages = conn.execute("SELECT COUNT(*) FROM message").fetchone()[0]
+        parts = conn.execute("SELECT COUNT(*) FROM part").fetchone()[0]
+        part_types = {
+            str(r[0]): r[1]
+            for r in conn.execute(
+                "SELECT json_extract(data, '$.type') AS t, COUNT(*) AS c FROM part GROUP BY t ORDER BY c DESC LIMIT 8"
+            ).fetchall()
+        }
+        last_updated = conn.execute("SELECT MAX(time_updated) FROM session").fetchone()[0]
+
         return {
             "totals": {
                 "total": totals["total"],
@@ -413,6 +457,14 @@ def depot_stats(*, db_path: Path | None = None) -> dict[str, Any]:
                 "tokens_output": totals["tokens_output"] or 0,
                 "tokens_reasoning": totals["tokens_reasoning"] or 0,
                 "tokens_cache_read": totals["tokens_cache_read"] or 0,
+            },
+            "db": {
+                "path": str(db_path_resolved),
+                "size_bytes": db_size,
+                "messages": messages,
+                "parts": parts,
+                "part_types": part_types,
+                "last_updated_ms": last_updated,
             },
             "by_agent": [{**dict(r), "cost_est": _est_for_row(r)} for r in by_agent],
             "by_project": [{**dict(r), "cost_est": _est_for_row(r)} for r in by_project],

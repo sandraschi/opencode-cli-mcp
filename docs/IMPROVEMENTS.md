@@ -48,6 +48,15 @@ Help page auto-lists every `docs/*.md`, so stale docs pollute it).
    of env-only; restore dry-run preview.
 9. **Guard against backup/index concurrency** (both hammer disk + CPU).
 
+### Indexing robustness
+
+10. **Reindex wedge observed (2026-08-02)**: `rag_index`/`code_index` run as
+    in-process background tasks; during a full code-table rebuild the backend
+    event loop wedged (health polls timed out) until the process was killed.
+    Move heavy index passes to a subprocess (or throttle + watchdog) so the
+    API stays responsive; resume/checkpoint the walk so a killed pass can
+    continue instead of restarting.
+
 ### opencode upstream gaps we compensate for
 
 10. opencode UI: no session rename/delete, no unarchive, no backup. Track

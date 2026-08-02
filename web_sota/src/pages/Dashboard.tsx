@@ -1,9 +1,27 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Server, Activity, ListTree, Cpu, AppWindow, HardDrive, Monitor, Terminal } from "lucide-react";
-import { api, type FleetApp, type SystemInfo } from "../services/api";
+import { Server, Activity, ListTree, Cpu, AppWindow, HardDrive, Monitor, Terminal, Database } from "lucide-react";
+import { api, type DepotStats, type FleetApp, type SystemInfo } from "../services/api";
 import { useStore } from "../store";
+
+function fmtBytes(n: number): string {
+  if (!n) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${v.toFixed(1)} ${units[i]}`;
+}
+
+function fmtCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
 
 function StatCard({
   icon: Icon,
@@ -44,6 +62,7 @@ export function Dashboard() {
   const setOpencodeStatus = useStore((s) => s.setOpencodeStatus);
   const [fleetCount, setFleetCount] = useState(0);
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
+  const [depotStats, setDepotStats] = useState<DepotStats | null>(null);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -63,6 +82,10 @@ export function Dashboard() {
     api
       .getSystemInfo()
       .then((r) => mounted.current && setSysInfo(r.data))
+      .catch(() => {});
+    api
+      .depotStats()
+      .then((r) => mounted.current && setDepotStats(r.data))
       .catch(() => {});
     return () => {
       mounted.current = false;
@@ -124,7 +147,28 @@ export function Dashboard() {
           sub="opencode-cli-mcp"
           delay={0.28}
         />
+        <StatCard
+          icon={Database}
+          label="Eternal Memory DB"
+          value={depotStats ? fmtBytes(depotStats.db.size_bytes) : "?"}
+          sub={
+            depotStats
+              ? `${fmtCount(depotStats.totals.total)} sessions · ${fmtCount(depotStats.db.messages)} msgs · ${fmtCount(depotStats.db.parts)} parts`
+              : "read from opencode.db"
+          }
+          delay={0.32}
+        />
       </div>
+
+      {depotStats?.db.part_types && (
+        <div className="mt-4 text-xs text-zinc-600" data-testid="dashboard-db-types">
+          part mix:{" "}
+          {Object.entries(depotStats.db.part_types)
+            .slice(0, 5)
+            .map(([t, c]) => `${t} ${fmtCount(c)}`)
+            .join(" · ")}
+        </div>
+      )}
 
       <div className="mt-8">
         <h2 className="text-lg font-semibold mb-3">Capabilities</h2>

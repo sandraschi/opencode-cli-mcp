@@ -24,6 +24,7 @@ import {
   type CodeSearchResult,
   type DepotSession,
   type DepotStats,
+  type DepotTranscriptEntry,
   type RagSearchResult,
   type RagStatus,
 } from "../services/api";
@@ -58,6 +59,8 @@ export function Depot() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [transcript, setTranscript] = useState<DepotTranscriptEntry[]>([]);
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
 
   const load = useCallback(
     async (nextOffset = 0) => {
@@ -189,11 +192,21 @@ export function Depot() {
   const viewSession = async (id: string) => {
     setSelectedId(id);
     setDetail(null);
+    setTranscript([]);
     try {
       const d = await api.depotGet(id);
       setDetail(d.data.session);
     } catch {
       setDetail(null);
+    }
+    setTranscriptLoading(true);
+    try {
+      const t = await api.depotTranscript(id, 200);
+      setTranscript(t.data.transcript ?? []);
+    } catch {
+      setTranscript([]);
+    } finally {
+      setTranscriptLoading(false);
     }
   };
 
@@ -776,6 +789,47 @@ export function Depot() {
                       <span className="text-zinc-600 block">Slug</span>
                       {detail.slug || "-"}
                     </div>
+                  </div>
+                  <div className="mt-3" data-testid="depot-transcript">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-zinc-600 uppercase tracking-wider">
+                        Transcript ({transcript.length} text parts)
+                      </span>
+                      <span className="text-[10px] text-zinc-700">read from opencode.db (offline)</span>
+                    </div>
+                    {transcriptLoading ? (
+                      <div className="text-xs text-zinc-500 py-4 text-center">Loading transcript...</div>
+                    ) : transcript.length === 0 ? (
+                      <div className="text-xs text-zinc-600 py-4 text-center">No text parts in this session.</div>
+                    ) : (
+                      <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+                        {transcript.map((t, i) => (
+                          <div
+                            key={`${t.ts ?? "ts"}-${t.role}-${t.text.slice(0, 24)}`}
+                            data-testid={`depot-transcript-part-${i}`}
+                            className={`rounded-md border p-2 ${
+                              t.role === "user"
+                                ? "border-surface-border bg-zinc-800/40"
+                                : "border-surface-border bg-surface-light"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span
+                                className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
+                                  t.role === "user" ? "bg-amber-900/60 text-amber-300" : "bg-zinc-800 text-zinc-400"
+                                }`}
+                              >
+                                {t.role}
+                              </span>
+                              {t.ts ? (
+                                <span className="text-[10px] text-zinc-600">{new Date(t.ts).toLocaleString()}</span>
+                              ) : null}
+                            </div>
+                            <p className="text-xs text-zinc-300 whitespace-pre-wrap leading-relaxed">{t.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}

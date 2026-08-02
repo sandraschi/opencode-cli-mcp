@@ -150,6 +150,12 @@ export interface McpServerStatus {
   [key: string]: unknown;
 }
 
+export interface DepotTranscriptEntry {
+  role: string;
+  ts: number | null;
+  text: string;
+}
+
 export interface DepotSession {
   id: string;
   project_id?: string | null;
@@ -199,6 +205,14 @@ export interface DepotStats {
   by_agent: Array<{ agent: string; count: number; cost: number; cost_est: number }>;
   by_project: Array<{ project_id: string; count: number; cost: number; cost_est: number }>;
   top_cost: Array<{ id: string; title: string; cost: number; cost_est: number }>;
+  db: {
+    path: string;
+    size_bytes: number;
+    messages: number;
+    parts: number;
+    part_types: Record<string, number>;
+    last_updated_ms: number | null;
+  };
 }
 
 export interface DepotSearchResult {
@@ -390,13 +404,20 @@ export const api = {
   depotList: (params: string) => fetchJson<DepotListResponse>(`/depot/sessions?${params}`),
   depotGet: (id: string) =>
     fetchJson<{ success: boolean; message: string; data: { session: DepotSession } }>(`/depot/sessions/${id}`),
+  depotTranscript: (id: string, limit = 200) =>
+    fetchJson<{ success: boolean; message: string; data: { transcript: DepotTranscriptEntry[] } }>(
+      `/depot/sessions/${id}/transcript?limit=${limit}`,
+      undefined,
+      30000,
+    ),
   depotSearch: (q: string, limit = 20) =>
     fetchJson<{ success: boolean; message: string; data: { results: DepotSearchResult[]; count: number } }>(
       `/depot/search?q=${encodeURIComponent(q)}&limit=${limit}`,
       undefined,
       60000,
     ),
-  depotStats: () => fetchJson<{ success: boolean; message: string; data: DepotStats }>("/depot/stats"),
+  depotStats: () =>
+    fetchJson<{ success: boolean; message: string; data: DepotStats }>("/depot/stats", undefined, 60000),
   depotArchive: (id: string) =>
     fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}/archive`, {
       method: "POST",

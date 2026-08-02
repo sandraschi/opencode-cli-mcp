@@ -56,6 +56,16 @@ async def depot_get(session_id: str):
     return {"success": True, "message": "Session found", "data": {"session": session}}
 
 
+@router.get("/sessions/{session_id}/transcript")
+async def depot_transcript(session_id: str, limit: int = 200):
+    """Session text parts with roles/timestamps, read offline from opencode.db."""
+    try:
+        transcript = d.get_session_transcript(session_id, limit=min(max(limit, 1), 1000))
+    except d.DepotError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"success": True, "message": f"{len(transcript)} text parts", "data": {"transcript": transcript}}
+
+
 @router.get("/search")
 async def depot_search(q: str, limit: int = 20, include_archived: bool = True):
     try:
