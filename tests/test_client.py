@@ -242,3 +242,28 @@ async def test_delete_session_raises(client):
     with patch.object(client._http, "delete", AsyncMock(return_value=mock_resp)):
         with pytest.raises(httpx.HTTPStatusError):
             await client.delete_session("missing")
+
+
+def test_msg_role_ts_modern_shape():
+    """Message parsing reads role/time from the nested `info` block."""
+    from opencode_cli_mcp.tools.sessions import _msg_role, _msg_text, _msg_ts
+
+    msg = {
+        "info": {"role": "assistant", "agent": "build", "time": {"created": 1785630300000}},
+        "parts": [
+            {"type": "reasoning", "text": "thinking..."},
+            {"type": "text", "text": "Done."},
+        ],
+    }
+    assert _msg_role(msg) == "assistant"
+    assert _msg_text(msg) == "Done."
+    assert "2026" in _msg_ts(msg)
+
+
+def test_msg_role_ts_legacy_shape():
+    from opencode_cli_mcp.tools.sessions import _msg_role, _msg_text, _msg_ts
+
+    msg = {"role": "user", "createdAt": 1785630300000, "content": [{"type": "text", "text": "hi"}]}
+    assert _msg_role(msg) == "user"
+    assert _msg_text(msg) == "hi"
+    assert "2026" in _msg_ts(msg)

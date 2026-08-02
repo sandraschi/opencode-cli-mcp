@@ -69,6 +69,17 @@ async def proxy_session_diff(session_id: str):
         raise HTTPException(status_code=404, detail=f"Session diff failed: {e}")
 
 
+@router.get("/opencode/sessions/{session_id}/messages")
+async def proxy_session_messages(session_id: str, limit: int = 200):
+    """Transcript messages for one session (drives the webapp transcript view)."""
+    client = await _get_client()
+    try:
+        messages = await client.get_messages(session_id, limit=min(max(limit, 1), 500))
+        return {"success": True, "data": {"messages": messages}}
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Session messages failed: {e}")
+
+
 @router.patch("/opencode/sessions/{session_id}")
 async def proxy_session_rename(session_id: str, body: dict):
     """Rename a session via the live opencode serve API (session.update).

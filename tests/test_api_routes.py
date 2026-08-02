@@ -197,6 +197,14 @@ class TestProxy:
         )
         mock_client.get_session = AsyncMock(return_value={"id": "s1", "title": "test"})
         mock_client.get_session_diff = AsyncMock(return_value={"created": ["a.py"]})
+        mock_client.get_messages = AsyncMock(
+            return_value=[
+                {
+                    "info": {"role": "user", "time": {"created": 1785630300000}},
+                    "parts": [{"type": "text", "text": "hi"}],
+                }
+            ]
+        )
 
         with patch("api.routes.proxy.get_client", return_value=mock_client):
             yield
@@ -226,6 +234,13 @@ class TestProxy:
         assert resp.status_code == 200
         data = resp.json()
         assert data["data"]["diff"]["created"] == ["a.py"]
+
+    def test_session_messages(self):
+        resp = client.get("/api/opencode/sessions/s1/messages")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["data"]["messages"][0]["info"]["role"] == "user"
 
 
 class TestCORS:

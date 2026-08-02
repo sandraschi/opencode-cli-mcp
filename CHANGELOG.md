@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.8 - 2026-08-02 (readable session transcript viewer)
+
+### Added
+- Sessions page detail: raw JSON dump replaced with three tabs:
+  - **Overview** - readable key/value metadata (agent, model, directory,
+    timestamps, cost, tokens)
+  - **Transcript** - message list with role badges, agent/model, timestamps,
+    text parts; **inline search** filters messages; "reasoning/tools" toggle
+    reveals non-text parts
+  - **Diff** - created/modified/deleted file lists
+- **Export button**: downloads the transcript as a markdown file
+  (`{title}-transcript.md`) with roles + timestamps.
+- REST `GET /api/opencode/sessions/{id}/messages` (drives the viewer).
+
+### Fixed
+- Message parsing (`_msg_role`/`_msg_ts`) read top-level `role`/`createdAt`
+  that modern opencode messages no longer carry (identity lives in
+  `info.role` / `info.time.created`) - grep + export showed "unknown" roles
+  and no timestamps. Added `_msg_text` (the old `_msg_role` was misnamed and
+  returned the message text; grep/export now use it correctly).
+- Transcript model labels: `info.model` is an object `{providerID, modelID}`
+  in current opencode - rendering it directly crashed React.
+
 ## 0.2.7 - 2026-08-02 (code recall index: when did an agent touch X)
 
 ### Added

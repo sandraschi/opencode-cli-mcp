@@ -46,6 +46,27 @@ export interface Session {
   [key: string]: unknown;
 }
 
+export interface SessionMessagePart {
+  type: string;
+  text?: string;
+  [key: string]: unknown;
+}
+
+export interface SessionMessage {
+  info?: {
+    role?: string;
+    agent?: string;
+    model?: string;
+    summary?: string;
+    time?: { created?: number };
+    [key: string]: unknown;
+  };
+  parts?: SessionMessagePart[];
+  role?: string;
+  createdAt?: number;
+  [key: string]: unknown;
+}
+
 export interface FleetApp {
   port: number;
   name: string;
@@ -285,6 +306,14 @@ export const api = {
     fetchJson<{ success: boolean; message: string }>(`/opencode/sessions/${id}?confirm=true`, {
       method: "DELETE",
     }),
+  getSessionMessages: (id: string, limit = 300) =>
+    fetchJson<{ success: boolean; data: { messages: SessionMessage[] } }>(
+      `/opencode/sessions/${id}/messages?limit=${limit}`,
+      undefined,
+      30000,
+    ),
+  getSessionDiff: (id: string) =>
+    fetchJson<{ success: boolean; data: { diff: Record<string, string[]> } }>(`/opencode/sessions/${id}/diff`),
 
   backupsStatus: () => fetchJson<{ success: boolean; data: BackupStatus }>("/backups/status"),
   backupsList: () => fetchJson<{ success: boolean; data: { backups: BackupEntry[] } }>("/backups/list"),

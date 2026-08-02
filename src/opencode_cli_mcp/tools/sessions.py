@@ -214,17 +214,30 @@ async def opencode_get_messages(
 
 
 def _msg_role(msg: dict) -> str:
+    # Modern opencode messages nest identity in `info` ({role, agent, model,
+    # time:{created}}); older API versions put role at the top.
+    role = msg.get("info", {}).get("role") if isinstance(msg.get("info"), dict) else None
+    if role:
+        return str(role)
+    return str(msg.get("role", "unknown"))
+
+
+def _msg_text(msg: dict) -> str:
+    """Concatenated text-part content of a message (the actual prose)."""
     parts = msg.get("parts", msg.get("content", []))
-    if isinstance(parts, list):
-        for p in parts:
-            if isinstance(p, dict) and p.get("type") == "text":
-                return p.get("text", "")
-        return ""
-    return str(parts) if parts else ""
+    if not isinstance(parts, list):
+        return str(parts) if parts else ""
+    texts = [str(p.get("text", "")) for p in parts if isinstance(p, dict) and p.get("type") == "text" and p.get("text")]
+    return "\n".join(t for t in texts if t.strip())
 
 
 def _msg_ts(msg: dict) -> str:
-    ts = msg.get("createdAt") or msg.get("timestamp") or ""
+    ts = None
+    info = msg.get("info") if isinstance(msg.get("info"), dict) else None
+    if info and isinstance(info.get("time"), dict):
+        ts = info["time"].get("created")
+    if ts is None:
+        ts = msg.get("createdAt") or msg.get("timestamp") or ""
     if ts and isinstance(ts, (int, float)):
         return datetime.fromtimestamp(ts / 1000, tz=UTC).strftime("%Y-%m-%d %H:%M UTC")
     return str(ts) if ts else ""
@@ -264,12 +277,12 @@ async def opencode_session_grep(
             continue
         sess_matches = []
         for msg in messages or []:
-            text = _msg_role(msg)
+            text = _msg_text(msg)
             if query_lower in text.lower():
                 snippet = text[:300] + "..." if len(text) > 300 else text
                 sess_matches.append(
                     {
-                        "role": msg.get("role", "unknown"),
+                        "role": _msg_role(msg),
                         "ts": _msg_ts(msg),
                         "snippet": snippet,
                     }
@@ -341,8 +354,8 @@ async def opencode_export_session(
             f"<p class='ts'>Session {html.escape(session_id)}</p>",
         ]
         for msg in messages or []:
-            role = msg.get("role", "unknown")
-            text = html.escape(_msg_role(msg))
+            role = _msg_role(msg)
+            text = html.escape(_msg_text(msg))
             ts = html.escape(_msg_ts(msg))
             lines.append(f"<div class='msg {role}'>")
             lines.append(f"  <p class='ts'>{role} &mdash; {ts}</p>")
@@ -361,8 +374,8 @@ async def opencode_export_session(
             "",
         ]
         for msg in messages or []:
-            role = msg.get("role", "unknown")
-            text = _msg_role(msg)
+            role = _msg_role(msg)
+            text = _msg_text(msg)
             ts = _msg_ts(msg)
             lines.append(f"## {role}")
             if ts:
