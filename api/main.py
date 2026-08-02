@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api import logs
 from api.routes.capabilities import router as capabilities_router
 from api.routes.chat import router as chat_router
+from api.routes.depot import router as depot_router
 from api.routes.docs import router as docs_router
 from api.routes.fleet import router as fleet_router
 from api.routes.logs import router as logs_router
@@ -72,6 +73,7 @@ async def log_requests(request, call_next):
 
 app.include_router(capabilities_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
+app.include_router(depot_router, prefix="/api")
 app.include_router(docs_router, prefix="/api")
 app.include_router(fleet_router, prefix="/api")
 app.include_router(logs_router, prefix="/api")

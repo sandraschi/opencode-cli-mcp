@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { Layout } from "./Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Sessions } from "./pages/Sessions";
+import { Depot } from "./pages/Depot";
 import { Projects } from "./pages/Projects";
 import { ToolsHub } from "./pages/ToolsHub";
 import { AppsHub } from "./pages/AppsHub";
@@ -22,6 +23,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions" element={<Sessions />} />
+        <Route path="/depot" element={<Depot />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/tools" element={<ToolsHub />} />
         <Route path="/oc-tools" element={<OpenCodeTools />} />

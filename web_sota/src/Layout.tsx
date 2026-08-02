@@ -21,6 +21,7 @@ import {
   Moon,
   Plug,
   Network,
+  Archive,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "./store";
@@ -30,6 +31,7 @@ import { BackendStatus } from "./components/BackendStatus";
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/sessions", label: "Sessions", icon: ListTree },
+  { path: "/depot", label: "Depot", icon: Archive },
   { path: "/projects", label: "Projects", icon: FolderKanban },
   { path: "/tools", label: "Tools", icon: Terminal },
   { path: "/oc-tools", label: "OC Tools", icon: Puzzle },

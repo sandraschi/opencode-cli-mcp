@@ -129,6 +129,64 @@ export interface McpServerStatus {
   [key: string]: unknown;
 }
 
+export interface DepotSession {
+  id: string;
+  project_id?: string | null;
+  slug?: string | null;
+  directory?: string | null;
+  title?: string | null;
+  agent?: string | null;
+  model?: string | null;
+  cost?: number | null;
+  tokens_input?: number | null;
+  tokens_output?: number | null;
+  archived: boolean;
+  time_created_display?: string | null;
+  time_updated_display?: string | null;
+  time_archived_display?: string | null;
+  message_count?: number;
+  part_count?: number;
+  [key: string]: unknown;
+}
+
+export interface DepotListResponse {
+  success: boolean;
+  message: string;
+  data: {
+    sessions: DepotSession[];
+    total: number;
+    limit: number;
+    offset: number;
+    next_offset: number | null;
+  };
+}
+
+export interface DepotStats {
+  totals: {
+    total: number;
+    archived: number;
+    active: number;
+    total_cost: number;
+    tokens_input: number;
+    tokens_output: number;
+    tokens_reasoning: number;
+    tokens_cache_read: number;
+  };
+  by_agent: Array<{ agent: string; count: number; cost: number }>;
+  by_project: Array<{ project_id: string; count: number; cost: number }>;
+  top_cost: Array<{ id: string; title: string; cost: number }>;
+}
+
+export interface DepotSearchResult {
+  session_id: string;
+  title: string;
+  archived: boolean;
+  directory: string;
+  agent: string;
+  timestamp: string;
+  snippet: string;
+}
+
 export interface PluginEntry {
   index: number;
   name: string;
@@ -224,6 +282,34 @@ export const api = {
     }),
   removePlugin: (index: number) =>
     fetchJson<{ success: boolean; message: string }>(`/occonfig/plugin/${index}`, {
+      method: "DELETE",
+    }),
+
+  depotList: (params: string) => fetchJson<DepotListResponse>(`/depot/sessions?${params}`),
+  depotGet: (id: string) =>
+    fetchJson<{ success: boolean; message: string; data: { session: DepotSession } }>(`/depot/sessions/${id}`),
+  depotSearch: (q: string, limit = 20) =>
+    fetchJson<{ success: boolean; message: string; data: { results: DepotSearchResult[]; count: number } }>(
+      `/depot/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+      undefined,
+      60000,
+    ),
+  depotStats: () => fetchJson<{ success: boolean; message: string; data: DepotStats }>("/depot/stats"),
+  depotArchive: (id: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}/archive`, {
+      method: "POST",
+    }),
+  depotUnarchive: (id: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}/unarchive`, {
+      method: "POST",
+    }),
+  depotRename: (id: string, title: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
+    }),
+  depotDelete: (id: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}?confirm=true`, {
       method: "DELETE",
     }),
 };
