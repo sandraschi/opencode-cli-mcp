@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException
 
 from opencode_cli_mcp.client import OpencodeClient, get_client
 from opencode_cli_mcp.job_store import get_job, list_jobs
+from opencode_cli_mcp.tools.agent import opencode_run_agent
+from opencode_cli_mcp.tools.runs import opencode_cancel_run
 
 router = APIRouter(tags=["proxy"])
 
@@ -71,6 +73,41 @@ async def proxy_session_diff(session_id: str):
 async def proxy_runs():
     jobs = await list_jobs(limit=50)
     return {"success": True, "data": {"runs": jobs}}
+
+
+@router.post("/runs")
+async def proxy_start_run(body: dict):
+    """Launch an opencode agent run from the webapp (populates the Projects page).
+
+    body: {prompt, project?, format? ("text"|"json"), wait? (bool), timeout?}
+    Reuses the MCP tool logic - same job store, same process spawn.
+    """
+    prompt = (body.get("prompt") or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=422, detail="prompt required")
+    if len(prompt) > 8000:
+        raise HTTPException(status_code=422, detail="prompt too long (max 8000 chars)")
+    try:
+        result = await opencode_run_agent(
+            prompt=prompt,
+            project=(body.get("project") or "").strip() or None,
+            format="json" if body.get("format") == "json" else "text",
+            wait=bool(body.get("wait", False)),
+            timeout=max(1, min(int(body.get("timeout", 300)), 86400)),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start run: {e}")
+    if not result.get("success"):
+        raise HTTPException(status_code=422, detail=result.get("message", "failed to start run"))
+    return result
+
+
+@router.post("/runs/{job_id}/cancel")
+async def proxy_cancel_run(job_id: str):
+    result = await opencode_cancel_run(job_id=job_id)
+    if not result.get("success"):
+        raise HTTPException(status_code=404, detail=result.get("message", "cancel failed"))
+    return result
 
 
 @router.get("/runs/{job_id}")

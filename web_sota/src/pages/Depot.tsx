@@ -15,15 +15,18 @@ import {
   Layers,
   Coins,
   Eye,
+  Sparkles,
+  Wand2,
 } from "lucide-react";
-import { api, type DepotSession, type DepotStats } from "../services/api";
+import { api, type DepotSession, type DepotStats, type RagSearchResult, type RagStatus } from "../services/api";
 
 const PAGE_SIZE = 25;
 
 interface Filters {
   status: "all" | "active" | "archived";
   search: string;
-  searchMode: "title" | "transcript";
+  searchMode: "title" | "transcript" | "semantic";
+  timeframe: number | null;
 }
 
 export function Depot() {
@@ -31,10 +34,12 @@ export function Depot() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [stats, setStats] = useState<DepotStats | null>(null);
-  const [filters, setFilters] = useState<Filters>({ status: "all", search: "", searchMode: "title" });
+  const [filters, setFilters] = useState<Filters>({ status: "all", search: "", searchMode: "title", timeframe: null });
   const [transcriptResults, setTranscriptResults] = useState<
     Array<{ session_id: string; title: string; snippet: string; timestamp: string; archived: boolean }>
   >([]);
+  const [semanticResults, setSemanticResults] = useState<RagSearchResult[]>([]);
+  const [ragStatus, setRagStatus] = useState<RagStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
@@ -52,6 +57,7 @@ export function Depot() {
         const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset), sort: "updated" });
         if (filters.status !== "all") params.set("status", filters.status);
         if (filters.search.trim() && filters.searchMode === "title") params.set("search", filters.search.trim());
+        if (filters.timeframe) params.set("timeframe_days", String(filters.timeframe));
         const d = await api.depotList(params.toString());
         setSessions(d.data.sessions);
         setTotal(d.data.total);
@@ -62,7 +68,7 @@ export function Depot() {
         setLoading(false);
       }
     },
-    [filters.status, filters.search, filters.searchMode],
+    [filters.status, filters.search, filters.searchMode, filters.timeframe],
   );
 
   const loadStats = useCallback(async () => {
@@ -74,10 +80,20 @@ export function Depot() {
     }
   }, []);
 
+  const loadRagStatus = useCallback(async () => {
+    try {
+      const d = await api.depotRagStatus();
+      setRagStatus(d.data);
+    } catch {
+      setRagStatus(null);
+    }
+  }, []);
+
   useEffect(() => {
     load();
     loadStats();
-  }, [load, loadStats]);
+    loadRagStatus();
+  }, [load, loadStats, loadRagStatus]);
 
   const runTranscriptSearch = useCallback(async (q: string) => {
     setSearching(true);
@@ -95,13 +111,50 @@ export function Depot() {
     }
   }, []);
 
+  const runSemanticSearch = useCallback(async (q: string) => {
+    setSearching(true);
+    setError("");
+    try {
+      const d = await api.depotRagSearch(q);
+      setSemanticResults(d.data.results);
+      setTotal(d.data.count);
+      setOffset(0);
+    } catch (e) {
+      setError(`Semantic search failed: ${e instanceof Error ? e.message : "unknown"}`);
+      setSemanticResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (filters.searchMode === "transcript" && filters.search.trim().length >= 3) {
       const t = setTimeout(() => runTranscriptSearch(filters.search.trim()), 400);
       return () => clearTimeout(t);
     }
+    if (filters.searchMode === "semantic" && filters.search.trim().length >= 3) {
+      const t = setTimeout(() => runSemanticSearch(filters.search.trim()), 400);
+      return () => clearTimeout(t);
+    }
     setTranscriptResults([]);
-  }, [filters.search, filters.searchMode, runTranscriptSearch]);
+    setSemanticResults([]);
+  }, [filters.search, filters.searchMode, runTranscriptSearch, runSemanticSearch]);
+
+  const startIndexing = async () => {
+    setError("");
+    try {
+      await api.depotRagIndex();
+      await loadRagStatus();
+    } catch (e) {
+      setError(`Index start failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  useEffect(() => {
+    if (!ragStatus?.running) return;
+    const t = setInterval(loadRagStatus, 3000);
+    return () => clearInterval(t);
+  }, [ragStatus?.running, loadRagStatus]);
 
   const viewSession = async (id: string) => {
     setSelectedId(id);
@@ -155,6 +208,7 @@ export function Depot() {
   };
 
   const inTranscriptMode = filters.searchMode === "transcript" && filters.search.trim().length >= 3;
+  const inSemanticMode = filters.searchMode === "semantic" && filters.search.trim().length >= 3;
   const hasNext = offset + PAGE_SIZE < total;
   const hasPrev = offset > 0;
 
@@ -236,6 +290,21 @@ export function Depot() {
           <option value="active">Active</option>
           <option value="archived">Archived</option>
         </select>
+        <select
+          value={filters.timeframe ?? 0}
+          onChange={(e) =>
+            setFilters((f) => ({ ...f, timeframe: e.target.value === "0" ? null : Number(e.target.value) }))
+          }
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          data-testid="depot-timeframe"
+          aria-label="Time range"
+        >
+          <option value="0">All time</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">Last year</option>
+        </select>
         <div className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 rounded-md px-1 py-0.5">
           <button
             type="button"
@@ -255,6 +324,17 @@ export function Depot() {
           >
             Transcript
           </button>
+          <button
+            type="button"
+            onClick={() => setFilters((f) => ({ ...f, searchMode: "semantic" }))}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors ${
+              filters.searchMode === "semantic" ? "bg-accent/20 text-accent" : "text-zinc-500 hover:text-zinc-300"
+            }`}
+            title="Semantic search over indexed transcripts (LanceDB RAG)"
+            data-testid="depot-mode-semantic"
+          >
+            <Sparkles className="w-2.5 h-2.5" /> Semantic
+          </button>
         </div>
         <div className="relative flex-1 min-w-52">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
@@ -265,7 +345,9 @@ export function Depot() {
             placeholder={
               filters.searchMode === "transcript"
                 ? "Search session transcripts (3+ chars)..."
-                : "Filter by session title..."
+                : filters.searchMode === "semantic"
+                  ? "Semantic search — describe what you want to find..."
+                  : "Filter by session title..."
             }
             data-testid="depot-search"
             className="w-full bg-zinc-800 border border-zinc-700 rounded-md pl-8 pr-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
@@ -273,9 +355,66 @@ export function Depot() {
         </div>
         {searching && <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-500" />}
         <span className="text-xs text-zinc-500">
-          {inTranscriptMode ? `${transcriptResults.length} transcript matches` : `${total} shown`}
+          {inTranscriptMode
+            ? `${transcriptResults.length} transcript matches`
+            : inSemanticMode
+              ? `${semanticResults.length} semantic matches`
+              : `${total} shown`}
         </span>
       </div>
+
+      {ragStatus && (
+        <div
+          className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2 bg-surface-light border border-surface-border rounded-lg text-xs"
+          data-testid="depot-rag-status"
+        >
+          <span className="flex items-center gap-1.5">
+            <Wand2 className="w-3.5 h-3.5 text-accent" />
+            RAG
+          </span>
+          {ragStatus.available ? (
+            <>
+              <span className="text-zinc-400">{ragStatus.indexed_chunks.toLocaleString()} chunks indexed</span>
+              <span className="text-zinc-600">model: {ragStatus.model}</span>
+              {ragStatus.running ? (
+                <span className="flex items-center gap-1.5 text-amber-400">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  indexing {ragStatus.indexed_sessions ?? 0}
+                  {ragStatus.total_sessions ? ` / ${ragStatus.total_sessions}` : ""} sessions
+                </span>
+              ) : (
+                ragStatus.pending_sessions !== null &&
+                ragStatus.pending_sessions !== undefined &&
+                ragStatus.pending_sessions > 0 && (
+                  <span className="text-zinc-500">
+                    {ragStatus.pending_sessions} sessions pending — index to search them semantically
+                  </span>
+                )
+              )}
+              {ragStatus.error && <span className="text-red-400">{ragStatus.error}</span>}
+              <span className="flex-1" />
+              <button
+                type="button"
+                onClick={startIndexing}
+                disabled={ragStatus.running}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-accent/20 text-accent hover:bg-accent/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                data-testid="depot-rag-index"
+              >
+                {ragStatus.running ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                {ragStatus.running ? "Indexing..." : "Index sessions"}
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-zinc-500">
+                {ragStatus.reason === "rag_disabled"
+                  ? "RAG disabled (OPENCODE_CLI_MCP_RAG_ENABLED=0)"
+                  : `RAG deps missing — ${ragStatus.install_hint || "uv sync --extra rag"}`}
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {topCostLabel && (
         <div className="text-xs text-zinc-600 mb-3">
@@ -318,6 +457,44 @@ export function Depot() {
                   )}
                   <span className="flex-1" />
                   <span className="text-xs text-zinc-600">{r.timestamp}</span>
+                </div>
+                <p className="text-xs text-zinc-400 whitespace-pre-wrap">{r.snippet}</p>
+                <button
+                  type="button"
+                  onClick={() => viewSession(r.session_id)}
+                  className="mt-2 text-xs text-accent hover:underline"
+                >
+                  Open session
+                </button>
+              </motion.div>
+            ))
+          )}
+        </div>
+      ) : inSemanticMode ? (
+        <div className="space-y-2">
+          {semanticResults.length === 0 ? (
+            <div className="text-center py-12 text-zinc-500">
+              <Sparkles className="w-8 h-8 mx-auto mb-3 opacity-40" />
+              <p>No semantic matches. Index sessions (RAG bar above) first — or the index is still empty.</p>
+            </div>
+          ) : (
+            semanticResults.map((r) => (
+              <motion.div
+                key={`${r.session_id}-${r.distance}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-surface-light border border-surface-border rounded-xl p-4"
+                data-testid={`depot-semantic-${r.session_id}`}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-accent" />
+                  <span className="font-mono text-xs text-zinc-200">{r.title || r.session_id}</span>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                    {(r.rank * 100).toFixed(0)}%
+                  </span>
+                  {r.agent && <span className="text-[10px] text-zinc-600">agent: {r.agent}</span>}
+                  <span className="flex-1" />
+                  <span className="text-xs text-zinc-600">{r.engine}</span>
                 </div>
                 <p className="text-xs text-zinc-400 whitespace-pre-wrap">{r.snippet}</p>
                 <button

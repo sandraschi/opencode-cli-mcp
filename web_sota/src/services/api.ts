@@ -187,6 +187,34 @@ export interface DepotSearchResult {
   snippet: string;
 }
 
+export interface RagStatus {
+  available: boolean;
+  enabled: boolean;
+  reason?: string;
+  backend?: string;
+  model?: string;
+  db_path?: string;
+  indexed_chunks: number;
+  last_watermark_ms?: number;
+  running?: boolean;
+  indexed_sessions?: number;
+  total_sessions?: number;
+  pending_sessions?: number | null;
+  install_hint?: string;
+  error?: string;
+}
+
+export interface RagSearchResult {
+  session_id: string;
+  title: string;
+  agent: string;
+  directory: string;
+  snippet: string;
+  rank: number;
+  distance: number;
+  engine: string;
+}
+
 export interface PluginEntry {
   index: number;
   name: string;
@@ -312,4 +340,27 @@ export const api = {
     fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}?confirm=true`, {
       method: "DELETE",
     }),
+
+  startRun: (body: { prompt: string; project?: string; format?: string; wait?: boolean; timeout?: number }) =>
+    fetchJson<{ success: boolean; message: string; data: { job_id: string; status: string } }>("/runs", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  cancelRun: (jobId: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/runs/${encodeURIComponent(jobId)}/cancel`, {
+      method: "POST",
+    }),
+
+  depotRagStatus: () => fetchJson<{ success: boolean; message: string; data: RagStatus }>("/depot/rag/status"),
+  depotRagIndex: (limitSessions?: number) =>
+    fetchJson<{ success: boolean; message: string; data: RagStatus }>(
+      `/depot/rag/index${limitSessions ? `?limit_sessions=${limitSessions}` : ""}`,
+      { method: "POST" },
+    ),
+  depotRagSearch: (q: string, limit = 20) =>
+    fetchJson<{ success: boolean; message: string; data: { results: RagSearchResult[]; count: number } }>(
+      `/depot/rag/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+      undefined,
+      60000,
+    ),
 };

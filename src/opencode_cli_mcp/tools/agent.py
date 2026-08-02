@@ -27,9 +27,13 @@ async def opencode_run_agent(
     if format not in ("text", "json"):
         return {"success": False, "message": f"Invalid format '{format}': must be 'text' or 'json'", "data": {}}  # noqa: E501
 
-    cmd = [OPENCODE_BINARY, "run", prompt, "--format", format]
+    # opencode >=1.18 CLI: --format accepts only 'default'|'json' (the old
+    # 'text' choice errors out), and the working directory flag is --dir
+    # (--project is not a run flag). Map the tool surface to the CLI.
+    fmt = "json" if format == "json" else "default"
+    cmd = [OPENCODE_BINARY, "run", prompt, "--format", fmt]
     if project:
-        cmd.extend(["--project", project])
+        cmd.extend(["--dir", project])
 
     job_id = await create_job(prompt, project, timeout=timeout)
 

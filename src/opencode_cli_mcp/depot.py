@@ -118,9 +118,14 @@ def list_sessions(
     limit: int = 50,
     offset: int = 0,
     sort: str = "updated",
+    timeframe_days: int | None = None,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    """List sessions from the depot with filters. Returns page + totals."""
+    """List sessions from the depot with filters. Returns page + totals.
+
+    ``timeframe_days`` restricts to sessions updated within the last N days
+    (for "what did I work on 3 weeks ago" style browsing).
+    """
     clauses: list[str] = []
     params: list[Any] = []
     if status == "active":
@@ -136,6 +141,9 @@ def list_sessions(
     if search:
         clauses.append("title LIKE ?")
         params.append(f"%{search}%")
+    if timeframe_days and timeframe_days > 0:
+        clauses.append("time_updated > ?")
+        params.append(int(datetime.now(UTC).timestamp() * 1000) - timeframe_days * 86_400_000)
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     order = {
         "updated": "time_updated DESC",

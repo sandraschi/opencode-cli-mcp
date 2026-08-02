@@ -22,6 +22,13 @@ addopts = "--cov=src --cov=api --cov-report=term-missing --cov-fail-under=30"
 [project.scripts]
 opencode-cli-mcp = "opencode_cli_mcp.server:main"
 
+[project.optional-dependencies]
+rag = [
+    "fastembed>=0.4",
+    "lancedb>=0.18",
+    "pyarrow>=16",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
