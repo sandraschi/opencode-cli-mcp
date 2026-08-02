@@ -61,3 +61,6 @@ mcpb/CHANGELOG.md
 
 data/
 *.log
+
+# TypeScript build cache
+web_sota/tsconfig.tsbuildinfo

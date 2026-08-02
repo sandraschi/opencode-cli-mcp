@@ -94,8 +94,8 @@ Primary surface (portmanteaus + atomic):
 | Tool | Description |
 |------|-------------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
-| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
-| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline; covers ops the serve API lacks (unarchive, delete, global transcript search). |
+| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export / **rename / delete** sessions (live `opencode serve` API - UI picks changes up immediately) |
+| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline; covers ops the serve API lacks (archive, unarchive, offline rename/delete, global transcript search). |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install .mcpb bundles into opencode config (dry-run support) |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |
@@ -182,6 +182,7 @@ cd web_sota; npm run biome:ci   # frontend lint
 - `opencode serve` autostarts on first tool call if down (binary resolved via `shutil.which` - npm `.cmd` shims work)
 - The backend is one ASGI app: REST + FastMCP on a single port (10951)
 - `opencode_depot` reads the opencode SQLite DB directly (`~/.local/share/opencode/opencode.db`, `OPENCODE_DB_PATH` override) - works offline, no serve needed
+- Session rename/delete has TWO paths: live (`opencode_sessions` action=rename/delete via PATCH/DELETE /session/{id} on `opencode serve` - race-free, UI updates immediately) and offline (`opencode_depot` action=rename/delete direct SQLite). Prefer the live path while opencode is running - a direct-DB title write can be overwritten by the server's next session save.
 - Frontend proxies `/api/*`, `/docs`, `/openapi.json`, `/redoc` to backend
 - Experimental light-mode toggle in the topbar (CSS invert hack, `ocmcp-light-mode` key)
 - Fleet port scanner in fleet.py probes all WEBAPP_PORTS.md entries

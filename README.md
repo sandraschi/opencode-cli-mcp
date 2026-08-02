@@ -47,8 +47,8 @@ Primary surface - four portmanteaus (operation discriminator) plus two atomic to
 | Tool | Purpose |
 |------|---------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
-| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
-| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline (no `opencode serve` needed) and covers operations the serve API lacks (unarchive, delete, global transcript search). |
+| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export / **rename / delete** sessions (live `opencode serve` API - the opencode UI picks the changes up immediately) |
+| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline (no `opencode serve` needed) and covers the ops the serve API lacks (archive, unarchive, offline rename/delete, global transcript search). |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install `.mcpb` bundles into opencode config |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |

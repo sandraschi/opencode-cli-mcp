@@ -117,6 +117,75 @@ async def opencode_session_diff(
     }
 
 
+async def opencode_rename_session(
+    session_id: Annotated[str, Field(description="Session ID to rename")],
+    title: Annotated[str, Field(description="New session title")],
+) -> dict:
+    """Rename an opencode session via the serve API (session.update).
+
+    Uses the live server so the running opencode UI picks up the title
+    immediately. For offline rename (serve down) use opencode_depot(action="rename").
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"session_id": str, "title": str, "result": dict}}
+
+    ## Examples
+    opencode_rename_session(session_id="sess_01", title="Refactor auth module")
+    """
+
+    title = (title or "").strip()
+    if not title:
+        return {"success": False, "message": "title is required", "data": {}}
+
+    client = get_client()
+    err = await _ensure(client)
+    if err:
+        return err
+    result = await client.update_session(session_id, title)
+    return {
+        "success": True,
+        "message": f"Renamed session {session_id}",
+        "data": {"session_id": session_id, "title": title, "result": result},
+    }
+
+
+async def opencode_delete_session(
+    session_id: Annotated[str, Field(description="Session ID to delete")],
+    confirm: Annotated[bool, Field(description="Must be True - deletion is permanent")] = False,
+) -> dict:
+    """Delete an opencode session via the serve API (session.delete).
+
+    Removes the session and all its messages/parts. Permanent - no recovery.
+    Requires confirm=True. For offline delete (serve down) use
+    opencode_depot(action="delete").
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"session_id": str, "result": dict}}
+
+    ## Examples
+    opencode_delete_session(session_id="sess_01", confirm=True)
+    """
+
+    if not confirm:
+        return {
+            "success": False,
+            "message": "confirm=True required - deletion is permanent",
+            "data": {},
+            "recovery_options": ["Call again with confirm=True"],
+        }
+
+    client = get_client()
+    err = await _ensure(client)
+    if err:
+        return err
+    result = await client.delete_session(session_id)
+    return {
+        "success": True,
+        "message": f"Deleted session {session_id} (permanent)",
+        "data": {"session_id": session_id, "result": result},
+    }
+
+
 async def opencode_get_messages(
     session_id: Annotated[str, Field(description="Session ID to retrieve messages from")],
     limit: Annotated[int, Field(description="Maximum number of messages to retrieve")] = 50,

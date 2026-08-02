@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.4 - 2026-08-02 (live session rename/delete)
+
+### Added
+- `opencode_sessions` gains `rename` + `delete` actions via the live `opencode serve`
+  API (`client.update_session` PATCH /session/{id} {title}, `client.delete_session`
+  DELETE /session/{id}, confirm=True guard). The running opencode UI picks the
+  change up immediately and cannot overwrite a renamed title.
+- REST: `PATCH /api/opencode/sessions/{id}` + `DELETE /api/opencode/sessions/{id}`
+  (confirm=true required) in proxy.py.
+- Webapp Sessions page: per-row Rename (inline prompt) + Delete (confirm dialog)
+  buttons; action notice + busy states.
+- Tests: `test_update_session` / `test_delete_session` (+ 404 paths) in test_client.py.
+- Two-path guidance documented (README, llms-full.txt): live serve API preferred
+  while opencode runs; depot direct-SQLite for offline (archive/unarchive there).
+
+### Fixed
+- `Depot.tsx` biome `noUselessFragments` error (blocked `biome check` gate).
+
 ## 0.2.3 - 2026-08-01 (session depot + unified backend)
 
 ### Added

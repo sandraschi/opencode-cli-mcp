@@ -411,13 +411,11 @@ export function Depot() {
               </button>
             </>
           ) : (
-            <>
-              <span className="text-zinc-500">
-                {ragStatus.reason === "rag_disabled"
-                  ? "RAG disabled (OPENCODE_CLI_MCP_RAG_ENABLED=0)"
-                  : `RAG deps missing - ${ragStatus.install_hint || "uv sync --extra rag"}`}
-              </span>
-            </>
+            <span className="text-zinc-500">
+              {ragStatus.reason === "rag_disabled"
+                ? "RAG disabled (OPENCODE_CLI_MCP_RAG_ENABLED=0)"
+                : `RAG deps missing - ${ragStatus.install_hint || "uv sync --extra rag"}`}
+            </span>
           )}
         </div>
       )}

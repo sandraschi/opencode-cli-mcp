@@ -142,6 +142,29 @@ class OpencodeClient:
         r.raise_for_status()
         return r.json()
 
+    async def update_session(self, session_id: str, title: str) -> dict[str, Any]:
+        """Rename a session via the serve API (PATCH /session/{id} {title}).
+
+        Preferred over direct-DB title writes while opencode is running: the
+        server applies the change to its in-memory state AND the DB, so the
+        UI reflects it immediately and a later session save cannot overwrite
+        it with the stale auto-generated title.
+        """
+        r = await self._http.patch(f"/session/{session_id}", json={"title": title})
+        r.raise_for_status()
+        return r.json()
+
+    async def delete_session(self, session_id: str) -> dict[str, Any]:
+        """Delete a session via the serve API (DELETE /session/{id}).
+
+        Race-free alternative to depot.delete_session() while opencode is
+        running: the server removes its in-memory session first, so no
+        in-flight write can resurrect the row afterwards.
+        """
+        r = await self._http.delete(f"/session/{session_id}")
+        r.raise_for_status()
+        return r.json()
+
     async def get_config(self) -> dict[str, Any]:
         r = await self._http.get("/config")
         r.raise_for_status()

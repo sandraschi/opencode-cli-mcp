@@ -208,3 +208,37 @@ async def test_close(client):
     client._process = MagicMock()
     await client.close()
     client._process.terminate.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_session(client):
+    mock_resp = _mock_response(200, {"id": "abc", "title": "new title"})
+    with patch.object(client._http, "patch", AsyncMock(return_value=mock_resp)) as mock_patch:
+        result = await client.update_session("abc", "new title")
+    assert result == {"id": "abc", "title": "new title"}
+    mock_patch.assert_called_once_with("/session/abc", json={"title": "new title"})
+
+
+@pytest.mark.asyncio
+async def test_update_session_raises(client):
+    mock_resp = _mock_response(404)
+    with patch.object(client._http, "patch", AsyncMock(return_value=mock_resp)):
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.update_session("missing", "title")
+
+
+@pytest.mark.asyncio
+async def test_delete_session(client):
+    mock_resp = _mock_response(200, {"ok": True})
+    with patch.object(client._http, "delete", AsyncMock(return_value=mock_resp)) as mock_del:
+        result = await client.delete_session("abc")
+    assert result == {"ok": True}
+    mock_del.assert_called_once_with("/session/abc")
+
+
+@pytest.mark.asyncio
+async def test_delete_session_raises(client):
+    mock_resp = _mock_response(404)
+    with patch.object(client._http, "delete", AsyncMock(return_value=mock_resp)):
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.delete_session("missing")

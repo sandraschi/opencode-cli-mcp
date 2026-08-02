@@ -263,6 +263,15 @@ export const api = {
   getOpencodeStatus: () => fetchJson<{ success: boolean; data: OpencodeStatus }>("/opencode/status"),
   listSessions: () => fetchJson<{ success: boolean; data: { sessions: Session[] } }>("/opencode/sessions"),
   getSession: (id: string) => fetchJson<{ success: boolean; data: { session: Session } }>(`/opencode/sessions/${id}`),
+  renameSession: (id: string, title: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/opencode/sessions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
+    }),
+  deleteSession: (id: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/opencode/sessions/${id}?confirm=true`, {
+      method: "DELETE",
+    }),
 
   getFleet: () => fetchJson<{ success: boolean; data: { apps: FleetApp[] } }>("/fleet"),
   getOllamaStatus: () => fetchJson<{ success: boolean; data: OllamaStatus }>("/ollama/status"),

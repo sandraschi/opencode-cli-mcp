@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { api, type Session } from "../services/api";
 
 export function Sessions() {
@@ -8,6 +8,8 @@ export function Sessions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [sessionDetail, setSessionDetail] = useState<Session | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -35,6 +37,48 @@ export function Sessions() {
     }
   };
 
+  const renameSession = async (s: Session) => {
+    const title = window.prompt(`Rename session ${s.id}`, s.title ?? "");
+    if (title === null || !title.trim()) return;
+    setBusyId(s.id);
+    setNotice(null);
+    try {
+      await api.renameSession(s.id, title.trim());
+      setNotice(`Renamed ${s.id} -> ${title.trim()}`);
+      await load();
+      if (selected === s.id) await viewSession(s.id);
+    } catch (e) {
+      setNotice(`Rename failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteSession = async (s: Session) => {
+    if (
+      !window.confirm(
+        `Permanently delete session '${s.title || s.id}'? All messages and file diffs cascade. No recovery.`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(s.id);
+    setNotice(null);
+    try {
+      await api.deleteSession(s.id);
+      setNotice(`Deleted ${s.id}`);
+      if (selected === s.id) {
+        setSelected(null);
+        setSessionDetail(null);
+      }
+      await load();
+    } catch (e) {
+      setNotice(`Delete failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div data-testid="sessions-page">
       <div className="flex items-center justify-between mb-6">
@@ -51,6 +95,15 @@ export function Sessions() {
           Refresh
         </button>
       </div>
+
+      {notice && (
+        <div
+          className="mb-4 px-3 py-2 text-sm rounded-lg border border-surface-border bg-surface-light text-zinc-300"
+          data-testid="sessions-notice"
+        >
+          {notice}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-zinc-500">Loading sessions...</div>
@@ -72,11 +125,41 @@ export function Sessions() {
                 }`}
                 onClick={() => viewSession(s.id)}
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm">{s.id}</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-sm truncate">{s.id}</span>
+                  <span className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      data-testid={`session-rename-${s.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        renameSession(s);
+                      }}
+                      disabled={busyId === s.id}
+                      className="p-1.5 rounded-md text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-colors"
+                      title="Rename session"
+                      aria-label={`Rename session ${s.id}`}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      data-testid={`session-delete-${s.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteSession(s);
+                      }}
+                      disabled={busyId === s.id}
+                      className="p-1.5 rounded-md text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+                      title="Delete session (permanent)"
+                      aria-label={`Delete session ${s.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+                  </span>
                 </div>
-                {s.title && <div className="text-xs text-zinc-400 mt-1">{s.title}</div>}
+                {s.title && <div className="text-xs text-zinc-400 mt-1 truncate">{s.title}</div>}
               </motion.div>
             ))}
           </div>

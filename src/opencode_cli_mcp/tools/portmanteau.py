@@ -14,10 +14,12 @@ from opencode_cli_mcp.probe import PROBE_STATE
 from opencode_cli_mcp.tools.agent import opencode_launch_ui, opencode_run_agent
 from opencode_cli_mcp.tools.runs import opencode_cancel_run, opencode_get_run_status
 from opencode_cli_mcp.tools.sessions import (
+    opencode_delete_session,
     opencode_export_session,
     opencode_get_messages,
     opencode_get_session,
     opencode_list_sessions,
+    opencode_rename_session,
     opencode_send_message,
     opencode_session_diff,
     opencode_session_grep,
@@ -107,25 +109,28 @@ async def opencode_runs(
 
 async def opencode_sessions(
     action: Annotated[
-        Literal["list", "get", "messages", "send", "diff", "grep", "export"],
+        Literal["list", "get", "messages", "send", "diff", "grep", "export", "rename", "delete"],
         Field(
             description=(
                 "list: all sessions. get: one session. messages: transcript."
                 " send: message a session. diff: files changed."
                 " grep: search messages across sessions. export: render session as markdown/html."
+                " rename: set title (serve API, live UI). delete: permanently remove (confirm=True)."
             )
         ),
     ],
     session_id: Annotated[
-        str | None, Field(description="Session ID (required for get/messages/send/diff/export)")
+        str | None, Field(description="Session ID (required for get/messages/send/diff/export/rename/delete)")
     ] = None,
     message: Annotated[str | None, Field(description="Message text (required for send)")] = None,
+    title: Annotated[str | None, Field(description="New title (required for rename)")] = None,
+    confirm: Annotated[bool, Field(description="Must be True to delete (permanent)")] = False,
     query: Annotated[str | None, Field(description="Search query (required for grep)")] = None,
     format: Annotated[str, Field(description="Export format: markdown or html (export)")] = "markdown",
     limit: Annotated[int, Field(description="Page size (list/messages)", ge=1, le=200)] = 50,
     offset: Annotated[int, Field(description="Page offset (list)", ge=0)] = 0,
 ) -> dict:
-    """Inspect and interact with opencode sessions: list, get, transcript, send, diff, grep, or export.
+    """Inspect and interact with opencode sessions: list, get, transcript, send, diff, grep, export, rename, or delete.
 
     ## Return Format
     {"success": bool, "message": str, "data": dict}
@@ -134,6 +139,8 @@ async def opencode_sessions(
     opencode_sessions(action="list", limit=50)
     opencode_sessions(action="messages", session_id="sess_01", limit=100)
     opencode_sessions(action="send", session_id="sess_01", message="continue")
+    opencode_sessions(action="rename", session_id="sess_01", title="Refactor auth module")
+    opencode_sessions(action="delete", session_id="sess_01", confirm=True)
     """
 
     if action == "grep":
@@ -171,6 +178,12 @@ async def opencode_sessions(
         return await opencode_get_messages(session_id=session_id, limit=limit)
     if action == "diff":
         return await opencode_session_diff(session_id=session_id)
+    if action == "rename":
+        if not title:
+            return _missing("rename", "title")
+        return await opencode_rename_session(session_id=session_id, title=title)
+    if action == "delete":
+        return await opencode_delete_session(session_id=session_id, confirm=confirm)
     # send
     if not message:
         return _missing("send", "message")

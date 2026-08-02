@@ -69,6 +69,38 @@ async def proxy_session_diff(session_id: str):
         raise HTTPException(status_code=404, detail=f"Session diff failed: {e}")
 
 
+@router.patch("/opencode/sessions/{session_id}")
+async def proxy_session_rename(session_id: str, body: dict):
+    """Rename a session via the live opencode serve API (session.update).
+
+    Preferred over the depot route while opencode is running: the server
+    updates its in-memory session too, so the opencode UI reflects the new
+    title immediately and cannot overwrite it with the stale auto-title.
+    """
+    title = (body.get("title") or "").strip()
+    if not title:
+        raise HTTPException(status_code=422, detail="title required")
+    client = await _get_client()
+    try:
+        updated = await client.update_session(session_id, title)
+        return {"success": True, "message": f"Renamed '{session_id}'", "data": {"session": updated}}
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Session rename failed: {e}")
+
+
+@router.delete("/opencode/sessions/{session_id}")
+async def proxy_session_delete(session_id: str, confirm: bool = False):
+    """Delete a session via the live opencode serve API (session.delete)."""
+    if not confirm:
+        raise HTTPException(status_code=422, detail="confirm=true required - deletion is permanent")
+    client = await _get_client()
+    try:
+        result = await client.delete_session(session_id)
+        return {"success": True, "message": f"Deleted '{session_id}' permanently", "data": {"result": result}}
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Session delete failed: {e}")
+
+
 @router.get("/runs")
 async def proxy_runs():
     jobs = await list_jobs(limit=50)
