@@ -1,4 +1,4 @@
-# Onboarding — opencode-cli-mcp
+# Onboarding - opencode-cli-mcp
 
 The server delegates implementation work to **opencode**, so the
 onboarding goal is: opencode serve running, MCP client connected,

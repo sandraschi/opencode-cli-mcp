@@ -1,4 +1,4 @@
-# opencode-cli-mcp — PRD
+# opencode-cli-mcp - PRD
 
 **Version**: 0.2.3 · **Status**: Active
 

@@ -8,7 +8,7 @@
 |------|---------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
 | `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
-| `opencode_depot(action=...)` | **session depot** — list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB (works offline) |
+| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB (works offline) |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install `.mcpb` bundles into opencode config |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |
@@ -161,7 +161,7 @@ Copy the tool files into your opencode project:
 cp -r .opencode/tools/* your-project/.opencode/tools/
 ```
 
-Restart opencode — tools are auto-loaded on start. See the webapp [OC Tools page](http://localhost:10950/oc-tools) for source code and full documentation.
+Restart opencode - tools are auto-loaded on start. See the webapp [OC Tools page](http://localhost:10950/oc-tools) for source code and full documentation.
 
 ---
 

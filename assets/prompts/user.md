@@ -1,4 +1,4 @@
-# opencode-cli-mcp — User Guide
+# opencode-cli-mcp - User Guide
 
 This tutorial walks you through the opencode-cli-mcp server from a
 user's perspective: connecting it to your MCP client, launching your
@@ -16,7 +16,7 @@ web features, the bundled dashboard.
 - The `opencode` CLI (version 2.x or later).
 - An MCP client: Claude Desktop, Cursor, Windsurf, or the bundled
   desktop app (NSIS installer, which ships everything including a
-  Python backend frozen with PyInstaller — no Python needed on the
+  Python backend frozen with PyInstaller - no Python needed on the
   target machine).
 
 ### 1.2 Developer install
@@ -34,8 +34,8 @@ just start          # opencode serve (:4096) + FastAPI backend (:10951) + Vite f
 `just bootstrap` installs Python dev dependencies (pytest, ruff,
 pre-commit) and registers the pre-commit hooks that lint Python (ruff)
 and TypeScript (biome) before every commit. The certification command
-`just certify` runs all five gates — ruff, pytest, pyright, tsc, and
-biome — and aborts on the first failure.
+`just certify` runs all five gates - ruff, pytest, pyright, tsc, and
+biome - and aborts on the first failure.
 
 ### 1.3 Desktop app
 
@@ -100,7 +100,7 @@ or `BACKEND_PORT` (api.main).
 After configuration, ask your assistant to run
 `opencode_system(action="status")`. A successful response confirms
 the server is mounted and shows whether `opencode serve` is
-reachable. If the tool list is empty, check the client's MCP logs —
+reachable. If the tool list is empty, check the client's MCP logs -
 the most common cause is a missing `uv` on PATH or a syntax error in
 the JSON config.
 
@@ -128,7 +128,7 @@ opencode_runs(action="start", prompt="Add type hints to src/client.py", wait=tru
 
 The call returns when the run finishes, with the agent's final output
 and exit code. Use this only for tasks you expect to complete within
-the timeout — blocking calls risk client timeouts (4-5 minutes on
+the timeout - blocking calls risk client timeouts (4-5 minutes on
 most hosts).
 
 ### 3.3 Launch a long task (fire-and-forget)
@@ -208,7 +208,7 @@ opencode_sessions(action="diff", session_id="sess_01")
 ```
 
 Returns the files created, modified, and deleted by the agent. This
-is your primary review surface — always diff before accepting work.
+is your primary review surface - always diff before accepting work.
 The diff response groups files by operation so you can skim the
 change set at a glance.
 
@@ -280,7 +280,7 @@ opencode_depot(action="unarchive", session_id="sess_01")
 ```
 
 Archived sessions are fully searchable, so nothing is lost when you
-archive — only hidden from the default list.
+archive - only hidden from the default list.
 
 ### 5.3 Rename
 
@@ -300,7 +300,7 @@ The fastest way to re-find a decision recorded months ago:
 opencode_depot(action="search", query="why did we pin uvicorn to 0.34")
 ```
 
-Search uses SQLite FTS5 with BM25 ranking — phrase it naturally, read
+Search uses SQLite FTS5 with BM25 ranking - phrase it naturally, read
 the ranked results, and open the winning session with
 `opencode_sessions(action="get", ...)`.
 
@@ -320,7 +320,7 @@ cleanup to confirm the new totals.
 opencode_depot(action="delete", session_id="sess_01", confirm=true)
 ```
 
-Deletion cascades through the session's messages, files, and parts —
+Deletion cascades through the session's messages, files, and parts -
 there is no recovery. It is safest when opencode is idle, and you
 should always confirm the target with `list` or `search` first. The
 depot is the intended way to remove sensitive or junk sessions that
@@ -359,7 +359,7 @@ opencode_system(action="mcp_pulse")
 ```
 
 Each configured server is probed; the response lists reachable and
-dead servers. Dead servers surface as red entries — fix their config
+dead servers. Dead servers surface as red entries - fix their config
 or start them.
 
 ### 6.4 Config drift
@@ -409,21 +409,21 @@ hero section links to onboarding and the installation guide.
 
 ### 8.2 Sessions, Projects, Tools
 
-- **Sessions** — browse opencode sessions, view transcripts and diffs.
-- **Projects** — run history from the SQLite job store with status
+- **Sessions** - browse opencode sessions, view transcripts and diffs.
+- **Projects** - run history from the SQLite job store with status
   badges, stdout/stderr, and exit codes.
-- **Tools** — the MCP tool registry, portmanteaus and legacy aliases,
+- **Tools** - the MCP tool registry, portmanteaus and legacy aliases,
   with descriptions and input schemas.
-- **OC Tools** — the six custom opencode tools this repo ships in
+- **OC Tools** - the six custom opencode tools this repo ships in
   `.opencode/tools/`, with install instructions and full source.
-- **Apps Hub** — dynamic fleet discovery: live MCP webapps on this
+- **Apps Hub** - dynamic fleet discovery: live MCP webapps on this
   machine, registered vs experimental/untrusted.
-- **MCPB Install** — graphical interface to `opencode_mcpb_install`
+- **MCPB Install** - graphical interface to `opencode_mcpb_install`
   with dry-run preview.
-- **Status** — system info (CPU/memory/platform/GPU) and a live log
+- **Status** - system info (CPU/memory/platform/GPU) and a live log
   stream with an auto-scroll toggle.
-- **API Docs** — Swagger UI and ReDoc for the FastAPI bridge.
-- **Logs** — ring-buffer request log with filtering, search, export
+- **API Docs** - Swagger UI and ReDoc for the FastAPI bridge.
+- **Logs** - ring-buffer request log with filtering, search, export
   (JSON/CSV), and clear.
 
 ### 8.3 Chat
@@ -440,7 +440,7 @@ choice without reloading.
 ### 8.4 Settings
 
 - opencode serve URL (default `http://127.0.0.1:4096`).
-- Local LLM: provider, endpoint, model — auto-detected models listed
+- Local LLM: provider, endpoint, model - auto-detected models listed
   when Ollama/LM Studio are running.
 - Cloud provider: OpenAI, Anthropic, Google Gemini, OpenRouter with
   API key and model.
@@ -471,7 +471,7 @@ inspect sessions, and diagnose servers without leaving the chat.
 - Give the project path explicitly when the target is not the
   server's working directory.
 - Include acceptance criteria in the prompt ("add tests", "do not
-  touch lockfiles") — agents follow constraints better than
+  touch lockfiles") - agents follow constraints better than
   intentions.
 
 ### 10.2 Review before accept
@@ -479,13 +479,13 @@ inspect sessions, and diagnose servers without leaving the chat.
 - Always `diff` the session before accepting work.
 - Read the transcript when the diff touches files you did not expect.
 - If the result is wrong, `send` a correction instead of re-running
-  from scratch — the agent keeps its context.
+  from scratch - the agent keeps its context.
 
 ### 10.3 Session hygiene
 
 - Archive after every milestone; unarchiving is always possible.
 - Rename sessions with meaningful titles before archiving.
-- Search the depot before re-doing work — you may have already
+- Search the depot before re-doing work - you may have already
   solved it.
 - Delete only disposable sessions, and only with `confirm=true`.
 
@@ -538,7 +538,7 @@ you trust the client and models. Destructive MCP operations
 **Why is the tool list different from the README count?** The README
 and diagnostics report 21 tools (6 portmanteaus + 15 legacy aliases).
 Legacy aliases are deprecated and disappear in 0.3.0, so counts will
-drop then — the portmanteaus cover everything the aliases did.
+drop then - the portmanteaus cover everything the aliases did.
 
 **How do I update?** `git pull` (or reinstall the NSIS package),
 then `uv sync` and restart. Version is aligned across eight files;
@@ -550,7 +550,7 @@ This end-to-end walkthrough ties the whole surface together. The
 task: refactor a large Python package into portmanteau tools without
 touching the test suite, with the user supervising.
 
-**Step 1 — check the environment.**
+**Step 1 - check the environment.**
 
 ```
 opencode_system(action="status")
@@ -559,7 +559,7 @@ opencode_system(action="project")
 
 Both return healthy; the project is the target repo.
 
-**Step 2 — launch the run, fire-and-forget.**
+**Step 2 - launch the run, fire-and-forget.**
 
 ```
 opencode_runs(action="start",
@@ -570,7 +570,7 @@ opencode_runs(action="start",
 
 Returns `job_id: "r_7f3a"`.
 
-**Step 3 — read the transcript while it works.**
+**Step 3 - read the transcript while it works.**
 
 After a minute:
 
@@ -579,9 +579,9 @@ opencode_sessions(action="messages", session_id="sess_9c1e")
 ```
 
 The agent is consolidating the six legacy tools into two portmanteaus
-— on plan.
+- on plan.
 
-**Step 4 — steer when it drifts.**
+**Step 4 - steer when it drifts.**
 
 ```
 opencode_sessions(action="send",
@@ -591,7 +591,7 @@ opencode_sessions(action="send",
 
 The agent confirms and adjusts.
 
-**Step 5 — poll to completion.**
+**Step 5 - poll to completion.**
 
 ```
 opencode_runs(action="status", job_id="r_7f3a")
@@ -599,15 +599,15 @@ opencode_runs(action="status", job_id="r_7f3a")
 
 Repeated every 10 seconds until `status: "completed"`, `exit_code: 0`.
 
-**Step 6 — review the diff.**
+**Step 6 - review the diff.**
 
 ```
 opencode_sessions(action="diff", session_id="sess_9c1e")
 ```
 
-Two new files, four renames, tests untouched — exactly as instructed.
+Two new files, four renames, tests untouched - exactly as instructed.
 
-**Step 7 — archive and record.**
+**Step 7 - archive and record.**
 
 ```
 opencode_depot(action="rename", session_id="sess_9c1e", name="Refactor tools into portmanteaus")
@@ -645,7 +645,7 @@ same network.
 
 Headless runs are driven entirely through the MCP tools or the REST
 bridge (`POST /api/runs`, `GET /api/runs/{id}`). The job store makes
-runs resumable across pipeline retries. Use `wait=false` and poll —
+runs resumable across pipeline retries. Use `wait=false` and poll -
 pipeline timeouts are usually shorter than blocking agent runs.
 
 ## 15. Fleet integration
@@ -660,7 +660,7 @@ opencode-cli-mcp slots into the wider MCP fleet:
 - **calibre-mcp / arxiv-mcp**: archive research outputs produced by
   runs into the Calibre library via their respective tools.
 - **Fleet pulse**: `opencode_system(action="mcp_pulse")` verifies all
-  configured servers in one call — the standard health check before
+  configured servers in one call - the standard health check before
   a fleet-wide operation.
 - **Session depot as project memory**: search the depot before
   starting related work to recall prior decisions, file layouts, and
@@ -684,7 +684,7 @@ When a run completes with `exit_code != 0` or a diff you reject:
    assumption, or a missing constraint).
 3. Send a corrective instruction:
    `opencode_sessions(action="send", session_id=..., message="The build fails because the import path is src/pkg, not pkg. Fix and rerun the checks.")`
-4. Poll `opencode_runs(action="status")` — the corrected run reuses
+4. Poll `opencode_runs(action="status")` - the corrected run reuses
    the session context instead of starting cold.
 
 This converges faster than cancelling and re-launching, because the
@@ -716,7 +716,7 @@ with the cheap one.
 
 For a multi-agent sweep, review in bulk:
 
-1. `opencode_runs(action="list", limit=20)` — see all recent runs and
+1. `opencode_runs(action="list", limit=20)` - see all recent runs and
    their statuses in one call.
 2. For each completed run, `opencode_sessions(action="diff")` the
    matching session.
@@ -726,13 +726,13 @@ For a multi-agent sweep, review in bulk:
 ### 16.5 Chat-assisted planning
 
 The dashboard chat page runs against your local LLM (Ollama, LM
-Studio, or vLLM — auto-detected, cloud providers via Settings) and is
+Studio, or vLLM - auto-detected, cloud providers via Settings) and is
 useful for planning work that will later run as opencode agents:
 
 1. Draft the task in chat with the Explainer or Debugger persona to
    sharpen the wording.
 2. Use the prompt-refine button to tighten the final instruction.
-3. Hand the refined prompt to `opencode_runs(action="start", ...)` —
+3. Hand the refined prompt to `opencode_runs(action="start", ...)` -
    precise prompts make cheaper models perform better.
 
 The chat keeps a 100-message history in localStorage and exports to a
@@ -775,25 +775,25 @@ Common automation flows:
 
 ## 18. Glossary
 
-- **opencode** — the open-source AI coding agent CLI that this server
+- **opencode** - the open-source AI coding agent CLI that this server
   wraps. Runs in the terminal, web, or serve mode.
-- **opencode serve** — opencode's HTTP API mode, the transport this
+- **opencode serve** - opencode's HTTP API mode, the transport this
   server talks to over httpx.
-- **Run** — a single agent execution launched via
+- **Run** - a single agent execution launched via
   `opencode_runs(action="start")`, tracked in the job store.
-- **Session** — opencode's record of an agent conversation, including
+- **Session** - opencode's record of an agent conversation, including
   reasoning, tool calls, and file edits.
-- **Job store** — SQLite database persisting run state across server
+- **Job store** - SQLite database persisting run state across server
   restarts.
-- **Session depot** — this server's archive/search layer over
+- **Session depot** - this server's archive/search layer over
   opencode's own SQLite database; works offline.
-- **Portmanteau** — a consolidated MCP tool with an `operation`
+- **Portmanteau** - a consolidated MCP tool with an `operation`
   discriminator instead of many atomic tools.
-- **Prefab card** — an in-chat rich UI rendered by MCP Apps in
+- **Prefab card** - an in-chat rich UI rendered by MCP Apps in
   capable hosts (Claude Desktop, opencode).
-- **Streamable HTTP** — the MCP transport served at `/mcp` on the
+- **Streamable HTTP** - the MCP transport served at `/mcp` on the
   unified backend.
-- **FTS5** — SQLite's full-text search engine backing depot search.
+- **FTS5** - SQLite's full-text search engine backing depot search.
 
 ## 19. Security notes
 
@@ -802,7 +802,7 @@ driven by LLM prompts. Only use it where you trust your MCP client and
 models. The REST API binds to loopback; the CORS configuration covers
 localhost, Tauri origins, Tailscale, and LAN IPs. Keep your API keys in
 `.env` (never committed; `.env.example` is the committed template).
-The session depot can delete sessions permanently — treat `delete` as
+The session depot can delete sessions permanently - treat `delete` as
 you would any destructive database operation. Runs launched through
 the server can modify files anywhere the opencode process can write;
 scope prompts and project paths accordingly, and use `cancel` early

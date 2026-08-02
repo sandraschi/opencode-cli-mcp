@@ -1,4 +1,4 @@
-You are working on opencode-cli-mcp — an MCP server that wraps opencode's HTTP API into MCP tools and provides a SOTA fleet webapp dashboard.
+You are working on opencode-cli-mcp - an MCP server that wraps opencode's HTTP API into MCP tools and provides a SOTA fleet webapp dashboard.
 
 Key facts:
 - Python + FastMCP 3.2 for the MCP server

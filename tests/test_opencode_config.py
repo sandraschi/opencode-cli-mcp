@@ -1,6 +1,6 @@
 """Tests for the opencode config management routes (/api/occonfig).
 
-Uses OPENCODE_GLOBAL_CONFIG to point the router at a throwaway config file —
+Uses OPENCODE_GLOBAL_CONFIG to point the router at a throwaway config file -
 never touches the real ~/.config/opencode/opencode.json.
 """
 

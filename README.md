@@ -8,9 +8,9 @@
 </p>
 
 
-> 📖 **[Installation Guide](INSTALL.md)** — quick start, manual setup, and troubleshooting
-> 📖 **[Onboarding](docs/ONBOARDING.md)** — 5-minute first-run guide
-> 📖 **[Full reference](llms-full.txt)** — tools, endpoints, env vars, architecture
+> 📖 **[Installation Guide](INSTALL.md)** - quick start, manual setup, and troubleshooting
+> 📖 **[Onboarding](docs/ONBOARDING.md)** - 5-minute first-run guide
+> 📖 **[Full reference](llms-full.txt)** - tools, endpoints, env vars, architecture
 
 MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into 21 FastMCP tools (6 primary portmanteaus + 15 legacy aliases). Also includes a FastAPI REST bridge (unified with the MCP endpoint on one port), a Vite/React fleet-standard dashboard, and [OpenCode custom tools](.opencode/tools/) that extend opencode itself.
 
@@ -42,13 +42,13 @@ Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/in
 
 ## MCP Tools
 
-Primary surface — four portmanteaus (operation discriminator) plus two atomic tools:
+Primary surface - four portmanteaus (operation discriminator) plus two atomic tools:
 
 | Tool | Purpose |
 |------|---------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
 | `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
-| `opencode_depot(action=...)` | **session depot** — list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline (no `opencode serve` needed) and covers operations the serve API lacks (unarchive, delete, global transcript search). |
+| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline (no `opencode serve` needed) and covers operations the serve API lacks (unarchive, delete, global transcript search). |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install `.mcpb` bundles into opencode config |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |

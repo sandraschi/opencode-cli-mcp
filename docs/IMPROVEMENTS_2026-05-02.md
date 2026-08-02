@@ -1,4 +1,4 @@
-# opencode-cli-mcp — Improvement Plan
+# opencode-cli-mcp - Improvement Plan
 
 **Date:** 2026-05-05
 **Status:** Active development
@@ -7,31 +7,31 @@
 
 ## Fixed in 2026-05-05 Sessions
 
-- [x] Wire up `ensure_server()` in all MCP session/status tools — clean error if opencode not running
-- [x] Auto-derive `/api/tools` from shared `registry.py` — no more hardcoded drift
-- [x] Fix `fleet.py` missing labels — all ports from WEBAPP_PORTS.md now labeled
+- [x] Wire up `ensure_server()` in all MCP session/status tools - clean error if opencode not running
+- [x] Auto-derive `/api/tools` from shared `registry.py` - no more hardcoded drift
+- [x] Fix `fleet.py` missing labels - all ports from WEBAPP_PORTS.md now labeled
 - [x] Fix 24+ ruff lint errors (imports, bare except, line length, unused vars)
 - [x] Comprehensive docs: USAGE.md, improved README, improved integration guide
 - [x] Shorten tool descriptions in registry to fit within line-length rules
-- [x] Fix Settings page — removed mock labels, theme toggle now applies to document root, proper LLM config
-- [x] Fix Help page — auto-discovers all docs from backend, renders markdown, adds search filter
+- [x] Fix Settings page - removed mock labels, theme toggle now applies to document root, proper LLM config
+- [x] Fix Help page - auto-discovers all docs from backend, renders markdown, adds search filter
 - [x] Add docs backend endpoint (`GET /api/docs`, `GET /api/docs/{id}`)
-- [x] Create 6 OpenCode custom tools (`.opencode/tools/`) — fleet, sessions, runs, system, providers, tools
+- [x] Create 6 OpenCode custom tools (`.opencode/tools/`) - fleet, sessions, runs, system, providers, tools
 - [x] Add backend endpoint for custom tool definitions (`GET /api/opencode-tools`)
-- [x] Add webapp page `/oc-tools` — install guide, tool previews, copy-to-clipboard
+- [x] Add webapp page `/oc-tools` - install guide, tool previews, copy-to-clipboard
 - [x] Add CHANGELOG.md
 - [x] `llms.txt` and `llms-full.txt` for MCPB packing
 
 ## Previously Fixed
 
-- [x] `opencode_run_agent` rewritten to `asyncio.create_subprocess_exec` — no event loop blocking
+- [x] `opencode_run_agent` rewritten to `asyncio.create_subprocess_exec` - no event loop blocking
 - [x] GPU detection uses `Get-CimInstance` (not deprecated `wmic`)
 - [x] `asyncio_mode = "auto"` set in pyproject.toml
 - [x] `timeout` parameter exposed on `opencode_run_agent`
 
 ---
 
-## P1 — High Priority
+## P1 - High Priority
 
 **1. `model` parameter on `opencode_run_agent`**
 
@@ -46,7 +46,7 @@ opencode_run_agent(
 
 Needs: verify `opencode run --model` flag exists, then pass through in `agent.py`.
 
-**2. `opencode_run_agent_async` — fire and return session ID**
+**2. `opencode_run_agent_async` - fire and return session ID**
 
 For the 6-agent parallel sweep pattern, you want:
 
@@ -60,11 +60,11 @@ Needs: test whether `opencode run` creates a visible session in `/session` API.
 
 **3. Add `show_dashboard_card` tool**
 
-FastMCP 3.2 Prefab UI — render server status as a rich card in chat. Pattern: other fleet MCPs already have this.
+FastMCP 3.2 Prefab UI - render server status as a rich card in chat. Pattern: other fleet MCPs already have this.
 
 ---
 
-## P2 — High Value
+## P2 - High Value
 
 **4. Module-level `OpencodeClient` singleton**
 
@@ -80,7 +80,7 @@ The fleet.py label dict still hardcodes ~90 port entries. Ideal: parse `WEBAPP_P
 
 ---
 
-## P3 — Nice to Have
+## P3 - Nice to Have
 
 **7. Add tests for tool logic and client**
 
@@ -112,8 +112,8 @@ Claude Desktop
        project="D:\\Dev\\repos\\arxiv-mcp",
        model="deepseek/deepseek-v4-flash", timeout=120)
   -> ... x N repos, all concurrent
-  -> opencode_list_sessions() — poll until all done
-  -> opencode_get_messages(session_id) x N — collect results
+  -> opencode_list_sessions() - poll until all done
+  -> opencode_get_messages(session_id) x N - collect results
   -> summarise what was fixed / what failed
 ```
 

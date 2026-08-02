@@ -132,7 +132,7 @@ import subprocess, json
 out = subprocess.run(["opencode", "export", session_id], capture_output=True, text=True)
 session_data = json.loads(out.stdout)
 
-# Import into another project (via shell — opencode import reads from file)
+# Import into another project (via shell - opencode import reads from file)
 with open("/tmp/session.json", "w") as f:
     json.dump(session_data, f)
 subprocess.run(["opencode", "import", "/tmp/session.json"], cwd="D:/other/project")
@@ -165,7 +165,7 @@ The `.opencode/tools/` directory contains 6 TypeScript tools that extend opencod
 cp .opencode/tools/* your-project/.opencode/tools/
 ```
 
-Restart opencode — tools are auto-loaded from `.opencode/tools/` on startup. The LLM will call them by name when the task matches the tool's purpose.
+Restart opencode - tools are auto-loaded from `.opencode/tools/` on startup. The LLM will call them by name when the task matches the tool's purpose.
 
 ### How They Work
 

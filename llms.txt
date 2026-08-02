@@ -2,7 +2,7 @@
 
 MCP server wrapping [opencode](https://opencode.ai/) CLI into FastMCP tools with a FastAPI REST bridge and Vite/React dashboard. Enables AI agents to delegate implementation tasks to opencode.
 
-> **Full reference**: [llms-full.txt](llms-full.txt) — tools, endpoints, env vars, architecture.
+> **Full reference**: [llms-full.txt](llms-full.txt) - tools, endpoints, env vars, architecture.
 
 ## Quick Start
 
@@ -15,9 +15,9 @@ opencode serve --port 4096     # opencode HTTP API
 
 ## Ports
 
-- 10950 — Frontend (Vite React)
-- 10951 — Backend (FastAPI REST + MCP HTTP /mcp)
-- 4096 — opencode serve HTTP API
+- 10950 - Frontend (Vite React)
+- 10951 - Backend (FastAPI REST + MCP HTTP /mcp)
+- 4096 - opencode serve HTTP API
 
 ## Architecture
 
@@ -25,10 +25,10 @@ MCP Clients → opencode-cli-mcp (stdio) → opencode serve (:4096) → opencode
 
 ## Key Files
 
-- `src/opencode_cli_mcp/` — FastMCP server (4 primary + 16 legacy alias tools, single TOOL_REGISTRY)
-- `api/main.py` — FastAPI REST bridge
-- `api/routes/` — Capabilities, fleet, logs, proxy, settings, system, tools, chat, docs
-- `web_sota/` — Vite/React/Tailwind dashboard
+- `src/opencode_cli_mcp/` - FastMCP server (4 primary + 16 legacy alias tools, single TOOL_REGISTRY)
+- `api/main.py` - FastAPI REST bridge
+- `api/routes/` - Capabilities, fleet, logs, proxy, settings, system, tools, chat, docs
+- `web_sota/` - Vite/React/Tailwind dashboard
 
 ## Dependencies
 

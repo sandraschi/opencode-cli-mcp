@@ -1,4 +1,4 @@
-# opencode-cli-mcp — Full Context
+# opencode-cli-mcp - Full Context
 
 **Version:** 0.2.3
 **FastMCP:** 3.4.4+
@@ -9,7 +9,7 @@
 
 ## What It Does
 
-Bridges [opencode](https://opencode.ai/) (the open source AI coding agent) into the MCP ecosystem. AI assistants (Claude, etc.) can use this server to delegate implementation tasks to opencode running on cheaper models — enabling tiered model economics.
+Bridges [opencode](https://opencode.ai/) (the open source AI coding agent) into the MCP ecosystem. AI assistants (Claude, etc.) can use this server to delegate implementation tasks to opencode running on cheaper models - enabling tiered model economics.
 
 ---
 
@@ -95,7 +95,7 @@ Primary surface (portmanteaus + atomic):
 |------|-------------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
 | `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export sessions |
-| `opencode_depot(action=...)` | **session depot** — list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline; covers ops the serve API lacks (unarchive, delete, global transcript search). |
+| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline; covers ops the serve API lacks (unarchive, delete, global transcript search). |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install .mcpb bundles into opencode config (dry-run support) |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |
@@ -179,9 +179,9 @@ cd web_sota; npm run biome:ci   # frontend lint
 
 ## Notes
 
-- `opencode serve` autostarts on first tool call if down (binary resolved via `shutil.which` — npm `.cmd` shims work)
+- `opencode serve` autostarts on first tool call if down (binary resolved via `shutil.which` - npm `.cmd` shims work)
 - The backend is one ASGI app: REST + FastMCP on a single port (10951)
-- `opencode_depot` reads the opencode SQLite DB directly (`~/.local/share/opencode/opencode.db`, `OPENCODE_DB_PATH` override) — works offline, no serve needed
+- `opencode_depot` reads the opencode SQLite DB directly (`~/.local/share/opencode/opencode.db`, `OPENCODE_DB_PATH` override) - works offline, no serve needed
 - Frontend proxies `/api/*`, `/docs`, `/openapi.json`, `/redoc` to backend
 - Experimental light-mode toggle in the topbar (CSS invert hack, `ocmcp-light-mode` key)
 - Fleet port scanner in fleet.py probes all WEBAPP_PORTS.md entries

@@ -58,7 +58,7 @@ If you prefer not to use `just`:
 | Issue | Fix |
 |---|---|
 | `just` not found | Install via `winget install Casey.Just`, `scoop install just`, or `brew install just` |
-| Port conflict | Run `just kill-all` to clear fleet ports (10700–11000) |
+| Port conflict | Run `just kill-all` to clear fleet ports (10700-11000) |
 | Dependencies out of sync | `uv sync --all-extras` |
 | Something else | [Open a GitHub issue](https://github.com/sandraschi/opencode-cli-mcp/issues) |
 
