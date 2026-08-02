@@ -9,19 +9,40 @@ from api.routes.settings import _load_settings
 router = APIRouter(tags=["chat"])
 
 
+async def _ollama_suggestion(endpoint: str, model: str) -> str:
+    """On a model-not-found error, list the models Ollama actually has."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as c:
+            r = await c.get(f"{endpoint}/api/tags")
+            if r.is_success:
+                models = [m.get("name", "") for m in r.json().get("models", []) if m.get("name")]
+                if models:
+                    hint = ", ".join(models[:12])
+                    return f" Model '{model}' not found. Available: {hint}"
+    except Exception:
+        pass
+    return f" Model '{model}' not found on {endpoint}."
+
+
 class ChatRequest(BaseModel):
     message: str
     system: str = ""
+    # Frontend overrides: the Settings page selection (shared Zustand store /
+    # localStorage) is authoritative over the server-side saved copy. When
+    # omitted, the server-side settings are used as before.
+    provider: str | None = None  # "local" | "cloud"
+    model: str | None = None  # local model override (e.g. "gpt-oss:20b")
+    endpoint: str | None = None  # local endpoint override (e.g. http://127.0.0.1:11434)
 
 
 @router.post("/chat")
 async def chat(body: ChatRequest):
     settings = _load_settings()
-    provider = settings.get("llm_provider", "local")
+    provider = (body.provider or settings.get("llm_provider", "local")).lower()
 
     if provider == "local":
-        endpoint = settings.get("local_endpoint", "http://127.0.0.1:11434").rstrip("/")
-        model = settings.get("local_model", "llama3.2")
+        endpoint = (body.endpoint or settings.get("local_endpoint", "http://127.0.0.1:11434")).rstrip("/")
+        model = body.model or settings.get("local_model", "llama3.2")
 
         # LM Studio's default port is 1234. Parse the port properly - the
         # old substring check ("1234" in endpoint) misfired on e.g. :12340.
@@ -82,7 +103,12 @@ async def chat(body: ChatRequest):
                 content = data.get("response", "")
                 return {"success": True, "response": content, "provider": "ollama", "model": model}
 
-            return {"success": False, "response": f"Ollama error: {r.status_code}", "provider": "ollama"}
+            detail = await _ollama_suggestion(endpoint, model) if r.status_code == 404 else ""
+            return {
+                "success": False,
+                "response": f"Ollama error: {r.status_code}.{detail}",
+                "provider": "ollama",
+            }  # noqa: E501
 
     # Cloud provider
     cloud_provider = settings.get("cloud_provider", "openai")

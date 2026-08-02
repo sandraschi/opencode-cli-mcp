@@ -92,11 +92,11 @@ export function Layout({ children }: { children: ReactNode }) {
             className="flex-shrink-0 bg-surface-light border-r border-surface-border overflow-hidden"
           >
             <div className="flex flex-col h-full p-4">
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-6 flex-shrink-0">
                 <Terminal className="w-6 h-6 text-accent" />
                 <span className="font-semibold text-sm">opencode-cli-mcp</span>
               </div>
-              <nav className="flex flex-col gap-0.5">
+              <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto min-h-0 pr-1">
                 {navItems.map((item) => {
                   const active = location.pathname === item.path;
                   return (

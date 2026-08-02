@@ -189,7 +189,15 @@ export function Chat() {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: finalInput, system: currentPersona?.system || "" }),
+        body: JSON.stringify({
+          message: finalInput,
+          system: currentPersona?.system || "",
+          // Settings selection is authoritative: the provider/model picked
+          // in Settings (shared Zustand store) drives this request.
+          provider,
+          model: storeProvider ? storeModel || undefined : undefined,
+          endpoint: settings.local_endpoint || undefined,
+        }),
       });
       const data = await res.json();
       if (data.provider) setBackendProvider(data.provider);

@@ -30,3 +30,13 @@ html:not(.dark) canvas,
 html:not(.dark) iframe {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* Contrast pass (WCAG AA on surface-light #18181b).
+   Lifts muted text one step: zinc-500 -> zinc-400, zinc-600 -> zinc-500.
+   Unlayered CSS overrides Tailwind's layered utilities. */
+.text-zinc-500 {
+  color: #a1a1aa;
+}
+.text-zinc-600 {
+  color: #71717a;
+}
