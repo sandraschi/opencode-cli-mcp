@@ -14,7 +14,14 @@ async def _ensure(client: OpencodeClient) -> dict | None:
 
 
 async def opencode_list_sessions() -> dict:
-    """List all active and recent opencode sessions."""  # noqa: E501
+    """List all active and recent opencode sessions.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"sessions": [{"id": str}]}}
+
+    ## Examples
+    opencode_list_sessions()
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -31,7 +38,16 @@ async def opencode_list_sessions() -> dict:
 async def opencode_get_session(
     session_id: Annotated[str, Field(description="Session ID to retrieve")],
 ) -> dict:
-    """Get detailed information about a specific opencode session, including its metadata and state."""  # noqa: E501
+    """Get detailed information about a specific opencode session.
+
+    Returns its metadata and state.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"session": dict}}
+
+    ## Examples
+    opencode_get_session(session_id="sess_01")
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -49,7 +65,16 @@ async def opencode_send_message(
     session_id: Annotated[str, Field(description="Session ID to send message to")],
     message: Annotated[str, Field(description="Message text to send to the agent")],
 ) -> dict:
-    """Send a message to an existing opencode session. Use this to continue a conversation with a running agent."""  # noqa: E501
+    """Send a message to an existing opencode session.
+
+    Use this to continue a conversation with a running agent.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"result": dict}}
+
+    ## Examples
+    opencode_send_message(session_id="sess_01", message="continue")
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -66,7 +91,16 @@ async def opencode_send_message(
 async def opencode_session_diff(
     session_id: Annotated[str, Field(description="Session ID to diff")],
 ) -> dict:
-    """Show files created, modified, and deleted in a session. Returns a diff summary with file paths and change types."""  # noqa: E501
+    """Show files created, modified, and deleted in a session.
+
+    Returns a diff summary with file paths and change types.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"diff": dict}}
+
+    ## Examples
+    opencode_session_diff(session_id="sess_01")
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -87,7 +121,16 @@ async def opencode_get_messages(
     session_id: Annotated[str, Field(description="Session ID to retrieve messages from")],
     limit: Annotated[int, Field(description="Maximum number of messages to retrieve")] = 50,
 ) -> dict:
-    """Retrieve message history from an opencode session. Returns the conversation transcript between the user and the agent."""  # noqa: E501
+    """Retrieve message history from an opencode session.
+
+    Returns the conversation transcript between the user and the agent.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"messages": [{"role": str}]}}
+
+    ## Examples
+    opencode_get_messages(session_id="sess_01", limit=100)
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -126,6 +169,12 @@ async def opencode_session_grep(
     """Search across all opencode sessions for a text string in messages.
 
     Returns sessions with matching message excerpts.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"results": [{"session_id": str, "matches": list}], "sessions_with_matches": int}}
+
+    ## Examples
+    opencode_session_grep(query="refactor", session_limit=50)
     """
     client = get_client()
     err = await _ensure(client)
@@ -184,7 +233,14 @@ async def opencode_export_session(
     format: Annotated[str, Field(description="Export format: markdown or html")] = "markdown",
     max_messages: Annotated[int, Field(description="Max messages to export", ge=1, le=1000)] = 200,
 ) -> dict:
-    """Export an opencode session transcript as markdown or HTML."""
+    """Export an opencode session transcript as markdown or HTML.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"session_id": str, "format": str, "output": str, "filename": str}}
+
+    ## Examples
+    opencode_export_session(session_id="sess_01", format="markdown")
+    """
     client = get_client()
     err = await _ensure(client)
     if err:

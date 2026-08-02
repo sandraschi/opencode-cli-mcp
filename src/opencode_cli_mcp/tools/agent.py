@@ -22,7 +22,18 @@ async def opencode_run_agent(
     ] = False,  # noqa: E501
     timeout: Annotated[int, Field(description="Max seconds to wait when wait=true (default 300)")] = 300,  # noqa: E501
 ) -> dict:
-    """Run an opencode agent with a prompt. Launches as background job; returns job_id for polling. Set wait=true to block until done."""  # noqa: E501
+    """Run an opencode agent with a prompt.
+
+    Launches as background job; returns job_id for polling. Set wait=true to
+    block until done.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"job_id": str, "status": str}}
+
+    ## Examples
+    opencode_run_agent(prompt="Refactor main.py", wait=False)
+    opencode_run_agent(prompt="Summarize README", format="json", wait=True, timeout=120)
+    """
 
     if format not in ("text", "json"):
         return {"success": False, "message": f"Invalid format '{format}': must be 'text' or 'json'", "data": {}}  # noqa: E501
@@ -76,7 +87,17 @@ async def opencode_launch_ui(
         Field(description="Launch mode: 'tui' (terminal UI), 'web' (browser), 'serve' (background API server)"),
     ] = "tui",  # noqa: E501
 ) -> dict:
-    """Launch opencode interactively — TUI, web UI, or background API server. Use this to open the opencode interface for manual work."""  # noqa: E501
+    """Launch opencode interactively - TUI, web UI, or background API server.
+
+    Use this to open the opencode interface for manual work.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"mode": str, "project": str}}
+
+    ## Examples
+    opencode_launch_ui(mode="web")
+    opencode_launch_ui(mode="serve")
+    """
 
     binary = OPENCODE_BINARY
 

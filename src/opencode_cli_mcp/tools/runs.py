@@ -8,7 +8,16 @@ from opencode_cli_mcp.job_store import cancel_job, get_job, list_jobs
 async def opencode_get_run_status(
     job_id: Annotated[str, Field(description="Job ID from opencode_run_agent")],
 ) -> dict:
-    """Poll the status of a background agent run. Returns stdout/stderr accumulated so far, status, and exit code."""  # noqa: E501
+    """Poll the status of a background agent run.
+
+    Returns stdout/stderr accumulated so far, status, and exit code.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"job_id": str, "status": str, "stdout": str, "exit_code": int}}
+
+    ## Examples
+    opencode_get_run_status(job_id="abc123")
+    """
 
     job = await get_job(job_id)
     if not job:
@@ -33,7 +42,14 @@ async def opencode_get_run_status(
 async def opencode_list_runs(
     limit: Annotated[int, Field(description="Max jobs to return", ge=1, le=100)] = 20,
 ) -> dict:
-    """List all recent agent runs with their status and exit codes."""  # noqa: E501
+    """List all recent agent runs with their status and exit codes.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"runs": [{"job_id": str, "status": str, "exit_code": int}]}}
+
+    ## Examples
+    opencode_list_runs(limit=20)
+    """
 
     jobs = await list_jobs(limit=limit)
     return {
@@ -58,7 +74,14 @@ async def opencode_list_runs(
 async def opencode_cancel_run(
     job_id: Annotated[str, Field(description="Job ID to cancel")],
 ) -> dict:
-    """Cancel a running or queued agent run."""  # noqa: E501
+    """Cancel a running or queued agent run.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"job_id": str}}
+
+    ## Examples
+    opencode_cancel_run(job_id="abc123")
+    """
 
     ok = await cancel_job(job_id)
     if not ok:

@@ -13,7 +13,16 @@ async def _ensure(client: OpencodeClient) -> dict | None:
 
 
 async def opencode_server_status() -> dict:
-    """Check the status and health of the opencode server. Returns health info, active session count, and config summary."""  # noqa: E501
+    """Check the status and health of the opencode server.
+
+    Returns health info, active session count, and config summary.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": dict}
+
+    ## Examples
+    opencode_server_status()
+    """
 
     client = get_client()
     try:
@@ -35,7 +44,14 @@ async def opencode_server_status() -> dict:
 
 
 async def opencode_list_providers() -> dict:
-    """List configured LLM providers in opencode."""  # noqa: E501
+    """List configured LLM providers in opencode.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"providers": [{"name": str}]}}
+
+    ## Examples
+    opencode_list_providers()
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -50,7 +66,16 @@ async def opencode_list_providers() -> dict:
 
 
 async def opencode_get_project() -> dict:
-    """Get the current project context from opencode. Returns the active project path and metadata."""  # noqa: E501
+    """Get the current project context from opencode.
+
+    Returns the active project path and metadata.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"project": dict}}
+
+    ## Examples
+    opencode_get_project()
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -65,7 +90,16 @@ async def opencode_get_project() -> dict:
 
 
 async def opencode_get_config() -> dict:
-    """Read the full opencode configuration. Returns model, provider, MCP server settings, and instructions."""  # noqa: E501
+    """Read the full opencode configuration.
+
+    Returns model, provider, MCP server settings, and instructions.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"config": dict}}
+
+    ## Examples
+    opencode_get_config()
+    """
 
     client = get_client()
     err = await _ensure(client)
@@ -80,7 +114,16 @@ async def opencode_get_config() -> dict:
 
 
 async def opencode_get_health() -> dict:
-    """Health check for the opencode server. Returns basic connectivity status and uptime."""  # noqa: E501
+    """Health check for the opencode server.
+
+    Returns basic connectivity status and uptime.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": dict}
+
+    ## Examples
+    opencode_get_health()
+    """
 
     client = get_client()
     try:
@@ -166,6 +209,12 @@ async def opencode_mcp_pulse() -> dict:
     - Remote servers: HTTP probe to their URL
 
     Disabled servers are reported as skipped.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"servers": [{"name": str, "status": str}], "summary": dict}}
+
+    ## Examples
+    opencode_mcp_pulse()
     """
     client = get_client()
     err = await _ensure(client)
@@ -227,6 +276,12 @@ async def opencode_config_drift() -> dict:
     """Check each local MCP server's configured paths (command, cwd) exist on disk.
 
     Detects stale config entries where the repo or binary has been moved or deleted.
+
+    ## Return Format
+    {"success": bool, "message": str, "data": {"servers": [{"name": str, "status": str, "issues": list}], "summary": dict}}
+
+    ## Examples
+    opencode_config_drift()
     """
     import os as _os
 
