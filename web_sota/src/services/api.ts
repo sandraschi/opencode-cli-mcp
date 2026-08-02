@@ -138,6 +138,7 @@ export interface DepotSession {
   agent?: string | null;
   model?: string | null;
   cost?: number | null;
+  cost_est?: number | null;
   tokens_input?: number | null;
   tokens_output?: number | null;
   archived: boolean;
@@ -167,14 +168,16 @@ export interface DepotStats {
     archived: number;
     active: number;
     total_cost: number;
+    estimated_cost: number;
+    estimated_cost_known_sessions: number;
     tokens_input: number;
     tokens_output: number;
     tokens_reasoning: number;
     tokens_cache_read: number;
   };
-  by_agent: Array<{ agent: string; count: number; cost: number }>;
-  by_project: Array<{ project_id: string; count: number; cost: number }>;
-  top_cost: Array<{ id: string; title: string; cost: number }>;
+  by_agent: Array<{ agent: string; count: number; cost: number; cost_est: number }>;
+  by_project: Array<{ project_id: string; count: number; cost: number; cost_est: number }>;
+  top_cost: Array<{ id: string; title: string; cost: number; cost_est: number }>;
 }
 
 export interface DepotSearchResult {

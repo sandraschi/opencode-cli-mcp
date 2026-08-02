@@ -28,6 +28,54 @@ from typing import Any
 # Overridable so tests and exotic installs can point elsewhere.
 DB_PATH_ENV = "OPENCODE_DB_PATH"
 
+# Current USD-per-1M-token prices for restating the stale `cost` column.
+# The stored cost was computed at session time with older pricing data and
+# overcounts cache reads (~2.5x for deepseek-v4-flash). Restate on read with
+# the live models.json rates. Keyed by model id from session.model JSON.
+_MODEL_PRICES: dict[str, tuple[float, float, float, float]] = {
+    # (input, output, reasoning, cache_read) per 1M tokens
+    "deepseek-v4-flash": (0.14, 0.28, 0.28, 0.0028),
+    "deepseek-v4-pro": (0.435, 0.87, 0.87, 0.003625),
+    "deepseek-chat": (0.14, 0.28, 0.28, 0.0028),
+    "deepseek-reasoner": (0.14, 0.28, 0.28, 0.0028),
+}
+
+
+def _model_id(model_json: Any) -> str | None:
+    """Extract the model id from session.model (JSON string or plain)."""
+    if not model_json:
+        return None
+    if isinstance(model_json, str):
+        try:
+            data = json.loads(model_json)
+            if isinstance(data, dict) and data.get("id"):
+                return str(data["id"])
+        except json.JSONDecodeError:
+            return model_json.strip() or None
+    elif isinstance(model_json, dict) and model_json.get("id"):
+        return str(model_json["id"])
+    return None
+
+
+def _restate_cost(row: Any) -> float | None:
+    """Estimate session cost at current pricing. None when unpriceable."""
+    model_id = _model_id(row["model"])
+    prices = _MODEL_PRICES.get(model_id) if model_id else None
+    if prices is None:
+        return None
+    p_in, p_out, p_reason, p_cache = prices
+    return round(
+        (
+            (row["tokens_input"] or 0) * p_in
+            + (row["tokens_output"] or 0) * p_out
+            + (row["tokens_reasoning"] or 0) * p_reason
+            + (row["tokens_cache_read"] or 0) * p_cache
+        )
+        / 1_000_000,
+        4,
+    )
+
+
 # Columns we map from the session table into depot dicts.
 _SESSION_COLUMNS = [
     "id",
@@ -106,6 +154,7 @@ def _row_to_session(row: sqlite3.Row) -> dict[str, Any]:
     s["time_created_display"] = _fmt_ts(row["time_created"])
     s["time_updated_display"] = _fmt_ts(row["time_updated"])
     s["time_archived_display"] = _fmt_ts(row["time_archived"])
+    s["cost_est"] = _restate_cost(row)
     return s
 
 
@@ -307,23 +356,50 @@ def depot_stats(*, db_path: Path | None = None) -> dict[str, Any]:
         by_agent = conn.execute(
             """
             SELECT COALESCE(agent, 'unknown') AS agent, COUNT(*) AS count,
-                   COALESCE(SUM(cost), 0) AS cost
+                   COALESCE(SUM(cost), 0) AS cost,
+                   COALESCE(SUM(tokens_input), 0) AS tokens_input,
+                   COALESCE(SUM(tokens_output), 0) AS tokens_output,
+                   COALESCE(SUM(tokens_reasoning), 0) AS tokens_reasoning,
+                   COALESCE(SUM(tokens_cache_read), 0) AS tokens_cache_read,
+                   MIN(model) AS model
             FROM session GROUP BY agent ORDER BY count DESC LIMIT 10
             """
         ).fetchall()
 
         by_project = conn.execute(
             """
-            SELECT project_id, COUNT(*) AS count, COALESCE(SUM(cost), 0) AS cost
+            SELECT project_id, COUNT(*) AS count, COALESCE(SUM(cost), 0) AS cost,
+                   COALESCE(SUM(tokens_input), 0) AS tokens_input,
+                   COALESCE(SUM(tokens_output), 0) AS tokens_output,
+                   COALESCE(SUM(tokens_reasoning), 0) AS tokens_reasoning,
+                   COALESCE(SUM(tokens_cache_read), 0) AS tokens_cache_read,
+                   MIN(model) AS model
             FROM session GROUP BY project_id ORDER BY count DESC LIMIT 10
             """
         ).fetchall()
 
         top_cost = conn.execute(
             """
-            SELECT id, title, cost FROM session ORDER BY cost DESC LIMIT 5
+            SELECT id, title, cost, model, tokens_input, tokens_output,
+                   tokens_reasoning, tokens_cache_read
+            FROM session ORDER BY cost DESC LIMIT 5
             """
         ).fetchall()
+
+        all_cost_rows = conn.execute(
+            "SELECT model, cost, tokens_input, tokens_output, tokens_reasoning, tokens_cache_read FROM session"
+        ).fetchall()
+        est_total = 0.0
+        est_known = 0
+        for r in all_cost_rows:
+            est = _restate_cost(r)
+            if est is not None:
+                est_total += est
+                est_known += 1
+
+        def _est_for_row(r: sqlite3.Row) -> float:
+            est = _restate_cost(r)
+            return est if est is not None else round(r["cost"] or 0, 4)
 
         return {
             "totals": {
@@ -331,14 +407,24 @@ def depot_stats(*, db_path: Path | None = None) -> dict[str, Any]:
                 "archived": totals["archived"] or 0,
                 "active": totals["active"] or 0,
                 "total_cost": round(totals["total_cost"] or 0, 4),
+                "estimated_cost": round(est_total, 2),
+                "estimated_cost_known_sessions": est_known,
                 "tokens_input": totals["tokens_input"] or 0,
                 "tokens_output": totals["tokens_output"] or 0,
                 "tokens_reasoning": totals["tokens_reasoning"] or 0,
                 "tokens_cache_read": totals["tokens_cache_read"] or 0,
             },
-            "by_agent": [dict(r) for r in by_agent],
-            "by_project": [dict(r) for r in by_project],
-            "top_cost": [{"id": r["id"], "title": r["title"], "cost": round(r["cost"] or 0, 4)} for r in top_cost],
+            "by_agent": [{**dict(r), "cost_est": _est_for_row(r)} for r in by_agent],
+            "by_project": [{**dict(r), "cost_est": _est_for_row(r)} for r in by_project],
+            "top_cost": [
+                {
+                    "id": r["id"],
+                    "title": r["title"],
+                    "cost": round(r["cost"] or 0, 4),
+                    "cost_est": _est_for_row(r),
+                }
+                for r in top_cost
+            ],
         }
     finally:
         conn.close()

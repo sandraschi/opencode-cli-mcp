@@ -215,7 +215,7 @@ export function Depot() {
   const topCostLabel = useMemo(() => {
     if (!stats || stats.top_cost.length === 0) return null;
     const t = stats.top_cost[0];
-    return { title: t.title || t.id, cost: t.cost };
+    return { title: t.title || t.id, cost: t.cost_est ?? t.cost };
   }, [stats]);
 
   return (
@@ -273,7 +273,13 @@ export function Depot() {
             <div className="text-xs text-zinc-500 uppercase tracking-wider flex items-center gap-1">
               <Coins className="w-3 h-3" /> Cost
             </div>
-            <div className="text-xl font-semibold">${stats.totals.total_cost.toFixed(2)}</div>
+            <div className="text-xl font-semibold">${stats.totals.estimated_cost.toFixed(2)}</div>
+            <div
+              className="text-[10px] text-zinc-600"
+              title="Restated at current model pricing (stored column overcounts cache reads)"
+            >
+              est. @ current pricing
+            </div>
           </div>
         </div>
       )}
@@ -565,7 +571,7 @@ export function Depot() {
                     {s.agent && <span>agent: {s.agent}</span>}
                     <span>updated: {s.time_updated_display || "—"}</span>
                     <span>tokens: {fmtTokens((s.tokens_input ?? 0) + (s.tokens_output ?? 0))}</span>
-                    <span>cost: ${(s.cost ?? 0).toFixed(2)}</span>
+                    <span>cost: ${(s.cost_est ?? s.cost ?? 0).toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
