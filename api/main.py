@@ -1,10 +1,13 @@
+import asyncio
 import os
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import logs
+from api.routes.backups import router as backups_router
 from api.routes.capabilities import router as capabilities_router
 from api.routes.chat import router as chat_router
 from api.routes.depot import router as depot_router
@@ -17,21 +20,50 @@ from api.routes.proxy import router as proxy_router
 from api.routes.settings import router as settings_router
 from api.routes.system import router as system_router
 from api.routes.tools import router as tools_router
+from opencode_cli_mcp import backup
 from opencode_cli_mcp.server import mcp_app as mcp_http_app
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "10951"))
 
 _allow_origin_regex = r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$"
 
+
+async def _autobackup_loop() -> None:
+    """Startup + periodic backup of opencode.db and the config directory.
+
+    Cadence from OPENCODE_CLI_MCP_BACKUP_INTERVAL_HOURS (0 disables). Results
+    are kept in backup.last_autobackup() and surfaced on the Backups page.
+    """
+    interval_h = backup.autobackup_interval_hours()
+    if interval_h <= 0:
+        return
+    while True:
+        try:
+            backup.set_last_autobackup(backup.run_autobackup())
+        except Exception as e:  # pragma: no cover - defensive boundary
+            backup.set_last_autobackup({"timestamp": None, "results": [{"kind": "all", "ok": False, "error": str(e)}]})
+        await asyncio.sleep(interval_h * 3600)
+
+
+@asynccontextmanager
+async def _lifespan(app):
+    # The FastMCP StreamableHTTPSessionManager needs its lifespan wired into
+    # the parent app, or every /mcp request fails with "task group was not
+    # initialized" (gofastmcp.com/deployment/asgi).
+    async with mcp_http_app.router.lifespan_context(app):
+        task = asyncio.create_task(_autobackup_loop())
+        try:
+            yield
+        finally:
+            task.cancel()
+
+
 app = FastAPI(
     title="opencode-cli-mcp API",
     version="0.2.3",
     docs_url="/docs",
     redoc_url="/redoc",
-    # The FastMCP StreamableHTTPSessionManager needs its lifespan wired into
-    # the parent app, or every /mcp request fails with "task group was not
-    # initialized" (gofastmcp.com/deployment/asgi).
-    lifespan=mcp_http_app.lifespan,
+    lifespan=_lifespan,
 )
 
 app.add_middleware(
@@ -72,6 +104,7 @@ async def log_requests(request, call_next):
 
 
 app.include_router(capabilities_router, prefix="/api")
+app.include_router(backups_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(depot_router, prefix="/api")
 app.include_router(docs_router, prefix="/api")

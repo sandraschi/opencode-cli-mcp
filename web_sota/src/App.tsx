@@ -3,6 +3,7 @@ import { Layout } from "./Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Sessions } from "./pages/Sessions";
 import { Depot } from "./pages/Depot";
+import { Backups } from "./pages/Backups";
 import { Projects } from "./pages/Projects";
 import { ToolsHub } from "./pages/ToolsHub";
 import { AppsHub } from "./pages/AppsHub";
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/depot" element={<Depot />} />
+        <Route path="/backups" element={<Backups />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/tools" element={<ToolsHub />} />
         <Route path="/oc-tools" element={<OpenCodeTools />} />

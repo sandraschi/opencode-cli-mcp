@@ -87,7 +87,7 @@ opencode-cli-mcp/
 └── llms-full.txt            # This file (full context)
 ```
 
-## MCP Tools (21 total: 6 primary + 15 legacy aliases)
+## MCP Tools (22 total: 7 primary + 15 legacy aliases)
 
 Primary surface (portmanteaus + atomic):
 
@@ -95,10 +95,26 @@ Primary surface (portmanteaus + atomic):
 |------|-------------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
 | `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export / **rename / delete** sessions (live `opencode serve` API - UI picks changes up immediately) |
-| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline; covers ops the serve API lacks (archive, unarchive, offline rename/delete, global transcript search). |
+| `opencode_depot(action=...)` | **eternal memory** - list/archive/unarchive/rename/delete/**search**/stats/**rag**/rag_index/rag_status over the opencode SQLite DB. search = wayback full-text (FTS5) across EVERY session since install; rag = semantic recall over indexed transcripts (LanceDB + fastembed, `uv sync --extra rag`); works offline. |
+| `opencode_backups(action=...)` | **protect the memory** - db + config snapshots (SQLite online backup API, consistent while serve runs), rotation (10/kind), disk-space guard, guarded restore (refuses while serve runs unless force=True) |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install .mcpb bundles into opencode config (dry-run support) |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |
+
+## Eternal Session Memory
+
+opencode persists EVERY session and message since install in
+`~/.local/share/opencode/opencode.db` (SQLite: session/message/part tables,
+FTS5-indexed). No other agentic IDE has this - you cannot ask Claude/Cursor
+"What were we discussing last December about X?", but with these tools you can:
+
+1. `opencode_depot(action="search", query="<topic>")` - wayback find: full-text across ALL transcripts
+2. `opencode_depot(action="rag", query="<describe it in your own words>")` - semantic recall (index once with rag_index)
+3. `opencode_sessions(action="get"|"messages"|"export", session_id=...)` - read/render it
+4. `opencode_depot(action="get"...)` - metadata (dates, cost, files)
+5. `opencode_backups(action="create", kind="all")` - protect it (autobackup 24h, rotation, disk guard)
+
+Full guide: docs/ETERNAL_MEMORY.md (also on the webapp Help page).
 
 Legacy aliases (deprecated in 0.3.0): `opencode_run_agent`, `opencode_launch_ui`, `opencode_list_sessions`, `opencode_get_session`, `opencode_send_message`, `opencode_get_messages`, `opencode_session_diff`, `opencode_server_status`, `opencode_list_providers`, `opencode_get_project`, `opencode_get_config`, `opencode_get_health`, `opencode_get_run_status`, `opencode_list_runs`, `opencode_cancel_run`, `opencode_session_grep`, `opencode_export_session`, `opencode_config_drift`, `opencode_mcp_pulse`.
 
@@ -120,6 +136,14 @@ Prompt: `agent_instructions`.
 | GET | /api/opencode/sessions | Session list |
 | GET | /api/opencode/sessions/{id} | Session detail |
 | GET | /api/opencode/sessions/{id}/diff | File diffs |
+| PATCH | /api/opencode/sessions/{id} | Rename session (live serve API) |
+| DELETE | /api/opencode/sessions/{id}?confirm=true | Delete session (live serve API) |
+| GET | /api/backups/status | Backup paths, free space, counts, last autobackup |
+| GET | /api/backups/list | Backup files (db + config) |
+| POST | /api/backups/create?kind=db\|config\|all | Create a backup snapshot |
+| POST | /api/backups/prune | Delete backups beyond retention |
+| POST | /api/backups/restore | Restore db/config (confirm + force required) |
+| DELETE | /api/backups/{name} | Delete one backup file |
 | GET | /api/runs | Run list |
 | GET | /api/runs/{id} | Run detail |
 | GET | /api/settings | Get settings |
@@ -182,6 +206,7 @@ cd web_sota; npm run biome:ci   # frontend lint
 - `opencode serve` autostarts on first tool call if down (binary resolved via `shutil.which` - npm `.cmd` shims work)
 - The backend is one ASGI app: REST + FastMCP on a single port (10951)
 - `opencode_depot` reads the opencode SQLite DB directly (`~/.local/share/opencode/opencode.db`, `OPENCODE_DB_PATH` override) - works offline, no serve needed
+- `opencode_backups` snapshots the DB with the SQLite online backup API (consistent while serve runs) and zips the config dir; autobackup on startup + every `OPENCODE_CLI_MCP_BACKUP_INTERVAL_HOURS` (default 24, 0 off), rotation `OPENCODE_CLI_MCP_BACKUP_RETENTION` (10), disk guard `OPENCODE_CLI_MCP_BACKUP_MIN_FREE_MB` (500), dir `OPENCODE_CLI_MCP_BACKUP_DIR`
 - Session rename/delete has TWO paths: live (`opencode_sessions` action=rename/delete via PATCH/DELETE /session/{id} on `opencode serve` - race-free, UI updates immediately) and offline (`opencode_depot` action=rename/delete direct SQLite). Prefer the live path while opencode is running - a direct-DB title write can be overwritten by the server's next session save.
 - Frontend proxies `/api/*`, `/docs`, `/openapi.json`, `/redoc` to backend
 - Experimental light-mode toggle in the topbar (CSS invert hack, `ocmcp-light-mode` key)

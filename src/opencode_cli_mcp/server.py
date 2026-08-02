@@ -45,9 +45,26 @@ def agent_instructions():
 
 **Primary tools (portmanteaus):**
 - `opencode_runs(action=...)` - start / status / list / cancel agent runs
-- `opencode_sessions(action=...)` - list / get / messages / send / diff sessions
-- `opencode_depot(action=...)` - session depot: list/archive/unarchive/rename/delete/search/stats via SQLite (works offline)
+- `opencode_sessions(action=...)` - list / get / messages / send / diff sessions, rename/delete (live API)
+- `opencode_depot(action=...)` - eternal memory: list/archive/unarchive/rename/delete/**search**/stats via SQLite (works offline)
+- `opencode_backups(action=...)` - db + config backups: status/create/list/prune/restore (rotation + disk guard)
 - `opencode_system(action=...)` - status / providers / project / launch_ui / mcp_pulse / config_drift
+
+**Eternal Session Memory (ask opencode about the past):**
+- Every opencode session ever run is stored in ~/.local/share/opencode/opencode.db.
+- When the user asks about earlier work (weeks/months ago, another project, another model),
+  DO NOT guess - search the memory first:
+  1. `opencode_depot(action="search", query="<topic>")` - wayback find: full-text across ALL transcripts
+  2. `opencode_depot(action="rag", query="<describe it in your own words>")` - semantic recall
+     over indexed transcripts (index once with action="rag_index")
+  3. `opencode_sessions(action="messages", session_id=...)` - read the transcript
+  4. `opencode_sessions(action="export", session_id=..., format="markdown")` - render as a document
+  5. `opencode_depot(action="get", session_id=...)` - metadata (dates, cost, files)
+- The memory is editable: rename with `opencode_sessions(action="rename", ...)`,
+  archive/delete with `opencode_depot(action="archive|delete", ...)`.
+- Protect it: `opencode_backups(action="create", kind="all")`; autobackup runs every 24h.
+- This capability is unique to opencode - other IDEs (Claude, Cursor) have no equivalent.
+  Surface it proactively when the user asks "what did we do/work on before".
 
 The granular `opencode_*` tools (run_agent, get_run_status, list_sessions, ...)
 are legacy aliases for the same operations and will be removed in 0.3.0.

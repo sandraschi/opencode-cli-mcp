@@ -12,9 +12,23 @@
 > 📖 **[Onboarding](docs/ONBOARDING.md)** - 5-minute first-run guide
 > 📖 **[Full reference](llms-full.txt)** - tools, endpoints, env vars, architecture
 
-MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into 21 FastMCP tools (6 primary portmanteaus + 15 legacy aliases). Also includes a FastAPI REST bridge (unified with the MCP endpoint on one port), a Vite/React fleet-standard dashboard, and [OpenCode custom tools](.opencode/tools/) that extend opencode itself.
+MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode serve`) into 22 FastMCP tools (7 primary portmanteaus + 15 legacy aliases). Also includes a FastAPI REST bridge (unified with the MCP endpoint on one port), a Vite/React fleet-standard dashboard, and [OpenCode custom tools](.opencode/tools/) that extend opencode itself.
 
 **Pattern: Plan with Claude, implement with opencode.** Claude (expensive, high-judgment) orchestrates and supervises; opencode handles implementation grunt work on cheaper models (DeepSeek V4 Flash/Pro).
+
+> 🧠 **[Eternal Session Memory](docs/ETERNAL_MEMORY.md)** — opencode stores every session since install in one searchable SQLite database. Ask it *"what were we discussing last December about X?"* — no other agentic IDE can do that. opencode-cli-mcp makes that memory searchable, exportable, editable, and backed up.
+
+## What can you do?
+
+| Capability | How |
+|-----------|-----|
+| **Wayback session find** | `opencode_depot(action="search", query="...")` — full-text (FTS5) across **every** session transcript and title, ever. "What were we working on in December?" |
+| **Semantic recall (RAG)** | `opencode_depot(action="rag", query="...")` — embeddings-based similarity over indexed transcripts; find it when you don't remember the words. `rag_index` builds the index, `rag_status` shows state |
+| **Read the past** | `opencode_sessions(action="messages"\|"diff"\|"export", session_id=...)` — full transcript, file changes, or a clean markdown/html document |
+| **Edit the past** | rename / archive / unarchive / delete sessions (live API or offline depot) |
+| **Never lose it** | `opencode_backups(action="create"\|"restore", ...)` — db + config snapshots, rotation, disk guard, autobackup every 24h |
+| **Run agents** | `opencode_runs(action="start"\|"status"\|"list"\|"cancel", ...)` — launch, supervise, review |
+| **Manage opencode** | `opencode_system(...)` — status, providers, project, MCP pulse, config drift |
 
 ## Quick Start
 
@@ -42,13 +56,14 @@ Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/in
 
 ## MCP Tools
 
-Primary surface - four portmanteaus (operation discriminator) plus two atomic tools:
+Primary surface - seven portmanteaus (operation discriminator):
 
 | Tool | Purpose |
 |------|---------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
 | `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export / **rename / delete** sessions (live `opencode serve` API - the opencode UI picks the changes up immediately) |
-| `opencode_depot(action=...)` | **session depot** - list/archive/unarchive/rename/delete/search/stats over the opencode SQLite DB. Works offline (no `opencode serve` needed) and covers the ops the serve API lacks (archive, unarchive, offline rename/delete, global transcript search). |
+| `opencode_depot(action=...)` | **eternal memory** - list/archive/unarchive/rename/delete/**search**/stats over the opencode SQLite DB. Full-text search across EVERY session since install, works offline (no `opencode serve` needed). |
+| `opencode_backups(action=...)` | **protect the memory** - db + config snapshots (consistent online backup API), rotation, disk-space guard, guarded restore (refuses while serve runs unless force=True) |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
 | `opencode_mcpb_install(...)` | install `.mcpb` bundles into opencode config |
 | `opencode_shutdown(confirm=...)` | graceful self-termination |
@@ -56,6 +71,26 @@ Primary surface - four portmanteaus (operation discriminator) plus two atomic to
 15 legacy atomic tools remain mounted as aliases through 0.2.x (`opencode_run_agent`, `opencode_get_run_status`, `opencode_list_runs`, `opencode_cancel_run`, `opencode_list_sessions`, `opencode_get_session`, `opencode_send_message`, `opencode_get_messages`, `opencode_session_diff`, `opencode_server_status`, `opencode_list_providers`, `opencode_get_project`, `opencode_get_config`, `opencode_get_health`, `opencode_launch_ui`, plus `opencode_session_grep` / `opencode_export_session` / `opencode_config_drift` / `opencode_mcp_pulse`).
 
 Prefab in-chat cards: `show_runs_app`, `show_sessions_app`, `show_status_app`.
+
+## Eternal Session Memory
+
+opencode records **every conversation and agent run since install** into one
+searchable SQLite database (`~/.local/share/opencode/opencode.db`). No other
+agentic IDE has this — you cannot ask Claude or Cursor "what were we discussing
+last December about santiclaus-mcp?", but you can ask opencode:
+
+```
+opencode_depot(action="search", query="santiclaus")          # wayback find - full-text across ALL transcripts
+opencode_depot(action="rag", query="santiclaus")             # semantic recall - embeddings over indexed transcripts
+opencode_depot(action="rag_index")                           # build the RAG index (once)
+opencode_sessions(action="get", session_id="ses_...")        # metadata
+opencode_sessions(action="messages", session_id="ses_...")   # the transcript
+opencode_sessions(action="export", session_id="ses_...")     # markdown/html document
+opencode_backups(action="create", kind="all")                # protect it (autobackup 24h)
+```
+
+Full walkthrough: **[docs/ETERNAL_MEMORY.md](docs/ETERNAL_MEMORY.md)** (also on
+the webapp **Help** page and Depot page).
 
 ## Key Workflows
 

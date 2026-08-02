@@ -273,6 +273,26 @@ export const api = {
       method: "DELETE",
     }),
 
+  backupsStatus: () => fetchJson<{ success: boolean; data: BackupStatus }>("/backups/status"),
+  backupsList: () => fetchJson<{ success: boolean; data: { backups: BackupEntry[] } }>("/backups/list"),
+  backupsCreate: (kind: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/backups/create?kind=${kind}`, {
+      method: "POST",
+    }),
+  backupsPrune: () =>
+    fetchJson<{ success: boolean; message: string; data: { removed: string[] } }>("/backups/prune", {
+      method: "POST",
+    }),
+  backupsRestore: (name: string, force = false) =>
+    fetchJson<{ success: boolean; message: string }>("/backups/restore", {
+      method: "POST",
+      body: JSON.stringify({ name, confirm: true, force }),
+    }),
+  backupsDelete: (name: string) =>
+    fetchJson<{ success: boolean; message: string }>(`/backups/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    }),
+
   getFleet: () => fetchJson<{ success: boolean; data: { apps: FleetApp[] } }>("/fleet"),
   getOllamaStatus: () => fetchJson<{ success: boolean; data: OllamaStatus }>("/ollama/status"),
   getLlmProviders: () => fetchJson<LlmProvidersResponse>("/llm/providers"),
@@ -376,3 +396,27 @@ export const api = {
       60000,
     ),
 };
+
+export interface BackupStatus {
+  db_path: string;
+  db_exists: boolean;
+  db_size: number;
+  config_dir: string;
+  config_exists: boolean;
+  backup_dir: string;
+  free_bytes: number;
+  min_free_bytes: number;
+  retention: number;
+  autobackup_interval_hours: number;
+  counts: { db: number; config: number };
+  last_backup?: BackupEntry | null;
+  last_autobackup?: { timestamp?: string | null; results: Array<{ kind: string; ok: boolean; error?: string }> } | null;
+}
+
+export interface BackupEntry {
+  kind: "db" | "config";
+  name: string;
+  path: string;
+  size: number;
+  created?: string | null;
+}

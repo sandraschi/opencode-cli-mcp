@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.2.5 - 2026-08-02 (eternal session memory: backups + RAG + docs)
+
+### Added
+- `opencode_backups` portmanteau (7th primary tool): db + config snapshots,
+  rotation (retention, default 10/kind), disk-space guard (min free, default
+  500 MB), guarded restore (refuses while `opencode serve` runs unless
+  force=True; pre-restore safeguard of the current state). DB snapshots use
+  the SQLite online backup API - consistent while opencode runs, no stop.
+- Autobackup: on backend startup + every `OPENCODE_CLI_MCP_BACKUP_INTERVAL_HOURS`
+  (default 24, 0 disables); last result surfaced on the Backups page.
+- REST: `/api/backups/status|list|create|prune|restore|{name}`.
+- Webapp **Backups** page (`/backups`): DB/config/Storage/Latest stat cards,
+  one-click DB + config backups, prune, per-backup restore/delete, autobackup
+  status; nav entry + route.
+- `opencode_depot` gains **RAG actions**: `rag` (semantic recall over indexed
+  transcripts), `rag_index`, `rag_status` - the semantic complement to the
+  FTS5 `search` wayback find. Same surface as the Depot webapp page.
+- `docs/ETERNAL_MEMORY.md` - the flagship capability guide: opencode stores
+  EVERY session since install in one searchable SQLite DB; no other agentic
+  IDE can answer "what were we discussing last December about X?". Covers
+  wayback find (search), semantic recall (rag), read/export, edit, backups.
+  Auto-appears on the webapp Help page.
+- README "What can you do?" capability table (wayback find, semantic recall,
+  read/edit/protect the memory, run agents).
+- `agent_instructions` prompt now teaches agents the eternal-memory workflow
+  (search transcripts first when asked about past work, then read/export).
+- Tests: 10 backup tests + 3 RAG-dispatch tests.
+- Env: `OPENCODE_CLI_MCP_BACKUP_DIR/_RETENTION/_MIN_FREE_MB/_INTERVAL_HOURS`.
+
+### Changed
+- README + llms-full.txt: 22 tools (7 primary + 15 legacy), Eternal Session
+  Memory sections incl. RAG, backup REST routes + env vars.
+- Microsecond backup filenames fix rapid-consecutive snapshot collisions.
+
 ## 0.2.4 - 2026-08-02 (live session rename/delete)
 
 ### Added

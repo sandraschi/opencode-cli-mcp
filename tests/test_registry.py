@@ -6,6 +6,7 @@ PRIMARY_TOOLS = [
     "opencode_runs",
     "opencode_sessions",
     "opencode_depot",
+    "opencode_backups",
     "opencode_system",
 ]
 

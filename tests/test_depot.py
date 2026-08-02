@@ -329,3 +329,48 @@ async def test_tool_missing_db():
         assert "not found" in result["message"]
     finally:
         os.environ.pop("OPENCODE_DB_PATH", None)
+
+
+async def test_tool_rag_requires_query():
+    from opencode_cli_mcp.tools.depot import opencode_depot
+
+    result = await opencode_depot(action="rag")
+    assert result["success"] is False
+    assert "query" in result["message"]
+
+
+async def test_tool_rag_status_and_search(monkeypatch):
+    """RAG actions dispatch to the rag module (availability-agnostic)."""
+    from unittest.mock import MagicMock
+
+    from opencode_cli_mcp import rag as rag_mod
+    from opencode_cli_mcp.tools.depot import opencode_depot
+
+    fake_status = {"enabled": True, "indexed_sessions": 3, "running": False}
+    fake_hits = [{"session_id": "s1", "score": 0.91, "snippet": "santa claus plan"}]
+
+    monkeypatch.setattr(rag_mod, "semantic_search", MagicMock(return_value=fake_hits))
+    monkeypatch.setattr(rag_mod, "index_new_sessions", MagicMock(return_value={"indexed": 3}))
+    monkeypatch.setattr(rag_mod, "rag_status", MagicMock(return_value=fake_status))
+
+    status = await opencode_depot(action="rag_status")
+    assert status["success"] and status["data"]["enabled"] is True
+
+    hits = await opencode_depot(action="rag", query="the santa plan")
+    assert hits["success"] and len(hits["data"]["results"]) == 1
+
+    idx = await opencode_depot(action="rag_index")
+    assert idx["success"] and idx["data"]["indexed"] == 3
+
+
+async def test_tool_rag_unavailable_surfaces_error(monkeypatch):
+    from opencode_cli_mcp import rag as rag_mod
+    from opencode_cli_mcp.tools.depot import opencode_depot
+
+    def _raise(q, limit=20):
+        raise rag_mod.RAGUnavailableError("Install RAG deps: uv sync --extra rag")
+
+    monkeypatch.setattr(rag_mod, "semantic_search", _raise)
+    result = await opencode_depot(action="rag", query="anything")
+    assert result["success"] is False
+    assert "RAG deps" in result["message"]

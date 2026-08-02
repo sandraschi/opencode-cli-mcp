@@ -22,6 +22,7 @@ import {
   Plug,
   Network,
   Archive,
+  HardDriveDownload,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "./store";
@@ -32,6 +33,7 @@ const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/sessions", label: "Sessions", icon: ListTree },
   { path: "/depot", label: "Depot", icon: Archive },
+  { path: "/backups", label: "Backups", icon: HardDriveDownload },
   { path: "/projects", label: "Projects", icon: FolderKanban },
   { path: "/tools", label: "Tools", icon: Terminal },
   { path: "/oc-tools", label: "OC Tools", icon: Puzzle },
