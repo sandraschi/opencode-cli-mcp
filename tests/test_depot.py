@@ -235,6 +235,8 @@ def test_stats(depot_db):
     assert stats["totals"]["archived"] == 1
     assert stats["totals"]["active"] == 1
     assert stats["totals"]["total_cost"] == pytest.approx(0.25)
+    assert "cache_hit_ratio" in stats["totals"]
+    assert all("cache_hit_ratio" in a for a in stats["by_agent"])
     agents = {a["agent"]: a["count"] for a in stats["by_agent"]}
     assert agents == {"build": 1, "research": 1}
 
@@ -425,6 +427,9 @@ def test_usage_series_buckets(depot_db):
     assert all(b["tokens_input"] == 1000 for b in with_data)
     assert all(b["cost_stored"] > 0 for b in with_data)
     assert series["totals"]["messages"] == sum(b["messages"] for b in series["buckets"])
+    # fixture: 100000 cache read vs 1000 input -> ~0.9901 hit ratio
+    assert all(b["cache_hit_ratio"] == pytest.approx(100000 / 101000) for b in with_data)
+    assert series["totals"]["cache_hit_ratio"] == pytest.approx(100000 / 101000)
 
 
 def test_usage_series_restate_cost(depot_db):

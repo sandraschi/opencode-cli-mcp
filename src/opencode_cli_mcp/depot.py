@@ -78,6 +78,20 @@ def _restate_cost(row: Any) -> float | None:
     )
 
 
+def _cache_hit_ratio(t_in: float, t_cache: float) -> float | None:
+    """Fraction of input tokens billed at cache rate (0.0-1.0). None when no input.
+
+    opencode records cache reads as a separate bucket from tokens.input, so
+    the ratio is cache_read / (cache_read + input). A low ratio on a big
+    session means prefix drift - something volatile at the front of the
+    prompt (see mcd llms/models/deepseek/CONTEXT_CACHING.md).
+    """
+    denom = (t_in or 0) + (t_cache or 0)
+    if denom <= 0:
+        return None
+    return round(min(1.0, (t_cache or 0) / denom), 4)
+
+
 # Columns we map from the session table into depot dicts.
 _SESSION_COLUMNS = [
     "id",
@@ -157,6 +171,7 @@ def _row_to_session(row: sqlite3.Row) -> dict[str, Any]:
     s["time_updated_display"] = _fmt_ts(row["time_updated"])
     s["time_archived_display"] = _fmt_ts(row["time_archived"])
     s["cost_est"] = _restate_cost(row)
+    s["cache_hit_ratio"] = _cache_hit_ratio(row["tokens_input"], row["tokens_cache_read"])
     return s
 
 
@@ -459,6 +474,7 @@ def depot_stats(*, db_path: Path | None = None) -> dict[str, Any]:
                 "tokens_output": totals["tokens_output"] or 0,
                 "tokens_reasoning": totals["tokens_reasoning"] or 0,
                 "tokens_cache_read": totals["tokens_cache_read"] or 0,
+                "cache_hit_ratio": _cache_hit_ratio(totals["tokens_input"], totals["tokens_cache_read"]),
             },
             "db": {
                 "path": str(db_path_resolved),
@@ -468,8 +484,22 @@ def depot_stats(*, db_path: Path | None = None) -> dict[str, Any]:
                 "part_types": part_types,
                 "last_updated_ms": last_updated,
             },
-            "by_agent": [{**dict(r), "cost_est": _est_for_row(r)} for r in by_agent],
-            "by_project": [{**dict(r), "cost_est": _est_for_row(r)} for r in by_project],
+            "by_agent": [
+                {
+                    **dict(r),
+                    "cost_est": _est_for_row(r),
+                    "cache_hit_ratio": _cache_hit_ratio(r["tokens_input"], r["tokens_cache_read"]),
+                }
+                for r in by_agent
+            ],
+            "by_project": [
+                {
+                    **dict(r),
+                    "cost_est": _est_for_row(r),
+                    "cache_hit_ratio": _cache_hit_ratio(r["tokens_input"], r["tokens_cache_read"]),
+                }
+                for r in by_project
+            ],
             "top_cost": [
                 {
                     "id": r["id"],
@@ -570,7 +600,14 @@ def usage_series(*, days: int = 30, db_path: Path | None = None) -> dict[str, An
                 )
                 cursor += timedelta(days=1)
 
-        buckets = [{"day": day, **raw[day]} for day in sorted(raw)]
+        buckets = [
+            {
+                "day": day,
+                "cache_hit_ratio": _cache_hit_ratio(raw[day]["tokens_input"], raw[day]["tokens_cache_read"]),
+                **raw[day],
+            }
+            for day in sorted(raw)
+        ]
         totals = {
             "messages": sum(b["messages"] for b in buckets),
             "tokens_input": sum(b["tokens_input"] for b in buckets),
@@ -580,6 +617,9 @@ def usage_series(*, days: int = 30, db_path: Path | None = None) -> dict[str, An
             "tokens_cache_write": sum(b["tokens_cache_write"] for b in buckets),
             "cost_stored": round(sum(b["cost_stored"] for b in buckets), 4),
             "cost_est": round(sum(b["cost_est"] for b in buckets), 4),
+            "cache_hit_ratio": _cache_hit_ratio(
+                sum(b["tokens_input"] for b in buckets), sum(b["tokens_cache_read"] for b in buckets)
+            ),
         }
         return {"days": days, "buckets": buckets, "totals": totals}
     finally:

@@ -15,7 +15,7 @@ export OPENCODE_SERVE_URL := "http://127.0.0.1:4097"
 default:
     @just --list
 
-# ── Development ─────────────────────────────────────────
+# --- Development ---
 # Install dependencies
 install:
     uv sync
@@ -41,7 +41,7 @@ start:
 start-headless:
     powershell -ExecutionPolicy Bypass -File start.ps1 -Headless
 
-# ── Fleet ──────────────────────────────────────────────
+# --- Fleet ---
 # Fleet health check (probe our own ports)
 fleet-health:
     powershell -NoLogo -Command " \
@@ -57,7 +57,7 @@ fleet-health:
             } \
         }"
 
-# ── Quality ─────────────────────────────────────────────
+# --- Quality ---
 # Run lint + format check
 check:
     uv run ruff check .
@@ -88,12 +88,12 @@ certify:
     cd web_sota; npm run biome:ci
     Write-Host "=== CERTIFY PASSED - all gates green ===" -ForegroundColor Green
 
-# ── Build ───────────────────────────────────────────────
+# --- Build ---
 # Build webapp
 build-web:
     cd web_sota; npm run build
 
-# ── Native (Tauri) ──────────────────────────────────────────────────────────
+# --- Native  Tauri ---
 
 # Build the Tauri NSIS desktop installer (full pipeline: frontend -> Rust -> NSIS)
 build-native:
