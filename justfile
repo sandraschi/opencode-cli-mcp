@@ -19,7 +19,7 @@ default:
 # Install dependencies
 install:
     uv sync
-    cd web_sota && npm install
+    cd web_sota; npm install
 
 # Run the MCP server (stdio)
 serve:
