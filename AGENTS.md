@@ -24,7 +24,7 @@ the opencode SQLite DB, `.mcpb` installs, and graceful shutdown. Ships a unified
 |------|---------|
 | 10950 | Frontend (Vite) |
 | 10951 | Unified backend (REST `/api/*` + MCP `/mcp`) |
-| 4096 | opencode serve |
+| 4097 | backend-owned opencode serve (NOT 4096 — the desktop app's password-locked serve lives there) |
 
 ## Standards
 

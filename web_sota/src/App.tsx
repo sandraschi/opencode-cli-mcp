@@ -17,6 +17,7 @@ import { McpbInstall } from "./pages/McpbInstall";
 import { McpServers } from "./pages/McpServers";
 import { Plugins } from "./pages/Plugins";
 import { OpenCodeTools } from "./pages/OpenCodeTools";
+import { Sidebar } from "./pages/Sidebar";
 import Logging from "./pages/Logging";
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/tools" element={<ToolsHub />} />
         <Route path="/oc-tools" element={<OpenCodeTools />} />
+        <Route path="/sidebar" element={<Sidebar />} />
         <Route path="/apps" element={<AppsHub />} />
         <Route path="/mcpb" element={<McpbInstall />} />
         <Route path="/mcp-servers" element={<McpServers />} />
