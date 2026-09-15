@@ -1,5 +1,5 @@
+import logging
 import os
-import sys
 from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
@@ -7,6 +7,8 @@ from starlette.middleware.cors import CORSMiddleware
 
 from opencode_cli_mcp.probe import run_startup_probe
 from opencode_cli_mcp.tools import TOOL_REGISTRY
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -35,7 +37,7 @@ if os.environ.get("OPENCODE_CLI_MCP_PREFAB_APPS", "1").lower() not in ("0", "fal
 
         register_prefab_tools(app)
     except Exception as e:  # pragma: no cover - depends on env
-        print(f"[opencode-cli-mcp] Prefab cards not registered: {e}", file=sys.stderr)
+        logger.warning("[opencode-cli-mcp] Prefab cards not registered: %s", e)
 
 
 @app.prompt()

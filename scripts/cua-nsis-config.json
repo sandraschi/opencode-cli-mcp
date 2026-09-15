@@ -9,6 +9,7 @@
     "feature_smoke_path": "/api/v1/system/info",
     "window_title_re": "Opencode Cli MCP",
     "nsis_glob": "native/target/release/bundle/nsis/Opencode Cli MCP_*_x64-setup.exe",
+    "nav_routes": ["Dashboard", "Sessions", "Depot", "Chat", "Settings", "Logs", "Help"],
     "bridge_ok_text": "REST bridge reachable",
     "uninstall_registry_filter": "*Opencode Cli MCP*"
 }

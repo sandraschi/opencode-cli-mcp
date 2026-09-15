@@ -6,9 +6,11 @@ and the status Prefab card. Logs to stderr only - stdout belongs to the MCP
 stdio protocol and must stay clean.
 """
 
-import sys
+import logging
 import time
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 PROBE_STATE: dict[str, Any] = {
     "ran": False,
@@ -40,5 +42,5 @@ async def run_startup_probe() -> dict[str, Any]:
         checked_at=time.time(),
         detail=detail,
     )
-    print(f"[opencode-cli-mcp] startup probe: {detail} ({client.base_url})", file=sys.stderr)
+    logger.warning("[opencode-cli-mcp] startup probe: %s (%s)", detail, client.base_url)
     return dict(PROBE_STATE)

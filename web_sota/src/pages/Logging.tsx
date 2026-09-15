@@ -271,38 +271,40 @@ export default function Logging() {
       </div>
 
       {showClear && (
-        // biome-ignore lint/a11y/noStaticElementInteractions: click-outside dismiss pattern; Escape also closes via dialog buttons
-        // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop is decorative; keyboard users use the Cancel/Enter buttons
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-          onClick={() => setShowClear(false)}
-        >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation guard so backdrop click does not close while interacting with the dialog */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: inner panel is not interactive itself; focus stays on dialog buttons */}
+        <>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: click-outside dismiss pattern; Escape also closes via dialog buttons */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop is decorative; keyboard users use the Cancel/Enter buttons */}
           <div
-            className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+            onClick={() => setShowClear(false)}
           >
-            <h3 className="text-lg font-bold text-slate-200 mb-2">Clear all logs?</h3>
-            <p className="text-sm text-slate-400 mb-4">This cannot be undone. The ring buffer will be emptied.</p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                className="px-4 py-2 rounded border border-slate-700 text-slate-400 text-sm hover:bg-slate-800"
-                onClick={() => setShowClear(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 rounded bg-red-700 text-white text-sm hover:bg-red-600"
-                onClick={handleClear}
-              >
-                Clear
-              </button>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation guard so backdrop click does not close while interacting with the dialog */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: inner panel is not interactive itself; focus stays on dialog buttons */}
+            <div
+              className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold text-slate-200 mb-2">Clear all logs?</h3>
+              <p className="text-sm text-slate-400 mb-4">This cannot be undone. The ring buffer will be emptied.</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded border border-slate-700 text-slate-400 text-sm hover:bg-slate-800"
+                  onClick={() => setShowClear(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded bg-red-700 text-white text-sm hover:bg-red-600"
+                  onClick={handleClear}
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -1195,14 +1195,17 @@ wheels = [
 
 [[package]]
 name = "opencode-cli-mcp"
-version = "0.2.3"
+version = "0.2.10"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "fastembed" },
     { name = "fastmcp" },
     { name = "httpx" },
+    { name = "lancedb" },
     { name = "prefab-ui" },
     { name = "psutil" },
+    { name = "pyarrow" },
     { name = "pydantic" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1227,12 +1230,15 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastembed", specifier = ">=0.4" },
     { name = "fastembed", marker = "extra == 'rag'", specifier = ">=0.4" },
     { name = "fastmcp", specifier = ">=3.4.4,<4" },
     { name = "httpx", specifier = ">=0.28" },
+    { name = "lancedb", specifier = ">=0.18" },
     { name = "lancedb", marker = "extra == 'rag'", specifier = ">=0.18" },
     { name = "prefab-ui", specifier = ">=0.14.0" },
     { name = "psutil", specifier = ">=6.0" },
+    { name = "pyarrow", specifier = ">=16" },
     { name = "pyarrow", marker = "extra == 'rag'", specifier = ">=16" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },

@@ -4,12 +4,14 @@ Deliberately simple: confirm-guarded, logs the reason, then exits the
 process after a short delay so the JSON-RPC response flushes first.
 """
 
+import logging
 import os
-import sys
 import threading
 from typing import Annotated
 
 from pydantic import Field
+
+logger = logging.getLogger(__name__)
 
 
 def opencode_shutdown(
@@ -32,6 +34,6 @@ def opencode_shutdown(
             "data": {},
         }
     if reason:
-        print(f"[opencode-cli-mcp] shutdown requested: {reason}", file=sys.stderr)
+        logger.warning("[opencode-cli-mcp] shutdown requested: %s", reason)
     threading.Timer(0.5, lambda: os._exit(0)).start()
     return {"success": True, "message": "Server shutting down...", "data": {"confirm": True}}

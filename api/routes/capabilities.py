@@ -12,7 +12,7 @@ from opencode_cli_mcp.registry import (
 
 router = APIRouter(tags=["capabilities"])
 
-SELF_VERSION = "0.2.3"
+SELF_VERSION = "0.2.10"
 
 
 @router.get("/capabilities")

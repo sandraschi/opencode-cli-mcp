@@ -1,6 +1,6 @@
 [project]
 name = "opencode-cli-mcp"
-version = "0.2.3"
+version = "0.2.10"
 description = "MCP server wrapping opencode CLI (opencode serve) for AI agent orchestration"
 authors = [{ name = "Sandra Schipal" }]
 requires-python = ">=3.12"
@@ -12,6 +12,9 @@ dependencies = [
     "uvicorn[standard]>=0.34",
     "pydantic>=2.0",
     "psutil>=6.0",
+    "fastembed>=0.4",
+    "lancedb>=0.18",
+    "pyarrow>=16",
 ]
 
 [tool.pytest.ini_options]
@@ -41,8 +44,16 @@ line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
+select = ["E", "F", "I", "N", "W", "UP", "T20"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# CLI/build/test paths may print to stdout/stderr; server modules may not.
+"scripts/*.py" = ["T20"]
+"tests/*.py" = ["T20"]
+"mcpb/*.py" = ["T20"]
+# sidebar_client.py is a TSV CLI: stdout is its interface, not logging.
+"sidebar/*.py" = ["T20"]
 
 [tool.ruff.format]
 quote-style = "double"

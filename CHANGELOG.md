@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.10 - 2026-09-15 (startup reliability + desktop sidebar)
+
+### Added
+- **Desktop sidebar companion** (`sidebar/`): AHK docked session list over the
+  depot path (palette jump, right-click rename/archive/delete, hover previews,
+  cost column). Outside the `.mcpb`; see `docs/SIDEBAR.md`.
+- **Docs stack**: `CONFIGURATION.md`, `DEVELOPMENT.md`, `TOOLS.md`,
+  `TROUBLESHOOTING.md`. SessionStart hook content (`hooks/hooks.json`) now
+  covers depot recall + backups.
+- **Onboarding cue**: red under-hero banner when serve is offline
+  (`data-testid="onboarding-cue"`).
+- justfile aliases: `lint`, `mcpb-pack`, `cua-nsis-test`, `cua-webapp-test`;
+  `nav_routes` in cua-nsis-config.json.
+
+### Fixed
+- Uvicorn target must be `api.main:app` (raw FastMCP object 500d everything).
+- `start.ps1` standalone fallback: port clearing, `uv sync` guard, `/health`
+  readiness gate, hidden backend window.
+- Autobackup no longer freezes the event loop (5-min grace + worker thread).
+- Serve binary re-resolved at spawn time (CLI installed while running now found).
+- Web gates: `vite/client` types (tsc), biome format/import order, valid JSX
+  suppression comments; `T20` print-ban enforced with CLI per-file-ignores.
+- Version alignment: all pins 0.2.3 → 0.2.10 (pyproject, API, capabilities,
+  glama, webapp, Tauri, manifest).
+
 ## 0.2.9 - 2026-08-02 (Usage page: token/cost time series)
 
 ### Added

@@ -245,7 +245,7 @@ export function Chat() {
 
   return (
     <div data-testid="chat-page" className="flex flex-col h-full max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
+      <div data-testid="chat-controls" className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Chat</h1>
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-mono bg-zinc-800 px-2 py-0.5 rounded">

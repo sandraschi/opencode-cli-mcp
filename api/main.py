@@ -66,7 +66,7 @@ async def _lifespan(app):
 
 app = FastAPI(
     title="opencode-cli-mcp API",
-    version="0.2.3",
+    version="0.2.10",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=_lifespan,

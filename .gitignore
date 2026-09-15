@@ -42,6 +42,7 @@ api/settings.json
 htmlcov/
 test-results/
 playwright-report/
+web_sota/e2e/visual-baseline/
 
 # Build
 *.mcpb

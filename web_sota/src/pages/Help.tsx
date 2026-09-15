@@ -4,6 +4,11 @@ import { api } from "../services/api";
 
 import type { DocEntry, DocContent } from "../services/api";
 
+function DocHtml({ html }: { html: string }) {
+  // biome-ignore lint/security/noDangerouslySetInnerHtml: first-party repo docs served by this backend; renderMarkdown escapes code blocks
+  return <div className="prose-custom text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 function renderMarkdown(md: string): string {
   let html = md
     .split("\n")
@@ -197,8 +202,7 @@ export function Help() {
               ))}
             </div>
           ) : renderedHtml ? (
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: rendered from first-party repo docs served by this backend (renderMarkdown escapes code blocks)
-            <div className="prose-custom text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+            <DocHtml html={renderedHtml} />
           ) : (
             <p className="text-sm text-zinc-500">Select a document from the sidebar.</p>
           )}

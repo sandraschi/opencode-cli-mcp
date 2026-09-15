@@ -1,15 +1,1 @@
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "text",
-            "text": "## Session Context (opencode-cli-mcp)\n\nYou have access to opencode-cli-mcp: it orchestrates opencode agent runs, sessions, and system diagnostics through opencode serve.\n\n**Before starting work:**\n1. Check server status: opencode_system(action=\"status\")\n2. Check recent runs: opencode_runs(action=\"list\", limit=10)\n\n**At end of work:**\n- Review what changed: opencode_sessions(action=\"diff\", session_id=...)\n- Cancel stuck runs: opencode_runs(action=\"cancel\", job_id=...)"
-          }
-        ]
-      }
-    ]
-  }
-}
+{"hooks": {"SessionStart": [{"hooks": [{"text": "## Session Context (opencode-cli-mcp)\n\nYou have access to opencode-cli-mcp: opencode agent runs plus an eternal session depot (every opencode session since install, searchable SQLite).\n\n**Before starting work, recall what you already know:**\n\n1. Wayback find: `opencode_depot(action=\"search\", query=\"<topic>\")` — full-text across all transcripts and titles\n2. Live state: `opencode_system(action=\"status\")`, recent runs: `opencode_runs(action=\"list\", limit=10)`\n\n**At the end of meaningful work:**\n- Review what changed: `opencode_sessions(action=\"diff\", session_id=...)`; cancel stuck runs: `opencode_runs(action=\"cancel\", job_id=...)`\n- Protect the depot: `opencode_backups(action=\"create\", kind=\"all\")` (autobackup runs every 24h)", "type": "text"}], "matcher": ""}]}}
