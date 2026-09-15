@@ -37,9 +37,15 @@ async def _autobackup_loop() -> None:
     interval_h = backup.autobackup_interval_hours()
     if interval_h <= 0:
         return
+    # Grace period first: a fresh boot must answer /health immediately, not
+    # after a 9GB copy. And the copy itself runs in a thread: run_autobackup
+    # is fully synchronous (shutil.copy2) and would freeze the event loop,
+    # hanging every request for the duration (seen 2026-09-15: 1 core burned,
+    # all /health probes timing out during startup backup).
+    await asyncio.sleep(300)
     while True:
         try:
-            backup.set_last_autobackup(backup.run_autobackup())
+            backup.set_last_autobackup(await asyncio.to_thread(backup.run_autobackup))
         except Exception as e:  # pragma: no cover - defensive boundary
             backup.set_last_autobackup({"timestamp": None, "results": [{"kind": "all", "ok": False, "error": str(e)}]})
         await asyncio.sleep(interval_h * 3600)
