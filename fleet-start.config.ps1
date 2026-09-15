@@ -5,11 +5,14 @@
     BackendPort  = 10951
     FrontendPort = 10950
     HealthPath   = '/api/v1/health'
-    WebRoot      = 'D:\Dev\repos\opencode-cli-mcp\web_sota'
+    WebRoot      = 'web_sota'
     Backend = @{
         Kind          = 'uvicorn'
         # Unified app: REST /api/* + FastMCP /mcp on the same port (api/main.py
         # mounts opencode_cli_mcp.server:http_app at /mcp with its lifespan).
+        # NEVER point uvicorn at opencode_cli_mcp.server:app: that is the raw
+        # FastMCP object (not ASGI-callable) and every request 500s with
+        # "TypeError: 'FastMCP' object is not callable" (seen 2026-09-15).
         UvicornTarget = 'api.main:app'
         Env           = @{
             WEB_PORT = '10951'
