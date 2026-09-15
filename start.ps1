@@ -11,11 +11,6 @@ param(
 $ErrorActionPreference = 'Stop'
 $ReposRoot = if ($env:FLEET_REPOS_ROOT) { $env:FLEET_REPOS_ROOT } else { 'D:\Dev\repos' }
 $EnginePath = Join-Path $ReposRoot 'mcp-central-docs\scripts\Invoke-FleetWebappStart.ps1'
-if (-not (Test-Path -LiteralPath $EnginePath)) {
-    Write-Host "ERROR: Missing fleet start engine: $EnginePath" -ForegroundColor Red
-    exit 1
-}
-. $EnginePath
 
 $configCandidates = @(
     (Join-Path $PSScriptRoot 'fleet-start.config.ps1'),
@@ -33,4 +28,106 @@ if (-not $configPath) {
     exit 1
 }
 
-Start-FleetWebapp @PSBoundParameters -ConfigPath $configPath -LauncherRoot $PSScriptRoot
+# Mode 1: Central Fleet Engine (when mcp-central-docs is available)
+if (Test-Path -LiteralPath $EnginePath) {
+    . $EnginePath
+    Start-FleetWebapp @PSBoundParameters -ConfigPath $configPath -LauncherRoot $PSScriptRoot
+    exit 0
+}
+
+# Mode 2: Standalone Fallback (Naked install on new machine / public user clone)
+Write-Host "Central fleet engine not found ($EnginePath) - starting in standalone mode." -ForegroundColor Yellow
+
+$cfg = . $configPath
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if (Test-Path (Join-Path $PSScriptRoot 'pyproject.toml')) { $repoRoot = $PSScriptRoot }
+
+$backendPort = if ($cfg.BackendPort) { [int]$cfg.BackendPort } else { 10720 }
+$frontendPort = if ($cfg.FrontendPort) { [int]$cfg.FrontendPort } else { 10721 }
+$healthPath = if ($cfg.HealthPath) { $cfg.HealthPath } else { '/api/v1/health' }
+
+# 0. Clear stale port holders (restart twice => EADDRINUSE otherwise)
+$portsToClear = @()
+if (-not $FrontendOnly -and $backendPort -gt 0) { $portsToClear += $backendPort }
+if (-not $BackendOnly -and $frontendPort -gt 0) { $portsToClear += $frontendPort }
+foreach ($port in $portsToClear) {
+    $holders = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+    foreach ($h in $holders) {
+        try { Stop-Process -Id $h.OwningProcess -Force -ErrorAction Stop } catch {}
+    }
+}
+
+# 0b. Ensure venv (naked machines have no .venv; without this the backend dies)
+$uvExe = Join-Path $env:USERPROFILE '.local\bin\uv.exe'
+if (-not (Test-Path -LiteralPath (Join-Path $repoRoot '.venv'))) {
+    if (Test-Path -LiteralPath $uvExe) {
+        Write-Host 'No .venv - running uv sync ...' -ForegroundColor Cyan
+        & $uvExe sync --project $repoRoot
+    } else {
+        Write-Host 'WARNING: no .venv and uv not found - backend start will likely fail.' -ForegroundColor Yellow
+    }
+}
+
+$webRel = if ($cfg.WebRoot) { $cfg.WebRoot } else { 'webapp\frontend' }
+$webRoot = if ([System.IO.Path]::IsPathRooted($webRel)) { $webRel } else { Join-Path $repoRoot $webRel }
+if (-not (Test-Path -LiteralPath $webRoot)) { $webRoot = $PSScriptRoot }
+
+# 1. Start Backend
+if (-not $FrontendOnly -and $backendPort -gt 0 -and $cfg.Backend.Kind -ne 'none') {
+    Write-Host "Starting backend on :$backendPort ..." -ForegroundColor Cyan
+    $bWorkDir = if ($cfg.Backend.WorkDir) {
+        if ([System.IO.Path]::IsPathRooted($cfg.Backend.WorkDir)) { $cfg.Backend.WorkDir } else { Join-Path $repoRoot $cfg.Backend.WorkDir }
+    } else { $repoRoot }
+
+    $pyPath = if ($cfg.Backend.PythonPath) {
+        $parts = $cfg.Backend.PythonPath -split ';' | ForEach-Object {
+            if ([System.IO.Path]::IsPathRooted($_)) { $_ } else { Join-Path $repoRoot $_ }
+        }
+        $parts -join ';'
+    } else { "$repoRoot;$repoRoot\src" }
+
+    $backendExec = if ($cfg.Backend.Kind -eq 'module-serve') {
+        $mod = if ($cfg.Backend.Module) { $cfg.Backend.Module } else { $cfg.Name }
+        $args = if ($cfg.Backend.ServeArgs) { $cfg.Backend.ServeArgs } else { '--serve' }
+        "python -m $mod $args"
+    } elseif ($cfg.Backend.Kind -eq 'cli-serve') {
+        $mod = if ($cfg.Backend.Module) { $cfg.Backend.Module } else { $cfg.Name }
+        "$mod --serve --port $backendPort"
+    } else {
+        $target = if ($cfg.Backend.UvicornTarget) { $cfg.Backend.UvicornTarget } else { 'app.main:app' }
+        "uvicorn $target --host 127.0.0.1 --port $backendPort"
+    }
+
+    $bCmd = "`$env:PYTHONPATH = '$pyPath'; `$env:WEB_PORT = '$backendPort'; Set-Location '$bWorkDir'; uv run --project '$repoRoot' $backendExec"
+    Start-Process powershell.exe -WindowStyle Hidden -ArgumentList @('-NoProfile', '-NoExit', '-Command', $bCmd) -WorkingDirectory $bWorkDir
+
+    # 1b. Readiness gate: never open a browser onto a dead backend
+    $ready = $false
+    for ($i = 0; $i -lt 60; $i++) {
+        try {
+            $r = Invoke-WebRequest -Uri "http://127.0.0.1:$backendPort$healthPath" -TimeoutSec 2 -UseBasicParsing
+            if ($r.StatusCode -eq 200) { $ready = $true; break }
+        } catch {}
+        Start-Sleep 1
+    }
+    if (-not $ready) { throw "backend :$backendPort never became ready ($healthPath)" }
+}
+
+# 2. Start Frontend
+if (-not $BackendOnly -and $frontendPort -gt 0 -and (Test-Path -LiteralPath $webRoot)) {
+    Write-Host "Starting frontend on :$frontendPort ..." -ForegroundColor Cyan
+    if ($cfg.Frontend.PortEnvVar) { Set-Item -Path "Env:$($cfg.Frontend.PortEnvVar)" -Value "$frontendPort" }
+    if ($cfg.Frontend.ApiTargetEnv) { Set-Item -Path "Env:$($cfg.Frontend.ApiTargetEnv)" -Value "http://127.0.0.1:$backendPort" }
+
+    $cmdFlag = if ($Headless) { '/c' } else { '/k' }
+    if ($cfg.Frontend.Kind -eq 'next') {
+        Start-Process cmd.exe -ArgumentList @($cmdFlag, "npm run dev -- -p $frontendPort -H 127.0.0.1") -WorkingDirectory $webRoot
+    } else {
+        Start-Process cmd.exe -ArgumentList @($cmdFlag, "npm run dev -- --port $frontendPort --host 127.0.0.1") -WorkingDirectory $webRoot
+    }
+}
+
+# 3. Open Browser
+if (-not $NoBrowser -and -not $Headless -and -not $BackendOnly -and $frontendPort -gt 0) {
+    Start-Process "http://127.0.0.1:$frontendPort/"
+}
