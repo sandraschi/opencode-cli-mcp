@@ -91,9 +91,14 @@ class OpencodeClient:
 
     async def _start_server(self) -> bool:
         creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        # Re-resolve at spawn time, not import time: a CLI installed after the
+        # backend started (or a PATH change) is otherwise invisible until the
+        # next backend restart (seen 2026-09-15: scoop opencode installed while
+        # running, autostart kept failing on the stale bare "opencode").
+        binary = os.environ.get("OPENCODE_BINARY") or shutil.which("opencode") or OPENCODE_BINARY
         try:
             self._process = subprocess.Popen(
-                [OPENCODE_BINARY, "serve", "--port", str(self.port)],
+                [binary, "serve", "--port", str(self.port)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 creationflags=creationflags,
