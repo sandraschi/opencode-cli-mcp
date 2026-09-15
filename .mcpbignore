@@ -31,6 +31,9 @@ web_sota/node_modules/
 web_sota/dist/
 web_sota/src-tauri/target/
 
+# AHK desktop sidebar (companion client, not MCP payload)
+sidebar/
+
 # Build Artifacts
 dist/
 build/

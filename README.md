@@ -29,6 +29,7 @@ MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode se
 | **Never lose it** | `opencode_backups(action="create"\|"restore", ...)` — db + config snapshots, rotation, disk guard, autobackup every 24h |
 | **Run agents** | `opencode_runs(action="start"\|"status"\|"list"\|"cancel", ...)` — launch, supervise, review |
 | **Manage opencode** | `opencode_system(...)` — status, providers, project, MCP pulse, config drift |
+| **Desktop sidebar** | `sidebar/opencode-sidebar.ahk` (AHK v2 companion, outside the `.mcpb`) — docked session list, palette jump, right-click rename/archive/delete, hover previews. See [docs/SIDEBAR.md](docs/SIDEBAR.md) |
 
 ## Quick Start
 
