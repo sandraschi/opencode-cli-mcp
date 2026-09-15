@@ -159,7 +159,9 @@ async def depot_rag_code(q: str = "", path: str = "", limit: int = 20):
     vector search over edit bodies restricted to matching paths.
     """
     try:
-        hits = rag.code_search(query=q or None, path_filter=path or None, limit=min(max(limit, 1), 50))
+        hits = await asyncio.to_thread(
+            rag.code_search, query=q or None, path_filter=path or None, limit=min(max(limit, 1), 50)
+        )
     except rag.RAGUnavailableError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {
@@ -207,7 +209,7 @@ async def depot_rag_index(limit_sessions: int | None = None, reset: bool = False
 @router.get("/rag/search")
 async def depot_rag_search(q: str, limit: int = 20):
     try:
-        hits = rag.semantic_search(q, limit=min(max(limit, 1), 50))
+        hits = await asyncio.to_thread(rag.semantic_search, q, limit=min(max(limit, 1), 50))
     except rag.RAGUnavailableError as e:
         raise HTTPException(status_code=503, detail=str(e))
     return {"success": True, "message": f"{len(hits)} semantic matches", "data": {"results": hits, "count": len(hits)}}
