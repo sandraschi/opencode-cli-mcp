@@ -68,18 +68,6 @@ lint:
     uv run ruff check .
     uv run ruff format --check .
 
-# Pack the .mcpb bundle (wipe + fresh-copy src -> mcpb/src, verify, pack)
-mcpb-pack:
-    powershell.exe -NoProfile -File '{{justfile_directory()}}\mcpb\pack.ps1'
-
-# CUA smoke: NSIS installer walk (nav walk, title-matching)
-cua-nsis-test:
-    uv run python '{{justfile_directory()}}\scripts\cua-smoke.py'
-
-# CUA smoke: webapp browser walk (pre-Tauri)
-cua-webapp-test:
-    uv run python '{{justfile_directory()}}\scripts\cua-webapp-test.py'
-
 # Auto-format
 format:
     uv run ruff format .
@@ -114,9 +102,7 @@ build-web:
 
 # Build the Tauri NSIS desktop installer (full pipeline: frontend -> Rust -> NSIS)
 build-native:
-	$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
-	Set-Location '{{justfile_directory()}}\native'
-	pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
+	$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; Set-Location '{{justfile_directory()}}\native'; pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
 
 
 # Bootstrap: install dev deps + pre-commit hook
