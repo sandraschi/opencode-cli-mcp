@@ -1,0 +1,9 @@
+{
+  "auto_load": ["session-start"],
+  "skills": {
+    "session-start": {
+      "path": "session-start/SKILL.md",
+      "description": "opencode-cli-mcp session start prompt (tool awareness)"
+    }
+  }
+}

@@ -74,34 +74,41 @@ export function Dashboard() {
   const [fleetCount, setFleetCount] = useState(0);
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
   const [depotStats, setDepotStats] = useState<DepotStats | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const mounted = useRef(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadKey intentionally re-triggers refetch on Retry
   useEffect(() => {
     mounted.current = true;
+    setLoadError(null);
+    const fail = (what: string) => () => {
+      if (mounted.current) setLoadError((prev) => prev ?? `${what} unreachable - is the backend running?`);
+    };
     api
       .getCapabilities()
       .then((c) => mounted.current && setCapabilities(c))
-      .catch(() => {});
+      .catch(fail("Backend"));
     api
       .getOpencodeStatus()
       .then((r) => mounted.current && setOpencodeStatus(r.data))
-      .catch(() => {});
+      .catch(fail("opencode serve status"));
     api
       .getFleet()
       .then((r) => mounted.current && setFleetCount(r.data.apps.filter((a: FleetApp) => a.alive).length))
-      .catch(() => {});
+      .catch(fail("Fleet scan"));
     api
       .getSystemInfo()
       .then((r) => mounted.current && setSysInfo(r.data))
-      .catch(() => {});
+      .catch(fail("System info"));
     api
       .depotStats()
       .then((r) => mounted.current && setDepotStats(r.data))
-      .catch(() => {});
+      .catch(fail("Depot stats"));
     return () => {
       mounted.current = false;
     };
-  }, [setOpencodeStatus, setCapabilities]);
+  }, [setOpencodeStatus, setCapabilities, reloadKey]);
 
   const serverOk = opencodeStatus?.health?.status === "ok" || opencodeStatus?.health?.status === "running";
 
@@ -140,6 +147,19 @@ export function Dashboard() {
           opencode serve is offline — finish setup to unlock live sessions and agent runs (depot search works
           regardless)
         </Link>
+      )}
+
+      {loadError && (
+        <div className="mb-6 px-5 py-4 rounded-xl bg-amber-600/15 border border-amber-500/30 text-amber-200 text-sm flex items-center justify-between gap-4">
+          <span>{loadError}</span>
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 font-medium transition-colors flex-shrink-0"
+          >
+            Retry
+          </button>
+        </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
