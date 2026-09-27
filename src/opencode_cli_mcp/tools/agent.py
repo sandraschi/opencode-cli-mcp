@@ -102,7 +102,9 @@ async def opencode_launch_ui(
     binary = OPENCODE_BINARY
 
     if mode == "serve":
-        cmd = [binary, "serve", "--port", "4096"]
+        # Dedicated backend-owned port (NOT 4096 - the desktop app's
+        # password-locked serve lives there). Matches OPENCODE_SERVE_URL.
+        cmd = [binary, "serve", "--port", "4097"]
     elif mode == "web":
         cmd = [binary, "web"]
         if project:

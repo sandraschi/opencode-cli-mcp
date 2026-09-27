@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   cloud_provider: "openai",
   cloud_key: "",
   cloud_model: "gpt-4o",
-  opencode_serve_url: "http://127.0.0.1:4096",
+  opencode_serve_url: "http://127.0.0.1:4097",
 };
 
 // Fleet standard (chat_skills_prefab_standard.md §1.3): provider + model

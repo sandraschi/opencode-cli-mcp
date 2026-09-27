@@ -1,5 +1,6 @@
 import asyncio
 import atexit
+import logging
 import os
 import shutil
 import subprocess
@@ -8,7 +9,13 @@ from urllib.parse import urlsplit
 
 import httpx
 
-DEFAULT_SERVE_URL = os.environ.get("OPENCODE_SERVE_URL", "http://127.0.0.1:4096")
+logger = logging.getLogger(__name__)
+
+# Dedicated backend-owned serve port (NOT 4096 - the official OpenCode
+# desktop app owns 4096 with a per-session password). fleet-start.config.ps1
+# exports OPENCODE_SERVE_URL=http://127.0.0.1:4097 for the managed stack;
+# this default covers unmanaged (stdio) use.
+DEFAULT_SERVE_URL = os.environ.get("OPENCODE_SERVE_URL", "http://127.0.0.1:4097")
 
 
 def _serve_auth() -> httpx.BasicAuth | None:
@@ -67,9 +74,9 @@ class OpencodeClient:
     def port(self) -> int:
         """Port derived from base_url so autostart honors OPENCODE_SERVE_URL."""
         try:
-            return urlsplit(self.base_url).port or 4096
+            return urlsplit(self.base_url).port or 4097
         except ValueError:
-            return 4096
+            return 4097
 
     async def ensure_server(self) -> bool:
         if await self._ping():
@@ -86,7 +93,8 @@ class OpencodeClient:
         try:
             r = await self._http.get("/global/health", timeout=3.0)
             return r.is_success
-        except Exception:
+        except Exception as e:
+            logger.debug("[client] serve ping %s failed: %s", self.base_url, e)
             return False
 
     async def _start_server(self) -> bool:
@@ -103,7 +111,8 @@ class OpencodeClient:
                 stderr=subprocess.DEVNULL,
                 creationflags=creationflags,
             )
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            logger.debug("[client] opencode binary not found (%s): %s", binary, e)
             return False
         atexit.register(self._terminate_spawned)
         for _ in range(30):
@@ -118,8 +127,8 @@ class OpencodeClient:
         if proc is not None and proc.poll() is None:
             try:
                 proc.terminate()
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("[client] terminate spawned serve failed: %s", e)
 
     async def close(self):
         """Explicit teardown: close the HTTP pool and stop a spawned serve.
