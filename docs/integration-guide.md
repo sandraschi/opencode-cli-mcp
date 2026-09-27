@@ -13,7 +13,7 @@ Add to your `claude_desktop_config.json`:
       "command": "uv",
       "args": ["run", "-m", "opencode_cli_mcp.server"],
       "env": {
-        "OPENCODE_SERVE_URL": "http://127.0.0.1:4096"
+        "OPENCODE_SERVE_URL": "http://127.0.0.1:4097"
       }
     }
   }
@@ -55,7 +55,7 @@ Cursor settings -> MCP Servers -> Add:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OPENCODE_SERVE_URL` | `http://127.0.0.1:4096` | opencode serve HTTP API base URL |
+| `OPENCODE_SERVE_URL` | `http://127.0.0.1:4097` | opencode serve HTTP API base URL (dedicated port) |
 | `OPENCODE_BINARY` | `opencode` | Path to opencode binary |
 | `BACKEND_PORT` | `10951` | FastAPI backend port (webapp only) |
 

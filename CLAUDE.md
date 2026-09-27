@@ -15,7 +15,7 @@ MCP server that wraps opencode's `opencode serve` HTTP API into MCP tools, with 
 
 ## Architecture
 
-- MCP server talks to `opencode serve` HTTP API (default http://127.0.0.1:4096)
+- MCP server talks to `opencode serve` HTTP API (default http://127.0.0.1:4097)
 - Webapp backend (FastAPI, port 10951) bridges MCP tools to REST
 - Webapp frontend (Vite, port 10950) proxies /api to backend
 - Tools in `src/opencode_cli_mcp/tools/`: sessions, runs, agent, status
@@ -23,7 +23,7 @@ MCP server that wraps opencode's `opencode serve` HTTP API into MCP tools, with 
 - `ensure_server()` is wired into all session/status tools
 - OpenCode custom tools in `.opencode/tools/` - TS definitions calling backend API
 - Docs served via `GET /api/docs`, tool source via `GET /api/opencode-tools`
-- Ports: 10950 frontend / 10951 backend / 4096 opencode
+- Ports: 10950 frontend / 10951 backend / 4097 opencode
 
 ## Key Patterns
 

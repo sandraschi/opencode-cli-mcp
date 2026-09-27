@@ -25,7 +25,7 @@ just start
 
 | Process | Port | Purpose |
 |---|---|---|
-| opencode serve | 4096 | opencode HTTP API (autostarted) |
+| opencode serve | 4097 | opencode HTTP API (dedicated; autostarted) |
 | FastAPI backend | 10951 | REST bridge + MCP HTTP |
 | Vite frontend | 10950 | dashboard (opens in browser) |
 

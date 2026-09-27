@@ -101,7 +101,7 @@ With `wait=false`, use `opencode_get_run_status(job_id)` to poll.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OPENCODE_SERVE_URL` | `http://127.0.0.1:4096` | opencode HTTP API URL |
+| `OPENCODE_SERVE_URL` | `http://127.0.0.1:4097` | opencode HTTP API URL (dedicated port) |
 | `OPENCODE_BINARY` | `opencode` | Path to opencode CLI |
 | `BACKEND_PORT` | `10951` | Webapp backend port |
 
@@ -118,14 +118,14 @@ opencode-cli-mcp (FastMCP 3.2)
     |
     | httpx
     v
-opencode serve (HTTP :4096)
+opencode serve (HTTP :4097)
     |
     | subprocess
     v
 opencode agent (DeepSeek / configured model)
 
 Web Dashboard (optional): http://localhost:10950
-  Frontend (:10950) -> Backend API (:10951) -> opencode serve (:4096)
+  Frontend (:10950) -> Backend API (:10951) -> opencode serve (:4097)
 ```
 
 ---
@@ -136,7 +136,7 @@ Web Dashboard (optional): http://localhost:10950
 |------|---------|
 | 10950 | Frontend (Vite dev server) |
 | 10951 | Backend (FastAPI) |
-| 4096 | opencode serve |
+| 4097 | opencode serve (dedicated) |
 
 ---
 

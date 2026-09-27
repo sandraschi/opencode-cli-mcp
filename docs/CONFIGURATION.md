@@ -16,7 +16,7 @@ not ASGI-callable — every request 500s).
 
 | Var | Default | Purpose |
 |-----|---------|---------|
-| `OPENCODE_SERVE_URL` | `http://127.0.0.1:4096` | Serve to talk to; backend sets 4097 for its own |
+| `OPENCODE_SERVE_URL` | `http://127.0.0.1:4097` | Serve to talk to (dedicated port; 4096 is the desktop app's locked serve) |
 | `OPENCODE_BINARY` | resolved via `shutil.which` | Override path to the `opencode` CLI |
 | `OPENCODE_SERVER_PASSWORD` / `OPENCODE_SERVER_USERNAME` | — | Basic auth when talking to a password-protected (desktop) serve |
 | `OPENCODE_DB_PATH` | `~/.local/share/opencode/opencode.db` | Depot location override |
