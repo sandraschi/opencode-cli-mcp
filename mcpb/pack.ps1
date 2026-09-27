@@ -1,4 +1,4 @@
-#Requires -Version 7
+#Requires -Version 5.1
 <#
 .SYNOPSIS
 Build this repo's .mcpb bundle for Claude Desktop.
@@ -96,7 +96,14 @@ function Assert-EntryPointStaged {
 # under mcpb/src; detect which one we have from that. Computed AFTER Step 1
 # (see Assert-EntryPointStaged ordering note above).
 function Get-EntryRelToSrc($entryFile) {
-    return [System.IO.Path]::GetRelativePath($StageRoot, $entryFile)
+    # 5.1-safe: [System.IO.Path]::GetRelativePath is .NET Core only and
+    # throws MethodNotFound on Framework 4.x. Both paths are absolute and
+    # the staged entry always lives under $StageRoot, so a prefix cut
+    # suffices (callers only test for a '..' escape).
+    if ($entryFile.StartsWith($StageRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $entryFile.Substring($StageRoot.Length).TrimStart('\', '/')
+    }
+    return '..'
 }
 
 Step 1 'Wipe + fresh-copy src -> mcpb/src (never a stale/hand-edited stage)'
