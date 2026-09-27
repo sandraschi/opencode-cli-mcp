@@ -26,7 +26,7 @@ app = FastMCP("opencode-cli-mcp", lifespan=_lifespan)
 # aliases) comes from TOOL_REGISTRY. registry.py and /api/tools derive
 # from the same list, so counts can no longer drift.
 for entry in TOOL_REGISTRY:
-    app.tool(annotations=entry.annotations or None)(entry.fn)
+    app.tool(annotations=entry.annotations or None, output_schema=entry.output_schema)(entry.fn)
 
 # Prefab UI cards (SOTA SS2.2). Guarded: prefab-ui not yet synced or
 # OPENCODE_CLI_MCP_PREFAB_APPS=0 skips registration without breaking

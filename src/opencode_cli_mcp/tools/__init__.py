@@ -49,12 +49,26 @@ _READ_ONLY = {"readOnlyHint": True, "idempotentHint": True}
 _MUTATING = {"readOnlyHint": False}
 _DESTRUCTIVE = {"readOnlyHint": False, "destructiveHint": True}
 
+# Fleet dialogic return shape (TOOL_DESIGN_STANDARDS SS4.2/SS8): every
+# primary tool returns {"success", "message", "data"}. Declared as the
+# structured output schema so MCP clients can validate responses.
+_DIALOGIC_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "success": {"type": "boolean"},
+        "message": {"type": "string"},
+        "data": {"type": "object"},
+    },
+    "required": ["success", "message", "data"],
+}
+
 
 @dataclass(frozen=True)
 class ToolEntry:
     fn: Callable
     annotations: dict[str, Any] = field(default_factory=dict)
     legacy: bool = False
+    output_schema: dict[str, Any] | None = None
 
     @property
     def name(self) -> str:
@@ -68,15 +82,15 @@ class ToolEntry:
 
 TOOL_REGISTRY: list[ToolEntry] = [
     # --- install ---
-    ToolEntry(opencode_mcpb_install, _MUTATING),
+    ToolEntry(opencode_mcpb_install, _MUTATING, output_schema=_DIALOGIC_SCHEMA),
     # --- lifecycle ---
-    ToolEntry(opencode_shutdown, _DESTRUCTIVE),
+    ToolEntry(opencode_shutdown, _DESTRUCTIVE, output_schema=_DIALOGIC_SCHEMA),
     # --- portmanteaus (primary surface, TOOL_DESIGN_STANDARDS SS2) ---
-    ToolEntry(opencode_runs, {"title": "OpenCode Runs", **_DESTRUCTIVE}),
-    ToolEntry(opencode_sessions, {"title": "OpenCode Sessions", **_MUTATING}),
-    ToolEntry(opencode_depot, {"title": "OpenCode Session Depot", **_DESTRUCTIVE}),
-    ToolEntry(opencode_backups, {"title": "OpenCode Backups", **_DESTRUCTIVE}),
-    ToolEntry(opencode_system, {"title": "OpenCode System", **_MUTATING}),
+    ToolEntry(opencode_runs, {"title": "OpenCode Runs", **_DESTRUCTIVE}, output_schema=_DIALOGIC_SCHEMA),
+    ToolEntry(opencode_sessions, {"title": "OpenCode Sessions", **_MUTATING}, output_schema=_DIALOGIC_SCHEMA),
+    ToolEntry(opencode_depot, {"title": "OpenCode Session Depot", **_DESTRUCTIVE}, output_schema=_DIALOGIC_SCHEMA),
+    ToolEntry(opencode_backups, {"title": "OpenCode Backups", **_DESTRUCTIVE}, output_schema=_DIALOGIC_SCHEMA),
+    ToolEntry(opencode_system, {"title": "OpenCode System", **_MUTATING}, output_schema=_DIALOGIC_SCHEMA),
     # --- legacy atomic tools (aliases through 0.2.x, removal in 0.3.0) ---
     ToolEntry(opencode_run_agent, _MUTATING, legacy=True),
     ToolEntry(opencode_launch_ui, _MUTATING, legacy=True),
