@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased - 2026-09-27 (assfix: canonical API paths, serve-port unification)
+
+### Added
+- Canonical REST aliases: `GET /api/skills`, `GET /api/llm/discover`, `GET /api/llm/models`, `POST /api/llm/chat`, `GET /api/llm/onboarding` (same handlers, no duplication)
+- Shared `error_response()` helper with traceback logging; logged fallback probes
+- `output_schema` (dialogic shape) on all 7 primary MCP tools
+- Dashboard load-error banner with Retry; Antigravity session-start skill
+- `renovate.json` (fleet dep auto-bump); justfile `fmt` alias
+
+### Fixed
+- Unified opencode serve port on 4097 across code, config, and docs (defaults said 4096 - the desktop app's password-locked serve)
+
 ## 0.2.10 - 2026-09-15 (startup reliability + desktop sidebar)
 
 ### Added

@@ -28,7 +28,7 @@ runner (or uv directly):
 git clone https://github.com/sandraschi/opencode-cli-mcp
 cd opencode-cli-mcp
 just bootstrap      # uv sync + pre-commit hooks
-just start          # opencode serve (:4096) + FastAPI backend (:10951) + Vite frontend (:10950)
+just start          # opencode serve (:4097) + FastAPI backend (:10951) + Vite frontend (:10950)
 ```
 
 `just bootstrap` installs Python dev dependencies (pytest, ruff,
@@ -49,7 +49,7 @@ first launch.
 ### 1.4 What starts on `just start`
 
 The start script clears stale port holders, then launches three
-processes: `opencode serve` on port 4096 (the CLI's HTTP API), the
+processes: `opencode serve` on port 4097 (the dedicated backend-owned serve), the
 unified backend on port 10951 (REST `/api/*` plus the FastMCP
 Streamable HTTP endpoint at `/mcp`), and the Vite frontend on port
 10950. A readiness poll waits for the backend health endpoint before
@@ -72,8 +72,8 @@ Add a server entry to `claude_desktop_config.json`:
 }
 ```
 
-opencode serve must already be running on port 4096
-(`opencode serve` in a terminal), or the startup probe will report it
+opencode serve must already be running on port 4097
+(`opencode serve --port 4097` in a terminal), or the startup probe will report it
 unreachable and the first tool call will attempt an autostart.
 
 ### 2.2 Cursor / Windsurf
@@ -439,7 +439,7 @@ choice without reloading.
 
 ### 8.4 Settings
 
-- opencode serve URL (default `http://127.0.0.1:4096`).
+- opencode serve URL (default `http://127.0.0.1:4097`).
 - Local LLM: provider, endpoint, model - auto-detected models listed
   when Ollama/LM Studio are running.
 - Cloud provider: OpenAI, Anthropic, Google Gemini, OpenRouter with

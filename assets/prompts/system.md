@@ -14,7 +14,8 @@ offline.
   or HTTP. The unified backend (`api.main`) serves REST under `/api/*` and
   the FastMCP Streamable HTTP endpoint at `/mcp` on the same port (10951).
 - **Backend**: FastAPI REST bridge on port 10951, webapp (Vite/React) on
-  port 10950. `opencode serve` itself listens on port 4096 by default,
+  port 10950. `opencode serve` listens on port 4097 in this stack
+  (upstream opencode default is 4096 - the desktop app's locked serve),
   configurable via `OPENCODE_SERVE_URL`.
 - **Job store**: SQLite at `%LOCALAPPDATA%\opencode-cli-mcp\jobs.db` (WAL).
   Runs launched through this server persist across restarts and are shared
@@ -263,7 +264,7 @@ cheaper model. Iterate the read-correct loop as often as needed.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `OPENCODE_SERVE_URL` | opencode serve HTTP URL | `http://127.0.0.1:4096` |
+| `OPENCODE_SERVE_URL` | opencode serve HTTP URL | `http://127.0.0.1:4097` |
 | `MCP_TRANSPORT` | stdio or http | stdio |
 | `OPENCODE_CLI_MCP_PORT` | HTTP transport port (run_server.py) | 10951 |
 | `BACKEND_PORT` | backend port (api.main) | 10951 |
