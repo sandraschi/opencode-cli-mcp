@@ -18,6 +18,7 @@ from api.routes.opencode_config import router as opencode_config_router
 from api.routes.opencode_tools import router as opencode_tools_router
 from api.routes.proxy import router as proxy_router
 from api.routes.settings import router as settings_router
+from api.routes.skills import router as skills_router
 from api.routes.system import router as system_router
 from api.routes.tools import router as tools_router
 from opencode_cli_mcp import backup
@@ -120,6 +121,7 @@ app.include_router(opencode_config_router, prefix="/api")
 app.include_router(opencode_tools_router, prefix="/api")
 app.include_router(proxy_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
+app.include_router(skills_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
 

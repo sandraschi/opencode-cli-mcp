@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlsplit
 
 import httpx
@@ -7,6 +8,8 @@ from pydantic import BaseModel
 from api.routes.settings import _load_settings
 
 router = APIRouter(tags=["chat"])
+
+logger = logging.getLogger(__name__)
 
 
 async def _ollama_suggestion(endpoint: str, model: str) -> str:
@@ -19,8 +22,8 @@ async def _ollama_suggestion(endpoint: str, model: str) -> str:
                 if models:
                     hint = ", ".join(models[:12])
                     return f" Model '{model}' not found. Available: {hint}"
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("[chat] model-suggestion probe failed: %s", e)
     return f" Model '{model}' not found on {endpoint}."
 
 
@@ -36,7 +39,13 @@ class ChatRequest(BaseModel):
 
 
 @router.post("/chat")
+@router.post("/llm/chat")
 async def chat(body: ChatRequest):
+    """Backend chat proxy (canonical alias: POST /api/llm/chat).
+
+    The ONLY path the Chat page uses - provider keys never leave the server.
+    Non-streaming JSON today (SSE streaming is a planned M5 follow-up).
+    """
     settings = _load_settings()
     provider = (body.provider or settings.get("llm_provider", "local")).lower()
 
@@ -89,8 +98,8 @@ async def chat(body: ChatRequest):
                     data = r.json()
                     content = data.get("message", {}).get("content", "")
                     return {"success": True, "response": content, "provider": "ollama", "model": model}
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("[chat] ollama /api/chat failed, trying /api/generate: %s", e)
 
             # Fallback to /api/generate (older Ollama)
             prompt = f"{body.system}\n\n{body.message}" if body.system else body.message
