@@ -35,11 +35,11 @@ web:
 
 # Start everything via start.ps1
 start:
-    powershell -ExecutionPolicy Bypass -File start.ps1
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File start.ps1
 
 # Start headless (for fleet/production)
 start-headless:
-    powershell -ExecutionPolicy Bypass -File start.ps1 -Headless
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File start.ps1 -Headless
 
 # --- Fleet ---
 # Fleet health check (probe our own ports)
@@ -72,6 +72,10 @@ lint:
 format:
     uv run ruff format .
 
+# Format alias (fleet gate name)
+fmt:
+    uv run ruff format .
+
 # Run tests
 test:
     uv run pytest tests/ -v
@@ -102,11 +106,12 @@ build-web:
 
 # Build the Tauri NSIS desktop installer (full pipeline: frontend -> Rust -> NSIS)
 build-native:
-	$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; Set-Location '{{justfile_directory()}}\native'; pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
+	$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; Set-Location '{{justfile_directory()}}\native'; powershell.exe -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
 
 
-# Bootstrap: install dev deps + pre-commit hook
+# Bootstrap: install dev deps + pre-commit hook + webapp deps
 bootstrap:
 	uv sync --group dev
 	uv run pre-commit install
+	cd web_sota; npm ci
 	Write-Host "Pre-commit hooks installed." -ForegroundColor Green

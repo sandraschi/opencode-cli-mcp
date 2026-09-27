@@ -10,18 +10,18 @@ MCP server wrapping [opencode](https://opencode.ai/) CLI into FastMCP tools with
 uv sync
 uv run python -m api.main      # Backend :10951
 cd web_sota && npm run dev     # Frontend :10950
-opencode serve --port 4096     # opencode HTTP API
+opencode serve --port 4097     # opencode HTTP API (dedicated port, NOT 4096)
 ```
 
 ## Ports
 
 - 10950 - Frontend (Vite React)
 - 10951 - Backend (FastAPI REST + MCP HTTP /mcp)
-- 4096 - opencode serve HTTP API
+- 4097 - opencode serve HTTP API (dedicated; the desktop app owns 4096)
 
 ## Architecture
 
-MCP Clients → opencode-cli-mcp (stdio) → opencode serve (:4096) → opencode agent
+MCP Clients → opencode-cli-mcp (stdio) → opencode serve (:4097) → opencode agent
 
 ## Key Files
 
