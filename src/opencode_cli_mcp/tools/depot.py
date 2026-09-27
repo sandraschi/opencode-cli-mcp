@@ -13,6 +13,7 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from opencode_cli_mcp import depot, rag
+from opencode_cli_mcp.errors import error_response
 
 
 def _missing(action: str, param: str) -> dict:
@@ -127,7 +128,7 @@ async def opencode_depot(
     except rag.RAGUnavailableError as e:
         return _wrap(action, False, str(e), {"action": action})
     except Exception as e:  # pragma: no cover - defensive boundary
-        return _wrap(action, False, f"Depot error: {e}", {})
+        return error_response(f"Depot error: {e}", {"action": action}, exc=e)
 
 
 async def _dispatch(

@@ -94,7 +94,8 @@ def rag_deps_available() -> bool:
         import importlib.util as _util
 
         return all(_util.find_spec(m) is not None for m in ("lancedb", "fastembed", "pyarrow"))
-    except ImportError:
+    except ImportError as e:
+        logger.debug("[rag] dependency probe failed: %s", e)
         return False
 
 

@@ -239,7 +239,8 @@ async def _serve_running() -> bool:
 
     try:
         return await get_client()._ping()
-    except Exception:
+    except Exception as e:
+        logger.debug("[backup] serve probe failed: %s", e)
         return False
 
 
@@ -332,7 +333,8 @@ def status() -> dict[str, Any]:
     bdir = backup_dir()
     try:
         free = shutil.disk_usage(bdir).free
-    except OSError:
+    except OSError as e:
+        logger.debug("[backup] disk usage probe failed: %s", e)
         free = 0
     backups = list_backups()
     return {
