@@ -1,6 +1,6 @@
 # opencode-cli-mcp - Full Context
 
-**Version:** 0.2.3
+**Version:** 0.2.10
 **FastMCP:** 3.4.4+
 **Python:** 3.12+
 **License:** MIT
@@ -18,7 +18,7 @@ Bridges [opencode](https://opencode.ai/) (the open source AI coding agent) into 
 ```
 ┌──────────────┐    stdio     ┌──────────────────┐    httpx     ┌──────────────┐
 │  MCP Clients │◄───────────►│  opencode-cli-mcp │◄───────────►│ opencode serve│
-│  (Claude…)   │     MCP      │  (FastMCP 3.2.4) │   :4096     │  (opencode)   │
+│  (Claude…)   │     MCP      │  (FastMCP 3.4.4) │   :4097     │  (opencode)   │
 └──────────────┘              └──────────────────┘              └──────┬───────┘
                                                                        │ subprocess
                                                                   ┌────▼───────┐
@@ -28,7 +28,7 @@ Bridges [opencode](https://opencode.ai/) (the open source AI coding agent) into 
 
 ┌────────────────┐   proxy   ┌──────────────────┐   httpx    ┌──────────────────┐
 │ Vite/React SPA │──────────►│  Unified Backend  │──────────►│  opencode serve  │
-│    :10950      │  /api/*   │  api.main:app     │   :4096   │                  │
+│    :10950      │  /api/*   │  api.main:app     │   :4097   │                  │
 └────────────────┘           │  :10951           │            └──────────────────┘
                              │  REST /api/*      │
                              │  + MCP /mcp       │
@@ -149,9 +149,14 @@ Prompt: `agent_instructions`.
 | GET | /api/settings | Get settings |
 | PUT | /api/settings | Update settings |
 | GET | /api/ollama/status | Ollama/LM Studio availability |
+| GET | /api/llm/discover | LLM liveness probe (alias of /api/ollama/status) |
 | GET | /api/ollama/models | Model lists |
+| GET | /api/llm/models | Model lists (alias of /api/ollama/models) |
 | GET | /api/llm/providers | Detection-driven provider list (+ models) |
+| GET | /api/llm/onboarding | Fresh-install starter facts + recommended provider |
+| GET | /api/skills | Fleet-standard skill listing (OpenCode custom tools) |
 | POST | /api/chat | LLM chat (Ollama / LM Studio / cloud) |
+| POST | /api/llm/chat | LLM chat (alias of /api/chat) |
 | GET | /api/logs | Ring-buffer request logs |
 | GET | /api/logs/export | Export logs |
 | DELETE | /api/logs | Clear logs |
@@ -169,13 +174,13 @@ Run individually:
 ```powershell
 uv run python -m api.main           # Unified backend :10951 (REST + MCP /mcp)
 Set-Location web_sota; npm run dev  # Frontend :10950
-opencode serve --port 4096          # opencode HTTP API (autostarted by proxy if down)
+opencode serve --port 4097          # opencode HTTP API (dedicated port; autostarted by proxy if down)
 ```
 
 ## Build/Test
 
 ```powershell
-uv run pytest              # 125 tests
+uv run pytest              # 158 tests
 just test                  # same
 just check                 # ruff check + format check
 just type-check            # pyright src/ api/
@@ -191,7 +196,7 @@ cd web_sota; npm run biome:ci   # frontend lint
 |------|---------|
 | 10950 | Vite dev server (React) |
 | 10951 | Unified backend (REST `/api/*` + MCP `/mcp`) |
-| 4096 | opencode serve HTTP API |
+| 4097 | opencode serve HTTP API (dedicated; desktop app owns 4096) |
 
 ## Dependencies
 

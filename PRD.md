@@ -9,7 +9,7 @@ Bridge [opencode](https://opencode.ai) (open-source AI coding agent) into the MC
 ## Architecture
 
 ```
-MCP Clients ──stdio──► opencode-cli-mcp ──httpx──► opencode serve (:4096)
+MCP Clients ──stdio──► opencode-cli-mcp ──httpx──► opencode serve (:4097)
 Webapp SPA ──/api──► Unified backend :10951 (REST /api/* + FastMCP /mcp)
 ```
 

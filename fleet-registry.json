@@ -5,7 +5,7 @@
       "args": ["run", "-m", "opencode_cli_mcp.server"],
       "env": {
         "PYTHONUNBUFFERED": "1",
-        "OPENCODE_SERVE_URL": "http://127.0.0.1:4096"
+        "OPENCODE_SERVE_URL": "http://127.0.0.1:4097"
       },
       "capabilities": {
         "tools": { "enabled": true },

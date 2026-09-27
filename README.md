@@ -50,7 +50,7 @@ If you don't have `just` installed:
 - Node.js 18+
 ### Run Everything
 .\start.ps1
-Starts: opencode serve (`:4096`) + unified backend (`:10951`, REST `/api/*` + MCP `/mcp` on one port) + Vite frontend (`:10950`).
+Starts: opencode serve (`:4097`) + unified backend (`:10951`, REST `/api/*` + MCP `/mcp` on one port) + Vite frontend (`:10950`).
 ### MCP Server Only
 uv run -m opencode_cli_mcp.server
 Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/integration-guide.md)).
@@ -142,7 +142,7 @@ Copy `.opencode/tools/*.ts` into your opencode project to give opencode's LLM di
 |------|---------|
 | 10950 | Frontend (Vite) |
 | 10951 | Backend (FastAPI) |
-| 4096 | opencode serve |
+| 4097 | opencode serve (dedicated; desktop app owns 4096) |
 
 ## Security
 

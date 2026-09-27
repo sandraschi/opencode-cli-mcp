@@ -7,4 +7,4 @@ if (-not (Test-Path -LiteralPath $FleetStartPath)) {
 }
 . $FleetStartPath
 
-if (-not (Stop-FleetPortListeners -Ports @(10951, 10950, 4096) -Label "opencode-cli-mcp")) { exit 1 }
+if (-not (Stop-FleetPortListeners -Ports @(10951, 10950, 4097) -Label "opencode-cli-mcp")) { exit 1 }
