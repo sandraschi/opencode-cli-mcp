@@ -49,7 +49,7 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 # CLI/build/test paths may print to stdout/stderr; server modules may not.
-"scripts/*.py" = ["T20"]
+"scripts/*.py" = ["T20", "N806", "N818"]
 "tests/*.py" = ["T20"]
 "mcpb/*.py" = ["T20"]
 # sidebar_client.py is a TSV CLI: stdout is its interface, not logging.
