@@ -109,18 +109,21 @@ async def opencode_runs(
 
 async def opencode_sessions(
     action: Annotated[
-        Literal["list", "get", "messages", "send", "diff", "grep", "export", "rename", "delete"],
+        Literal["list", "get", "messages", "send", "diff", "grep", "export", "share", "unshare", "rename", "delete"],
         Field(
             description=(
                 "list: all sessions. get: one session. messages: transcript."
                 " send: message a session. diff: files changed."
                 " grep: search messages across sessions. export: render session as markdown/html."
+                " share: publish an unlisted share page (offline, revocable)."
+                " unshare: revoke a session's share pages."
                 " rename: set title (serve API, live UI). delete: permanently remove (confirm=True)."
             )
         ),
     ],
     session_id: Annotated[
-        str | None, Field(description="Session ID (required for get/messages/send/diff/export/rename/delete)")
+        str | None,
+        Field(description="Session ID (required for get/messages/send/diff/export/share/unshare/rename/delete)"),
     ] = None,
     message: Annotated[str | None, Field(description="Message text (required for send)")] = None,
     title: Annotated[str | None, Field(description="New title (required for rename)")] = None,
@@ -130,7 +133,7 @@ async def opencode_sessions(
     limit: Annotated[int, Field(description="Page size (list/messages)", ge=1, le=200)] = 50,
     offset: Annotated[int, Field(description="Page offset (list)", ge=0)] = 0,
 ) -> dict:
-    """Inspect and interact with opencode sessions: list, get, transcript, send, diff, grep, export, rename, or delete.
+    """Inspect and interact with opencode sessions: list, get, transcript, send, diff, grep, export, share, unshare, rename, or delete.
 
     ## Return Format
     {"success": bool, "message": str, "data": dict}
@@ -139,6 +142,8 @@ async def opencode_sessions(
     opencode_sessions(action="list", limit=50)
     opencode_sessions(action="messages", session_id="sess_01", limit=100)
     opencode_sessions(action="send", session_id="sess_01", message="continue")
+    opencode_sessions(action="share", session_id="sess_01")
+    opencode_sessions(action="unshare", session_id="sess_01")
     opencode_sessions(action="rename", session_id="sess_01", title="Refactor auth module")
     opencode_sessions(action="delete", session_id="sess_01", confirm=True)
     """
@@ -172,6 +177,29 @@ async def opencode_sessions(
         }
     if not session_id:
         return _missing(action, "session_id")
+    if action == "share":
+        from opencode_cli_mcp import share as sh
+
+        try:
+            data = sh.create_share(session_id)
+        except sh.ShareError as e:
+            return {"success": False, "message": str(e), "data": {}}
+        except Exception as e:
+            return {"success": False, "message": f"Share failed: {e}", "data": {}}
+        return {
+            "success": True,
+            "message": f"Shared '{session_id}' at {data['url_path']} (unlisted - revoke with unshare)",
+            "data": data,
+        }
+    if action == "unshare":
+        from opencode_cli_mcp import share as sh
+
+        removed = sh.unshare_session(session_id)
+        return {
+            "success": True,
+            "message": f"Unshared '{session_id}' ({removed} pages revoked)",
+            "data": {"removed": removed},
+        }
     if action == "get":
         return await opencode_get_session(session_id=session_id)
     if action == "messages":

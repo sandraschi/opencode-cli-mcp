@@ -143,6 +143,51 @@ async def depot_delete(session_id: str, confirm: bool = False):
     return {"success": True, "message": f"Deleted '{session_id}' permanently"}
 
 
+@router.post("/sessions/{session_id}/share")
+async def depot_share(session_id: str):
+    """Publish an unlisted share page for a session (works offline)."""
+    from opencode_cli_mcp import share as sh
+
+    try:
+        data = sh.create_share(session_id)
+    except sh.ShareError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except d.DepotError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"success": True, "message": f"Shared '{session_id}'", "data": data}
+
+
+@router.get("/sessions/{session_id}/share")
+async def depot_share_status(session_id: str):
+    """Newest share page for a session, or null."""
+    from opencode_cli_mcp import share as sh
+
+    data = sh.session_share(session_id)
+    return {"success": True, "message": "Share status", "data": {"share": data}}
+
+
+@router.delete("/sessions/{session_id}/share")
+async def depot_unshare(session_id: str):
+    """Revoke all share pages for a session."""
+    from opencode_cli_mcp import share as sh
+
+    removed = sh.unshare_session(session_id)
+    return {
+        "success": True,
+        "message": f"Unshared '{session_id}' ({removed} pages revoked)",
+        "data": {"removed": removed},
+    }
+
+
+@router.get("/shares")
+async def depot_share_list():
+    """All share pages, newest first."""
+    from opencode_cli_mcp import share as sh
+
+    data = sh.list_shares()
+    return {"success": True, "message": f"{len(data)} share pages", "data": {"shares": data}}
+
+
 # --- LanceDB RAG (semantic search over session transcripts) ---------------
 
 

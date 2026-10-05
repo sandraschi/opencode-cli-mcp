@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from api import logs
 from api.routes.backups import router as backups_router
@@ -124,6 +125,20 @@ app.include_router(settings_router, prefix="/api")
 app.include_router(skills_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
+
+
+# Unlisted share pages (see opencode_cli_mcp.share). Registered before the
+# "/" mount so the token path matches first. Token charset is validated in
+# share_page_path - malformed or unknown tokens 404.
+@app.get("/share/{token}", response_class=HTMLResponse)
+async def share_page(token: str):
+    from opencode_cli_mcp import share as sh
+
+    page = sh.share_page_path(token)
+    if page is None:
+        return HTMLResponse("<h1>Unknown or revoked share link</h1>", status_code=404)
+    return HTMLResponse(page.read_text(encoding="utf-8"))
+
 
 # Unified surface: the FastMCP Streamable HTTP endpoint lives at /mcp on the
 # SAME port as the REST API. One backend process serves both the webapp
