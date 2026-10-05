@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased - 2026-10-05 (share pages: unlisted session publishing)
+
+### Added
+- Unlisted share pages: `opencode_sessions(action="share"|"unshare")`, REST `POST|GET|DELETE /api/depot/sessions/{id}/share` + `GET /depot/shares`, public page `GET /share/{token}` (noindex, token URL, revocable). Works offline (renders from opencode.db, never writes it). History page detail view has Publish/Copy/Unshare with a LAN-visibility warning.
+- `tests/test_share.py` (4 tests: roundtrip incl. HTML escaping, 404 path, token validation, unshare flows)
+
 ## Unreleased - 2026-10-05 (assfix: 78 -> 95 SOTA)
 
 ### Added

@@ -94,7 +94,7 @@ Primary surface (portmanteaus + atomic):
 | Tool | Description |
 |------|-------------|
 | `opencode_runs(action=...)` | start / status / list / cancel agent runs |
-| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export / **rename / delete** sessions (live `opencode serve` API - UI picks changes up immediately) |
+| `opencode_sessions(action=...)` | list / get / messages / send / diff / grep / export / share / unshare / **rename / delete** sessions (live `opencode serve` API - UI picks changes up immediately; share = unlisted HTML page at /share/{token}, offline-capable, revocable) |
 | `opencode_depot(action=...)` | **eternal memory** - list/archive/unarchive/rename/delete/**search**/stats/**rag**/rag_index/rag_status/**code**/code_index/code_status over the opencode SQLite DB. search = wayback full-text (FTS5) across EVERY session since install; rag = semantic recall over indexed transcripts; code = when an agent touched a file (patch paths + edit inputs, by path or content) - all over LanceDB + fastembed (`uv sync --extra rag`), works offline. |
 | `opencode_backups(action=...)` | **protect the memory** - db + config snapshots (SQLite online backup API, consistent while serve runs), rotation (10/kind), disk-space guard, guarded restore (refuses while serve runs unless force=True) |
 | `opencode_system(action=...)` | status / providers / project / launch_ui / mcp_pulse / config_drift |
@@ -111,6 +111,7 @@ FTS5-indexed). No other agentic IDE has this - you cannot ask Claude/Cursor
 1. `opencode_depot(action="search", query="<topic>")` - wayback find: full-text across ALL transcripts
 2. `opencode_depot(action="rag", query="<describe it in your own words>")` - semantic recall (index once with rag_index)
 3. `opencode_sessions(action="get"|"messages"|"export", session_id=...)` - read/render it
+3b. `opencode_sessions(action="share", session_id=...)` - publish an unlisted share page (`/share/{token}`, revocable via `unshare`) - the Show HN payload
 4. `opencode_depot(action="get"...)` - metadata (dates, cost, files)
 5. `opencode_backups(action="create", kind="all")` - protect it (autobackup 24h, rotation, disk guard)
 
