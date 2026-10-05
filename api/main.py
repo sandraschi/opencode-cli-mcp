@@ -93,6 +93,12 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request, call_next):
     """Capture API traffic into the ring buffer for the Logs page."""
+    # Health probes are excluded: the webapp heartbeats /api/health every
+    # 30s per tab and the fleet engine polls /api/v1/health - logging them
+    # drowned the Logs page in noise and pushed real entries out of the
+    # 2000-entry ring (seen 2026-10-05: 50/50 tail entries were health).
+    if request.url.path in ("/api/health", "/api/v1/health"):
+        return await call_next(request)
     start = time.monotonic()
     try:
         response = await call_next(request)

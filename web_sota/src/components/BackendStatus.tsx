@@ -24,7 +24,12 @@ export function BackendStatus() {
 
   useEffect(() => {
     refresh();
-    const delays = [1000, 2000, 4000, 8000, 16000];
+    const retryDelays = [1000, 2000, 4000, 8000, 16000];
+    // Steady-state heartbeat while healthy: 30s. The old code reused the
+    // 1s retry delay after success, hammering /api/health (~1 req/s per
+    // tab, x2 under StrictMode) and flooding the Vite/uvicorn consoles
+    // plus the backend ring buffer (seen 2026-10-05).
+    const steadyDelay = 30000;
     let idx = 0;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -32,13 +37,14 @@ export function BackendStatus() {
       if (ok) {
         setState("online");
         idx = 0;
+        timer = setTimeout(poll, steadyDelay);
       } else {
         setState((prev) => (prev === "online" || prev === "offline" ? "offline" : "connecting"));
-        idx = Math.min(idx + 1, delays.length - 1);
+        idx = Math.min(idx + 1, retryDelays.length - 1);
+        timer = setTimeout(poll, retryDelays[idx]);
       }
-      timer = setTimeout(poll, delays[idx]);
     };
-    timer = setTimeout(poll, delays[0]);
+    timer = setTimeout(poll, retryDelays[0]);
     let unlisten: (() => void) | undefined;
     (async () => {
       try {
