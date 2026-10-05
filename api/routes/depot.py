@@ -30,7 +30,12 @@ async def depot_list(
     timeframe_days: int | None = None,
 ):
     try:
-        data = d.list_sessions(
+        # Sync sqlite over an 11 GB opencode.db blocks the event loop for
+        # 20s+ (seen 2026-10-05: /health took 16.8s mid-scan, frontend went
+        # permanently "Offline"). Every depot call runs in a worker thread -
+        # _connect() opens a fresh connection per call, so this is safe.
+        data = await asyncio.to_thread(
+            d.list_sessions,
             status=status,
             project=project,
             agent=agent,
@@ -48,7 +53,7 @@ async def depot_list(
 @router.get("/sessions/{session_id}")
 async def depot_get(session_id: str):
     try:
-        session = d.get_session(session_id)
+        session = await asyncio.to_thread(d.get_session, session_id)
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     if session is None:
@@ -60,7 +65,7 @@ async def depot_get(session_id: str):
 async def depot_transcript(session_id: str, limit: int = 200):
     """Session text parts with roles/timestamps, read offline from opencode.db."""
     try:
-        transcript = d.get_session_transcript(session_id, limit=min(max(limit, 1), 1000))
+        transcript = await asyncio.to_thread(d.get_session_transcript, session_id, limit=min(max(limit, 1), 1000))
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"success": True, "message": f"{len(transcript)} text parts", "data": {"transcript": transcript}}
@@ -69,7 +74,9 @@ async def depot_transcript(session_id: str, limit: int = 200):
 @router.get("/search")
 async def depot_search(q: str, limit: int = 20, include_archived: bool = True):
     try:
-        data = d.search_transcripts(q, limit=min(max(limit, 1), 100), include_archived=include_archived)
+        data = await asyncio.to_thread(
+            d.search_transcripts, q, limit=min(max(limit, 1), 100), include_archived=include_archived
+        )
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"success": True, "message": f"{data['count']} transcript matches", "data": data}
@@ -78,7 +85,7 @@ async def depot_search(q: str, limit: int = 20, include_archived: bool = True):
 @router.get("/stats")
 async def depot_stats():
     try:
-        data = d.depot_stats()
+        data = await asyncio.to_thread(d.depot_stats)
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"success": True, "message": "Depot stats", "data": data}
@@ -88,7 +95,7 @@ async def depot_stats():
 async def depot_usage(days: int = 30):
     """Daily token/cost series from assistant messages (drives the Usage page)."""
     try:
-        data = d.usage_series(days=min(max(days, 1), 365))
+        data = await asyncio.to_thread(d.usage_series, days=min(max(days, 1), 365))
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"success": True, "message": "Usage series", "data": data}
@@ -97,7 +104,7 @@ async def depot_usage(days: int = 30):
 @router.post("/sessions/{session_id}/archive")
 async def depot_archive(session_id: str):
     try:
-        ok = d.archive_session(session_id)
+        ok = await asyncio.to_thread(d.archive_session, session_id)
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     if not ok:
@@ -108,7 +115,7 @@ async def depot_archive(session_id: str):
 @router.post("/sessions/{session_id}/unarchive")
 async def depot_unarchive(session_id: str):
     try:
-        ok = d.unarchive_session(session_id)
+        ok = await asyncio.to_thread(d.unarchive_session, session_id)
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     if not ok:
@@ -122,7 +129,7 @@ async def depot_rename(session_id: str, body: dict):
     if not title:
         raise HTTPException(status_code=422, detail="title required")
     try:
-        ok = d.rename_session(session_id, title)
+        ok = await asyncio.to_thread(d.rename_session, session_id, title)
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     if not ok:
@@ -135,7 +142,7 @@ async def depot_delete(session_id: str, confirm: bool = False):
     if not confirm:
         raise HTTPException(status_code=422, detail="confirm=true required - deletion is permanent (FK cascade)")
     try:
-        ok = d.delete_session(session_id)
+        ok = await asyncio.to_thread(d.delete_session, session_id)
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     if not ok:
