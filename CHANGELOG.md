@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased - 2026-10-05 (fix: frontend finds backend on any hostname)
+
+### Fixed
+- `lib/api.ts` no longer hardcodes `http://127.0.0.1:10951`: same-origin (vite proxy) in every browser context, absolute only inside Tauri. Frontend on `http://goliath:10950` (or any LAN name) can reach the backend again - the old constant died on CORS for every non-localhost hostname.
+
 ## Unreleased - 2026-10-05 (share pages: unlisted session publishing)
 
 ### Added
