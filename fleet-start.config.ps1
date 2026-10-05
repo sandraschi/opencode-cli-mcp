@@ -16,6 +16,11 @@
         UvicornTarget = 'api.main:app'
         Env           = @{
             WEB_PORT = '10951'
+            # Full shim path: scoop shims are NOT on PATH in service shells,
+            # so shutil.which("opencode") resolves None and autostart silently
+            # fails (seen 2026-10-05: no listener on 4097, /opencode/status
+            # unreachable). _resolve_binary() honors OPENCODE_BINARY first.
+            OPENCODE_BINARY = 'C:\Users\sandr\scoop\shims\opencode.exe'
             # Dedicated opencode serve port (4097), NOT 4096: the official
             # OpenCode desktop app spawns a password-protected serve on 4096
             # (OPENCODE_SERVER_PASSWORD) that this backend cannot authenticate
