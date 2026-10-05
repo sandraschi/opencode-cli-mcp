@@ -193,7 +193,7 @@ export default function Logging() {
         <button
           type="button"
           data-testid="logging-tail-toggle"
-          className={`h-8 rounded px-3 text-xs font-medium ${tail ? "bg-emerald-600 text-white" : "border border-slate-700 text-slate-400 hover:bg-slate-800"}`}
+          className={`h-8 rounded px-3 text-xs font-medium ${tail ? "bg-emerald-600 text-white" : "border border-slate-700 text-slate-300 hover:bg-slate-800"}`}
           onClick={() => setTail(!tail)}
         >
           {tail ? "LIVE" : "Tail"}
@@ -201,14 +201,14 @@ export default function Logging() {
 
         <button
           type="button"
-          className="h-8 rounded border border-slate-700 px-3 text-xs text-slate-400 hover:bg-slate-800"
+          className="h-8 rounded border border-slate-700 px-3 text-xs text-slate-300 hover:bg-slate-800"
           onClick={() => handleExport("json")}
         >
           JSON
         </button>
         <button
           type="button"
-          className="h-8 rounded border border-slate-700 px-3 text-xs text-slate-400 hover:bg-slate-800"
+          className="h-8 rounded border border-slate-700 px-3 text-xs text-slate-300 hover:bg-slate-800"
           onClick={() => handleExport("csv")}
         >
           CSV
@@ -222,7 +222,7 @@ export default function Logging() {
           Clear
         </button>
 
-        <span className="text-xs text-slate-500 ml-auto">{total} entries</span>
+        <span className="text-xs text-slate-400 ml-auto">{total} entries</span>
       </div>
 
       <div
@@ -230,10 +230,10 @@ export default function Logging() {
         onScroll={handleScroll}
         className="h-[65vh] overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-xs leading-relaxed"
       >
-        {entries.length === 0 && !loading && <div className="text-slate-600 text-center py-12">No log entries</div>}
+        {entries.length === 0 && !loading && <div className="text-slate-500 text-center py-12">No log entries</div>}
         {entries.map((e) => (
           <div key={e.id} className="flex gap-3 py-0.5 hover:bg-slate-900/50 rounded px-1">
-            <span className="text-slate-600 w-20 shrink-0">
+            <span className="text-slate-500 w-20 shrink-0">
               {e.timestamp.split(".")[0].split("T")[1] || e.timestamp}
             </span>
             <span
@@ -241,14 +241,14 @@ export default function Logging() {
             >
               {e.level}
             </span>
-            {e.kind && <span className="text-slate-500 w-16 shrink-0">[{e.kind}]</span>}
+            {e.kind && <span className="text-slate-400 w-16 shrink-0">[{e.kind}]</span>}
             <span className="text-slate-300 break-all">{e.detail}</span>
           </div>
         ))}
         <div ref={endRef} />
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-slate-400">
         <button
           type="button"
           className="px-3 py-1 rounded border border-slate-700 hover:bg-slate-800 disabled:opacity-30"
@@ -285,11 +285,11 @@ export default function Logging() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-slate-200 mb-2">Clear all logs?</h3>
-              <p className="text-sm text-slate-400 mb-4">This cannot be undone. The ring buffer will be emptied.</p>
+              <p className="text-sm text-slate-300 mb-4">This cannot be undone. The ring buffer will be emptied.</p>
               <div className="flex gap-3 justify-end">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded border border-slate-700 text-slate-400 text-sm hover:bg-slate-800"
+                  className="px-4 py-2 rounded border border-slate-700 text-slate-300 text-sm hover:bg-slate-800"
                   onClick={() => setShowClear(false)}
                 >
                   Cancel

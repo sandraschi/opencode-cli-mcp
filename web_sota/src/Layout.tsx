@@ -34,7 +34,7 @@ import { BackendStatus } from "./components/BackendStatus";
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/sessions", label: "Sessions", icon: ListTree },
-  { path: "/depot", label: "Depot", icon: Archive },
+  { path: "/depot", label: "History", icon: Archive },
   { path: "/backups", label: "Backups", icon: HardDriveDownload },
   { path: "/usage", label: "Usage", icon: BarChart3 },
   { path: "/projects", label: "Projects", icon: FolderKanban },

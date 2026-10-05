@@ -4,7 +4,7 @@ import 'scripts/just/fleet.just'
 
 NAME := "opencode-cli-mcp"
 DESC := "MCP server wrapping opencode CLI"
-VER := "0.2.3"
+VER := "0.2.10"
 
 # Dedicated opencode serve port for this server (NOT 4096 - the official
 # OpenCode desktop app owns 4096 with a per-session password). Exported so

@@ -79,6 +79,7 @@ export function OpenCodeTools() {
       </div>
 
       <motion.section
+        data-testid="opencode-tools-install"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-surface-light border border-surface-border rounded-xl p-5 mb-6"
@@ -122,7 +123,7 @@ export function OpenCodeTools() {
         </a>
       </motion.section>
 
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="opencode-tools-list">
         <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
           <Layers className="w-4 h-4" />
           Available Tools ({tools.length})

@@ -269,10 +269,10 @@ export function Depot() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Database className="w-6 h-6 text-accent" />
-            Session Depot
+            History
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {total} sessions in the opencode depot (offline SQLite) · archive, search, rename, delete
+            {total} sessions in the offline SQLite depot · archive, search, rename, delete
           </p>
         </div>
         <button
