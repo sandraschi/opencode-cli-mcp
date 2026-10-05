@@ -91,7 +91,7 @@ opencode_backups(action="create", kind="all")                # protect it (autob
 ```
 
 Full walkthrough: **[docs/ETERNAL_MEMORY.md](docs/ETERNAL_MEMORY.md)** (also on
-the webapp **Help** page and Depot page).
+the webapp **Help** page and History page).
 
 ## Key Workflows
 

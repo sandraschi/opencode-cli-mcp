@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased - 2026-10-05 (assfix: 78 -> 95 SOTA)
+
+### Added
+- Chat page is skill-first: loads GET /api/skills on mount, grounds the persona prompt with the live custom-tool inventory
+- Settings GPU opportunity prompt (data-testid="gpu-opportunity"): shows when a real GPU is detected but no local LLM is running
+- OpenCodeTools page testids (install section + tools list)
+
+### Fixed
+- Sidebar Depot entry renamed History (route /depot and depot namespaces unchanged)
+- Logging page contrast: buttons, counts, timestamps bumped to readable slate tones
+- justfile VER 0.2.3 -> 0.2.10 (was stale vs pyproject)
+
+### Deferred (known gaps, not this run)
+- No literal Inbox page (Sessions/History cover the function)
+- No native/hooks.nsh NSIS hooks (revisit with a Tauri build pass)
+
 ## Unreleased - 2026-09-27 (assfix: canonical API paths, serve-port unification)
 
 ### Added

@@ -105,7 +105,7 @@ Autobackup runs on backend start and every 24h (configurable) with rotation
 | The memory | `~/.local/share/opencode/opencode.db` |
 | The config | `~/.config/opencode/` |
 | Backups | `~/.local/share/opencode-cli-mcp/backups/` |
-| Webapp pages | Sessions (`/sessions`) · Depot (`/depot`) · Backups (`/backups`) |
+| Webapp pages | Sessions (`/sessions`) · History (`/depot`) · Backups (`/backups`) |
 
 ## The workflow that makes it magic
 
