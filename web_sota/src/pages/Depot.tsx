@@ -18,6 +18,7 @@ import {
   Sparkles,
   Wand2,
   FileCode2,
+  Share2,
 } from "lucide-react";
 import {
   api,
@@ -61,6 +62,9 @@ export function Depot() {
   const [renameValue, setRenameValue] = useState("");
   const [transcript, setTranscript] = useState<DepotTranscriptEntry[]>([]);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
+  // Unlisted share page for the selected session (see opencode_cli_mcp.share).
+  const [shareLink, setShareLink] = useState<{ token: string; url_path: string; title: string } | null>(null);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   const load = useCallback(
     async (nextOffset = 0) => {
@@ -193,11 +197,19 @@ export function Depot() {
     setSelectedId(id);
     setDetail(null);
     setTranscript([]);
+    setShareLink(null);
+    setCopiedShare(false);
     try {
       const d = await api.depotGet(id);
       setDetail(d.data.session);
     } catch {
       setDetail(null);
+    }
+    try {
+      const s = await api.depotShareStatus(id);
+      setShareLink(s.data.share);
+    } catch {
+      setShareLink(null);
     }
     setTranscriptLoading(true);
     try {
@@ -243,6 +255,44 @@ export function Depot() {
       return;
     }
     doAction(s.id, () => api.depotDelete(s.id));
+  };
+
+  const doShare = async (id: string) => {
+    setBusyId(id);
+    setError("");
+    try {
+      const d = await api.depotShare(id);
+      setShareLink({ token: d.data.token, url_path: d.data.url_path, title: d.data.title });
+    } catch (e) {
+      setError(`Share failed: ${e instanceof Error ? e.message : "unknown"}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const doUnshare = async (id: string) => {
+    setBusyId(id);
+    setError("");
+    try {
+      await api.depotUnshare(id);
+      setShareLink(null);
+      setCopiedShare(false);
+    } catch (e) {
+      setError(`Unshare failed: ${e instanceof Error ? e.message : "unknown"}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${shareLink.url_path}`);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2000);
+    } catch {
+      /* clipboard unavailable */
+    }
   };
 
   const fmtTokens = (n?: number | null) => {
@@ -789,6 +839,47 @@ export function Depot() {
                       <span className="text-zinc-600 block">Slug</span>
                       {detail.slug || "-"}
                     </div>
+                  </div>
+                  <div className="mt-3" data-testid="depot-share-box">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-xs text-zinc-600 uppercase tracking-wider">Share</span>
+                      <span className="text-[10px] text-zinc-700">
+                        unlisted link - anyone on your network with it can read this session
+                      </span>
+                    </div>
+                    {shareLink ? (
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 min-w-0 truncate bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1.5 text-xs text-accent font-mono">
+                          {`${window.location.origin}${shareLink.url_path}`}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={copyShareLink}
+                          data-testid="depot-share-copy"
+                          className="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                        >
+                          {copiedShare ? "Copied" : "Copy"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => selectedId && doUnshare(selectedId)}
+                          data-testid="depot-share-unshare"
+                          className="px-3 py-1.5 text-xs border border-red-800 text-red-400 hover:bg-red-950/30 rounded-lg transition-colors"
+                        >
+                          Unshare
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => selectedId && doShare(selectedId)}
+                        data-testid="depot-share-button"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        Publish unlisted share page
+                      </button>
+                    )}
                   </div>
                   <div className="mt-3" data-testid="depot-transcript">
                     <div className="flex items-center justify-between mb-1.5">

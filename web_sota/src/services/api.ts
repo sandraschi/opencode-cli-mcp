@@ -465,6 +465,23 @@ export const api = {
     fetchJson<{ success: boolean; message: string }>(`/depot/sessions/${encodeURIComponent(id)}?confirm=true`, {
       method: "DELETE",
     }),
+  depotShare: (id: string) =>
+    fetchJson<{
+      success: boolean;
+      message: string;
+      data: { token: string; url_path: string; title: string; messages: number };
+    }>(`/depot/sessions/${encodeURIComponent(id)}/share`, { method: "POST" }),
+  depotShareStatus: (id: string) =>
+    fetchJson<{
+      success: boolean;
+      message: string;
+      data: { share: { token: string; url_path: string; title: string } | null };
+    }>(`/depot/sessions/${encodeURIComponent(id)}/share`),
+  depotUnshare: (id: string) =>
+    fetchJson<{ success: boolean; message: string; data: { removed: number } }>(
+      `/depot/sessions/${encodeURIComponent(id)}/share`,
+      { method: "DELETE" },
+    ),
 
   startRun: (body: { prompt: string; project?: string; format?: string; wait?: boolean; timeout?: number }) =>
     fetchJson<{ success: boolean; message: string; data: { job_id: string; status: string } }>("/runs", {
