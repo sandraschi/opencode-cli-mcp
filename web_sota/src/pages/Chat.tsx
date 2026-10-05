@@ -100,6 +100,10 @@ export function Chat() {
   const [backendProvider, setBackendProvider] = useState<string | null>(null);
   const [settings, setSettings] = useState<SettingsData>({});
   const [refined, setRefined] = useState<string | null>(null);
+  // Skill-first (fleet standard): base prompt context loaded from GET
+  // /api/skills (the live opencode custom-tool inventory). Prepended to the
+  // persona system prompt on send; empty when the backend is unreachable.
+  const [skillContext, setSkillContext] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   // Shared selection from the Zustand store (Settings owns detection; this
   // keeps the header label consistent with Settings without re-fetching).
@@ -131,6 +135,21 @@ export function Chat() {
 
   useEffect(() => {
     refreshStatus();
+    // Skill-first: load the live skill inventory once; failures leave the
+    // context empty (chat still works, just without skill grounding).
+    fetch(`${API_BASE}/api/skills`)
+      .then((r) => r.json())
+      .then((d) => {
+        const skills = d?.data?.skills;
+        if (Array.isArray(skills) && skills.length > 0) {
+          const names = skills
+            .slice(0, 20)
+            .map((s) => `- ${s.name}: ${s.description || s.label || ""}`.trim())
+            .join("\n");
+          setSkillContext(`Available workspace skills (opencode custom tools):\n${names}`);
+        }
+      })
+      .catch(() => {});
   }, [refreshStatus]);
 
   useEffect(() => {
@@ -185,13 +204,16 @@ export function Chat() {
     const assistantMsg: Message = { role: "assistant", content: "", timestamp: Date.now() };
     setMessages((prev) => [...prev, assistantMsg]);
 
+    // Skill-first: persona prompt grounded with the live skill inventory.
+    const personaSystem = currentPersona?.system || "";
+    const system = skillContext ? `${personaSystem}\n\n${skillContext}` : personaSystem;
     try {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: finalInput,
-          system: currentPersona?.system || "",
+          system,
           // Settings selection is authoritative: the provider/model picked
           // in Settings (shared Zustand store) drives this request.
           provider,

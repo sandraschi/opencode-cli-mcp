@@ -51,6 +51,10 @@ export function Settings() {
   const [llmProviders, setLlmProviders] = useState<LlmProvider[]>([]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  // GPU opportunity prompt (fleet P3i): backend /system reports the GPU
+  // name ("unknown" when undetectable). Shown only once provider probing
+  // has settled with nothing found.
+  const [gpuName, setGpuName] = useState<string | null>(null);
   const setStoreLlmProvider = useStore((s) => s.setLlmProvider);
   const setStoreLlmModel = useStore((s) => s.setLlmModel);
 
@@ -167,6 +171,13 @@ export function Settings() {
         setOriginalSettings(merged);
       })
       .catch(() => {});
+    api
+      .getSystemInfo()
+      .then((d) => {
+        const g = d?.data?.gpu;
+        if (typeof g === "string" && g && g !== "unknown") setGpuName(g);
+      })
+      .catch(() => {});
     probeProviders();
   }, [probeProviders]);
 
@@ -206,6 +217,8 @@ export function Settings() {
   };
 
   const anyDetected = providerStatus.some((p) => p.status === "detected");
+  const probingSettled = providerStatus.length > 0 && providerStatus.every((p) => p.status !== "probing");
+  const showGpuPrompt = probingSettled && !anyDetected && gpuName !== null;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -396,6 +409,23 @@ export function Settings() {
               </a>{" "}
               or vLLM to run local models.
             </p>
+          )}
+          {showGpuPrompt && (
+            <div
+              data-testid="gpu-opportunity"
+              className="mt-3 p-3 bg-amber-950/30 border border-amber-800 rounded-lg text-xs text-amber-200"
+            >
+              GPU detected ({gpuName}) but no local LLM is running. Install{" "}
+              <a
+                href="https://ollama.com"
+                className="text-accent hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Ollama
+              </a>{" "}
+              to put it to work.
+            </div>
           )}
         </motion.section>
 
