@@ -74,6 +74,11 @@ export function Dashboard() {
   const [fleetCount, setFleetCount] = useState(0);
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
   const [depotStats, setDepotStats] = useState<DepotStats | null>(null);
+  // Depot scan is lazy (see below) - its own loading/error state so a slow
+  // 11 GB opencode.db never blocks or error-latches the rest of the page.
+  const [depotLoading, setDepotLoading] = useState(true);
+  const [depotError, setDepotError] = useState<string | null>(null);
+  const [depotKey, setDepotKey] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const mounted = useRef(true);
@@ -101,14 +106,36 @@ export function Dashboard() {
       .getSystemInfo()
       .then((r) => mounted.current && setSysInfo(r.data))
       .catch(fail("System info"));
-    api
-      .depotStats()
-      .then((r) => mounted.current && setDepotStats(r.data))
-      .catch(fail("Depot stats"));
     return () => {
       mounted.current = false;
     };
   }, [setOpencodeStatus, setCapabilities, reloadKey]);
+
+  // Lazy depot scan: aggregating stats over opencode.db (currently ~11 GB,
+  // thousands of sessions) takes ~20-30s. It runs in its own effect so the
+  // server/fleet/system cards render immediately, with an explanatory
+  // placeholder on the DB cards meanwhile - and a failure here shows an
+  // inline retry instead of the page-wide amber "backend unreachable".
+  // biome-ignore lint/correctness/useExhaustiveDependencies: depotKey intentionally re-triggers the scan on Retry
+  useEffect(() => {
+    let live = true;
+    setDepotLoading(true);
+    setDepotError(null);
+    api
+      .depotStats()
+      .then((r) => {
+        if (live) setDepotStats(r.data);
+      })
+      .catch(() => {
+        if (live) setDepotError("Depot scan failed - opencode.db may still be busy, retry below");
+      })
+      .finally(() => {
+        if (live) setDepotLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [depotKey]);
 
   const serverOk = opencodeStatus?.health?.status === "ok" || opencodeStatus?.health?.status === "running";
 
@@ -192,26 +219,43 @@ export function Dashboard() {
         <StatCard
           icon={Database}
           label="Eternal Memory DB"
-          value={depotStats ? fmtBytes(depotStats.db.size_bytes) : "?"}
+          value={depotStats ? fmtBytes(depotStats.db.size_bytes) : depotLoading ? "…" : "?"}
           sub={
             depotStats
               ? `${fmtCount(depotStats.totals.total)} sessions · ${fmtCount(depotStats.db.messages)} msgs · ${fmtCount(depotStats.db.parts)} parts`
-              : "read from opencode.db"
+              : depotLoading
+                ? "first scan reads the full opencode.db (~11 GB, ~20-30s) - page above loads first"
+                : "read from opencode.db"
           }
           delay={0.32}
         />
         <StatCard
           icon={Coins}
           label="Lifetime Cost"
-          value={depotStats ? `$${depotStats.totals.estimated_cost.toFixed(2)} est` : "?"}
+          value={depotStats ? `$${depotStats.totals.estimated_cost.toFixed(2)} est` : depotLoading ? "…" : "?"}
           sub={
             depotStats
               ? `stored $${depotStats.totals.total_cost.toFixed(2)} · restated at base rates`
-              : "opencode.db cost accounting"
+              : depotLoading
+                ? "arrives with the depot scan (see DB card)"
+                : "opencode.db cost accounting"
           }
           delay={0.36}
         />
       </div>
+
+      {depotError && !depotStats && (
+        <div className="mt-4 px-5 py-3 rounded-xl bg-zinc-800/60 border border-zinc-700 text-zinc-300 text-sm flex items-center justify-between gap-4">
+          <span>{depotError}</span>
+          <button
+            type="button"
+            onClick={() => setDepotKey((k) => k + 1)}
+            className="px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 font-medium transition-colors flex-shrink-0"
+          >
+            Retry scan
+          </button>
+        </div>
+      )}
 
       {depotStats?.db.part_types && (
         <div className="mt-4 text-xs text-zinc-600" data-testid="dashboard-db-types">
