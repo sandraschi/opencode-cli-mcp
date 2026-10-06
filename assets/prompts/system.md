@@ -111,8 +111,10 @@ Actions:
 - **delete** - permanently delete a session from the database (foreign-key
   cascade removes its messages, files, and parts). Requires `session_id`
   and `confirm=true`. DESTRUCTIVE and irreversible.
-- **search** - full-text search across all depot transcripts. Requires
-  `query`; optional `limit`. Uses SQLite FTS5 with BM25 ranking.
+- **search** - keyword search across all depot transcripts. Requires
+  `query`; optional `limit`. Uses SQLite LIKE over message JSON (no FTS
+  index, deliberately), newest first. For meaning-based recall, index
+  first and use `rag`.
 - **stats** - depot statistics: total sessions, archived count, storage
   footprint, and per-project breakdown.
 
@@ -375,9 +377,9 @@ are bounded; a growing result set always paginates.
   load without improving latency.
 - Batch independent runs into one multi-agent sweep (fire-and-forget)
   instead of launching them sequentially.
-- `opencode_depot(action="search")` uses SQLite FTS5 BM25 - phrase
-  queries in natural language; results are ranked by relevance, not
-  recency.
+- `opencode_depot(action="search")` uses SQLite LIKE over message JSON -
+  phrase queries in natural language; results are newest-first, not ranked.
+  For ranked recall, index once and use `rag` (semantic, LanceDB).
 - Keep prompts scoped. A focused prompt completes faster, produces a
   smaller diff, and is easier to review than a broad mandate.
 - Export sessions as markdown for records; reserve HTML export for

@@ -22,7 +22,7 @@ With opencode-cli-mcp you can **ask that memory anything**:
 | Other IDEs | opencode |
 |------------|----------|
 | Sessions are throwaway UI state | Sessions are a **database** (SQLite, `session` / `message` / `part` tables) |
-| History truncates / paginates away | Full transcripts persist, FTS-indexed for search |
+| History truncates / paginates away | Full transcripts persist, keyword-searchable (SQLite LIKE over message JSON) |
 | No API to query past work | Local HTTP API (`opencode serve`) + direct DB access |
 | Nothing you can do when it borks | Backups + restore (this app's `opencode_backups` tool) |
 
@@ -34,7 +34,8 @@ With opencode-cli-mcp you can **ask that memory anything**:
 opencode_depot(action="search", query="santiclaus")
 ```
 
-Searches **all transcripts and titles** (SQLite FTS5) and returns matching
+Searches **all transcripts and titles** (SQLite LIKE over message text,
+newest first - no FTS index, deliberately) and returns matching
 sessions with snippets and timestamps. The live counterpart over the API:
 
 ```

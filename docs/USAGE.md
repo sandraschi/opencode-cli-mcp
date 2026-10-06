@@ -2,7 +2,7 @@
 
 ## Quick Reference
 
-### Primary MCP Tools (6 portmanteaus)
+### Primary MCP Tools (7 portmanteaus)
 
 | Tool | Purpose |
 |------|---------|
