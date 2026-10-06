@@ -38,7 +38,7 @@ is active.
 ## Data & safety
 
 - All reads/writes go through `opencode_cli_mcp.depot` (narrow update path,
-  `PRAGMA foreign_keys = ON`, busy timeout). No ad-hoc SQL against the 9GB depot.
+  `PRAGMA foreign_keys = ON`, busy timeout). No ad-hoc SQL against the 11GB depot.
 - Mutations are covered by the `opencode_backups` rotation; there is no in-band
   undo because restore is the supported path.
 - `sidecar.ini` (stars/ratings/comments) and scratch TSVs live outside the repo

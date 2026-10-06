@@ -12,7 +12,7 @@ Help page auto-lists every `docs/*.md`, so stale docs pollute it).
 
 - Live session rename/delete via the serve API (opencode's own UI only offers
   Open/Archive), offline depot variants, webapp buttons.
-- Eternal Session Memory: FTS5 wayback find, semantic RAG, code index
+- Eternal Session Memory: LIKE-based wayback find, semantic RAG, code index
   (patch paths + edit tool inputs), backups (db + config, rotation, disk
   guard, autobackup 24h), `docs/ETERNAL_MEMORY.md`.
 - RAG delete-then-add fix (re-index no longer duplicates chunks).
@@ -36,13 +36,13 @@ Help page auto-lists every `docs/*.md`, so stale docs pollute it).
    its text chunks too (delete-then-add). Split watermarks per table.
 5. **Code result UX**: pagination, dedupe by session, "open transcript"
    linking; per-path aggregation ("all sessions that touched X").
-6. **Part-type stats tool**: report tool/reasoning/patch volume per session
-   to inform filter tuning (current text-only filter keeps ~9% of parts).
+6. **Part-type stats tool** (done 2026-10-06): `depot_stats` returns
+   `part_types` (top 8 by volume) and the Dashboard shows the part mix.
 
 ### Backups
 
-7. **Backup size reality**: the depot is 5.6 GB; a full SQLite online-backup
-   snapshot takes minutes. Add a size warning, run in background with
+7. **Backup size reality**: the depot is ~11 GB (5.6 GB in Aug 2026, still
+   growing); a full SQLite online-backup snapshot takes minutes. Add a size warning, run in background with
    progress, and evaluate throttled `VACUUM INTO` or schedule-based backups.
 8. **Settings UI for backup knobs** (interval, retention, min free) instead
    of env-only; restore dry-run preview.
@@ -55,26 +55,31 @@ Help page auto-lists every `docs/*.md`, so stale docs pollute it).
     event loop wedged (health polls timed out) until the process was killed.
     Move heavy index passes to a subprocess (or throttle + watchdog) so the
     API stays responsive; resume/checkpoint the walk so a killed pass can
-    continue instead of restarting.
+    continue instead of restarting. (Partly addressed 2026-10-05/06: all
+    depot sqlite now runs in worker threads and RAG index passes already run
+    via `asyncio.to_thread` - a full rebuild can still saturate disk/CPU, so
+    subprocess isolation + resume remain open.)
 
 ### opencode upstream gaps we compensate for
 
-10. opencode UI: no session rename/delete, no unarchive, no backup. Track
+11. opencode UI: no session rename/delete, no unarchive, no backup. Track
     upstream (sst/opencode) - if they land these, our depot/backups stay as
     the offline/fleet layer.
 
 ### Webapp
 
-11. Sessions page detail is raw JSON - add a readable transcript viewer with
-    inline search + export button.
-12. Playwright e2e for the Backups page and the Depot code tab.
-13. Verify new pages inside the Tauri/NSIS build (embedded backend).
+12. **Sessions transcript viewer** (done 0.2.8): readable Overview /
+    Transcript / Diff tabs with inline search + markdown export replaced the
+    raw JSON dump.
+13. Playwright e2e for the Backups page and the Depot code tab.
+14. Verify new pages inside the Tauri/NSIS build (embedded backend).
 
 ### Fleet integration
 
-14. Depot stats alert: 5.6 GB DB and growing - surface size/watermark
-    warnings on the Dashboard and in `opencode_system(status)`.
-15. advanced-memory interop: push "what did we work on" digests from the
+15. Depot stats alert: ~11 GB DB and growing - size is surfaced on the
+    Dashboard DB card since 2026-10-06; watermark/index-staleness warnings
+    still open.
+16. advanced-memory interop: push "what did we work on" digests from the
     depot into advanced-memory-mcp notes automatically.
 
 ---

@@ -1,44 +1,49 @@
 # Advanced Usage
 
+> All examples use the portmanteau tools (`opencode_runs`, `opencode_sessions`,
+> `opencode_system`). The legacy atomic aliases (`opencode_run_agent`,
+> `opencode_get_run_status`, …) are deprecated and will be removed in 0.3.0.
+
 ## Async Agent Workflows
 
 ### Pattern 1: Launch → Poll → Review
 
 ```python
 # Step 1: Launch agent in background
-result = await opencode_run_agent(
+result = await opencode_runs(
+    action="start",
     prompt="Add error handling to all API routes in src/api/",
     wait=False,
 )
 job_id = result["data"]["job_id"]
 # → { success: true, data: { job_id: "abc123", status: "running" } }
 
-# Step 2: Poll until done
+# Step 2: Poll until done (5-10s cadence - tighter polling adds load only)
 import asyncio
 
 while True:
-    status = await opencode_get_run_status(job_id)
+    status = await opencode_runs(action="status", job_id=job_id)
     if status["data"]["status"] in ("completed", "failed"):
         break
-    await asyncio.sleep(2)
+    await asyncio.sleep(5)
 
 # Step 3: Review what changed
-sessions = await opencode_list_sessions()
+sessions = await opencode_sessions(action="list")
 latest = sessions["data"]["sessions"][0]["id"]
-diff = await opencode_session_diff(latest)
+diff = await opencode_sessions(action="diff", session_id=latest)
 ```
 
 ### Pattern 2: Multi-Agent Parallel
 
 ```python
 # Launch multiple agents concurrently
-tasks = [opencode_run_agent(prompt=f"Implement feature {f}", wait=False) for f in ["auth", "logging", "tests"]]
+tasks = [opencode_runs(action="start", prompt=f"Implement feature {f}", wait=False) for f in ["auth", "logging", "tests"]]
 results = await asyncio.gather(*tasks)
 job_ids = [r["data"]["job_id"] for r in results]
 
 # Poll all
 while True:
-    statuses = await asyncio.gather(*[opencode_get_run_status(j) for j in job_ids])
+    statuses = await asyncio.gather(*[opencode_runs(action="status", job_id=j) for j in job_ids])
     if all(s["data"]["status"] in ("completed", "failed") for s in statuses):
         break
     await asyncio.sleep(5)
@@ -48,26 +53,26 @@ while True:
 
 ```mermaid
 sequenceDiagram
-    Claude->>opencode: opencode_run_agent("fix the bug in parser.py")
+    Claude->>opencode: opencode_runs(action="start", "fix the bug in parser.py")
     opencode-->>Claude: { job_id: "abc" }
     loop poll
-        Claude->>opencode: opencode_get_run_status("abc")
+        Claude->>opencode: opencode_runs(action="status", "abc")
         opencode-->>Claude: { status: "running", stdout: "..." }
     end
-    Claude->>opencode: opencode_session_diff("session-xyz")
+    Claude->>opencode: opencode_sessions(action="diff", "session-xyz")
     opencode-->>Claude: { diff: files changed }
     Note over Claude: Reviews code, then continues
-    Claude->>opencode: opencode_send_message("session-xyz", "Now add tests")
+    Claude->>opencode: opencode_sessions(action="send", "session-xyz", "Now add tests")
 ```
 
 ## Session Analysis
 
 ```python
 # See raw diff
-diff = await opencode_session_diff("session-xyz")
+diff = await opencode_sessions(action="diff", session_id="session-xyz")
 
 # Review message history
-messages = await opencode_get_messages("session-xyz")
+messages = await opencode_sessions(action="messages", session_id="session-xyz")
 for m in messages["data"]["messages"]:
     print(f"{m['info']['role']}: {m['parts']}")
 ```
@@ -76,23 +81,24 @@ for m in messages["data"]["messages"]:
 
 ```python
 # Cancel all running runs
-runs = await opencode_list_runs()
+runs = await opencode_runs(action="list")
 for run in runs["data"]["runs"]:
     if run["status"] == "running":
-        await opencode_cancel_run(run["job_id"])
+        await opencode_runs(action="cancel", job_id=run["job_id"])
 ```
 
 ## Multiple Projects
 
 ```python
 # Run agent in specific project
-result = await opencode_run_agent(
+result = await opencode_runs(
+    action="start",
     prompt="Update dependencies",
     project="D:/projects/myapp",
 )
 
 # Check current project context
-project = await opencode_get_project()
+project = await opencode_system(action="project")
 ```
 
 ## Session Management Between Projects
