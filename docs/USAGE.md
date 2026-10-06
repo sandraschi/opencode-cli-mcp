@@ -102,7 +102,7 @@ With `wait=false`, use `opencode_get_run_status(job_id)` to poll.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENCODE_SERVE_URL` | `http://127.0.0.1:4097` | opencode HTTP API URL (dedicated port) |
-| `OPENCODE_BINARY` | `opencode` | Path to opencode CLI |
+| `OPENCODE_BINARY` | pinned in `fleet-start.config.ps1` (`shutil.which` fallback) | Path to opencode CLI |
 | `BACKEND_PORT` | `10951` | Webapp backend port |
 
 ---

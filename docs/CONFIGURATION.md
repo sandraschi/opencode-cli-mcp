@@ -17,7 +17,7 @@ not ASGI-callable — every request 500s).
 | Var | Default | Purpose |
 |-----|---------|---------|
 | `OPENCODE_SERVE_URL` | `http://127.0.0.1:4097` | Serve to talk to (dedicated port; 4096 is the desktop app's locked serve) |
-| `OPENCODE_BINARY` | resolved via `shutil.which` | Override path to the `opencode` CLI |
+| `OPENCODE_BINARY` | pinned to scoop shim in `fleet-start.config.ps1` (`shutil.which` fallback) | Explicit path wins; required when shims are off PATH (service shells) |
 | `OPENCODE_SERVER_PASSWORD` / `OPENCODE_SERVER_USERNAME` | — | Basic auth when talking to a password-protected (desktop) serve |
 | `OPENCODE_DB_PATH` | `~/.local/share/opencode/opencode.db` | Depot location override |
 | `OPENCODE_CLI_MCP_RAG_ENABLED` | `1` | `0` disables RAG dependencies/endpoints |

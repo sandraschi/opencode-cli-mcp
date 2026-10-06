@@ -47,8 +47,8 @@ Cursor settings -> MCP Servers -> Add:
 
 ## Prerequisites
 
-1. **Install opencode CLI:** `npm i -g opencode-ai`
-2. **Start opencode serve:** `opencode serve` (or use `start.ps1`)
+1. **Install opencode CLI:** `scoop install opencode` (or `npm i -g opencode-ai`)
+2. **Start the stack:** `.\\start.ps1` (the backend autospawns its own serve on :4097 on the first serve-dependent call - nothing to start manually)
 3. **Verify:** `opencode_server_status` should return health info
 
 ## Environment Variables
@@ -56,7 +56,7 @@ Cursor settings -> MCP Servers -> Add:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENCODE_SERVE_URL` | `http://127.0.0.1:4097` | opencode serve HTTP API base URL (dedicated port) |
-| `OPENCODE_BINARY` | `opencode` | Path to opencode binary |
+| `OPENCODE_BINARY` | pinned in `fleet-start.config.ps1` (`shutil.which` fallback) | Path to opencode binary |
 | `BACKEND_PORT` | `10951` | FastAPI backend port (webapp only) |
 
 ## Workflow Examples
@@ -116,7 +116,7 @@ Available pages:
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
-| "opencode serve not running" | Server not started | Run `opencode serve` or `.\start.ps1` |
+| "opencode serve not running" | Serve down or autostart failed | Restart the backend (`.\\start.ps1`); if it persists see `docs/TROUBLESHOOTING.md` |
 | Tool returns empty data | Wrong session ID | Use `opencode_list_sessions` to find valid IDs |
 | Agent times out | Task too long for default 300s | Set `timeout` parameter higher |
 | No providers listed | opencode not configured | Configure providers in opencode first |

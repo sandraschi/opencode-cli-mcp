@@ -9,7 +9,7 @@ first agent run green.
 | Requirement | Check |
 |---|---|
 | Python 3.12+ | `python --version` |
-| opencode CLI | `opencode --version` (install: `npm i -g opencode-ai`) |
+| opencode CLI | `opencode --version` (install: `scoop install opencode` or `npm i -g opencode-ai`) |
 | MCP client | Claude Desktop / Cursor / Windsurf, or the desktop app |
 
 ## 2. Quick start (5 minutes)
@@ -38,6 +38,10 @@ just start
    - `opencode_runs(action="start", prompt="Hello, create hello.txt", wait=true)`
    - `opencode_sessions(action="diff", session_id=...)` → see `hello.txt`
 
+First dashboard load: the DB / cost cards take ~20-30s on a large
+opencode.db (multi-GB) - the scan runs lazily and everything else renders
+first. That wait is normal, not a hang.
+
 ## 4. Desktop app (no dev tools)
 
 Download the NSIS installer. First launch copies `.env.example` to
@@ -53,7 +57,8 @@ Anthropic, Gemini, OpenRouter) in Settings.
 
 ## 6. Troubleshooting
 
-- Backend red dot → topbar restart button, or `just api`.
-- `opencode serve not reachable` in status → start
-  `opencode serve` in a terminal.
+- Backend red dot → topbar restart button (desktop shell), `just api`, or `.\start.ps1`.
+- `opencode serve` unreachable in status → the backend autospawns its own
+  serve on :4097, so restart the backend (`.\\start.ps1`). If it persists,
+  see docs/TROUBLESHOOTING.md (binary resolution, stale password squat).
 - See docs/integration-guide.md and docs/USAGE.md for depth.
