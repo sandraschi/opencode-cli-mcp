@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - 2026-10-06 (serve-offline false alarms + event-loop wedge)
+
+### Fixed
+- Dashboard reported a healthy serve as permanently Offline: serve returns `{healthy: true}` with no `status` key, which the `health.status == "ok"` check could never match. `client.get_server_status` now normalizes to `status: "ok"` (also fixes the `.opencode` providers tool `Server:` line, which read the same missing key).
+- Depot sqlite ran inline in async routes: 20s+ scans on an 11GB opencode.db wedged the single worker's event loop (`/health` took 16.8s mid-scan, frontend latched permanently Offline). All depot calls now run via `asyncio.to_thread` (health 104ms mid-scan).
+- Serve autostart failed when scoop shims are off PATH (service shells): `fleet-start.config.ps1` pins `OPENCODE_BINARY` to the full shim path. A stale password-locked serve squatting :4097 after a desktop password rotation (401s, blocking respawn) is documented in TROUBLESHOOTING.md.
+- Health heartbeat polled `/api/health` every 1s per tab (x2 under StrictMode), flooding the Vite/uvicorn consoles and drowning the Logs ring buffer. Steady-state is now 30s with fast backoff only while offline; health probes are excluded from the ring buffer.
+- Dashboard depot stats load lazily with an honest placeholder (first scan of a multi-GB opencode.db takes ~20-30s) and an inline Retry instead of the page-wide amber "backend unreachable".
+- Red serve banner no longer says "finish setup" (no such flow exists): it names the condition and the remedy (restart the backend, see Troubleshooting in Help).
+
 ## Unreleased - 2026-10-05 (fix: frontend finds backend on any hostname)
 
 ### Fixed

@@ -34,9 +34,16 @@ Web: `npm run biome:ci`, `npx tsc --noEmit` in `web_sota/`. Full pass: `just cer
 
 - Health: `GET /api/v1/health`, diagnostics: `GET /api/v1/diagnostics`.
 - The backend autostarts its own `opencode serve` on :4097 on first serve-dependent
-  call. If status shows Offline, check the `opencode` CLI resolves
-  (`shutil.which`) — the desktop app bundles no CLI.
+  call. If status shows Offline, check the `opencode` CLI resolves:
+  `fleet-start.config.ps1` pins `OPENCODE_BINARY` to the scoop shim
+  (`shutil.which` fallback) since service shells lack shims on PATH. A stale
+  password-locked serve squatting :4097 (401s after a desktop password rotation)
+  blocks respawn - kill the holder. Serve health is normalized to
+  `status: "ok"` in `client.get_server_status` (serve returns `healthy`, no
+  status key).
 - Autobackup runs deferred (5-min grace) in a worker thread — never inline in the
-  event loop (a 9GB synchronous copy once froze all request handling).
+  event loop (a 9GB synchronous copy once froze all request handling). Same rule
+  for every depot/DB-touching route: `asyncio.to_thread` (2026-10-05: inline
+  depot scans on an 11GB DB wedged health to 16.8s).
 - Tests run against `src/` (editable-install guard in CI); if pytest passes but the
   app misbehaves, re-check which `opencode_cli_mcp` gets imported.

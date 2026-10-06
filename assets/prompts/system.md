@@ -33,8 +33,13 @@ offline.
   probe does not block tool calls - the first run action attempts an
   autostart of the serve process.
 - **Autostart**: if `opencode serve` is down, the first tool call that
-  needs it spawns the process. The binary is resolved via `shutil.which()`
-  (covers npm-installed `.CMD` shims) or `OPENCODE_BINARY`.
+  needs it spawns the process. The binary is `OPENCODE_BINARY` when set
+  (pinned to the scoop shim in `fleet-start.config.ps1` — service shells
+  lack shims on PATH), else resolved via `shutil.which()` (covers
+  npm-installed `.CMD` shims). A stale password-locked serve squatting the
+  port after a desktop password rotation blocks respawn - kill the holder.
+  Serve health is normalized to `status: "ok"` (serve itself returns only
+  `healthy`, no status key).
 - **Tool registry**: all tools are declared in a single `TOOL_REGISTRY`;
   the REST `/api/capabilities`, `/api/tools`, and `/api/v1/diagnostics`
   endpoints derive from it, so the surface you see is exactly what is
@@ -270,7 +275,7 @@ cheaper model. Iterate the read-correct loop as often as needed.
 | `BACKEND_PORT` | backend port (api.main) | 10951 |
 | `OPENCODE_CLI_MCP_JOBS_DB` | job store path override | `%LOCALAPPDATA%\opencode-cli-mcp\jobs.db` |
 | `OPENCODE_CLI_MCP_PREFAB_APPS` | set "0" to skip Prefab card registration | 1 |
-| `OPENCODE_BINARY` | path to the opencode executable | resolved via `shutil.which()` |
+| `OPENCODE_BINARY` | path to the opencode executable | pinned in `fleet-start.config.ps1`, `shutil.which()` fallback |
 | `OPENCODE_DB_PATH` | session depot database override | `~/.local/share/opencode/opencode.db` |
 | `OPENCODE_GLOBAL_CONFIG` | global opencode config file | auto-detected |
 | `OPENCODE_CLI_MCP_TAURI` | set by the desktop shell | - |
@@ -435,7 +440,7 @@ When a tool returns `success: false`, respond to the user with the
 
 | Error type | Meaning | Action |
 |---|---|---|
-| `unreachable` | opencode serve down | Trigger autostart via a runs call, or tell the user to run `opencode serve` |
+| `unreachable` | opencode serve down | Trigger autostart via a runs call, or tell the user to restart the backend (`.\start.ps1`) |
 | `not_found` | session/job id wrong | List first (`sessions`/`runs` list actions) and retry with a valid id |
 | `validation` | bad arguments | Re-read the tool schema, fix the parameter, retry |
 | `timeout` | blocking call exceeded | Switch to `wait=false` + polling |
