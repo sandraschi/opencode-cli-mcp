@@ -216,7 +216,23 @@ class OpencodeClient:
     async def get_server_status(self) -> dict[str, Any]:
         result = {}
         try:
-            result["health"] = await self.get_health()
+            health = await self.get_health()
+            # opencode serve returns {"healthy": true, "version": ...} with no
+            # status key, while the webapp checks health.status in
+            # {"ok", "running"} (seen 2026-10-06: healthy serve rendered as
+            # permanently "Offline"). Normalize here so every consumer agrees.
+            if isinstance(health, dict):
+                health = (
+                    {"status": "ok", **health}
+                    if health.get("healthy", True)
+                    else {
+                        "status": "degraded",
+                        **health,
+                    }
+                )
+            else:
+                health = {"status": "ok", "raw": health}
+            result["health"] = health
         except Exception:
             result["health"] = {"status": "unreachable"}
         try:
