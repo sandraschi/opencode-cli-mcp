@@ -171,8 +171,8 @@ export function Dashboard() {
           data-testid="onboarding-cue"
           className="block mb-6 px-5 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-center transition-colors"
         >
-          opencode serve is offline — finish setup to unlock live sessions and agent runs (depot search works
-          regardless)
+          opencode serve is unreachable - restart the backend (.\start.ps1) to restore live sessions and agent runs
+          (depot search works regardless - see Troubleshooting in Help)
         </Link>
       )}
 
