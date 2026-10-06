@@ -4,11 +4,12 @@ import { api } from "../services/api";
 
 import type { DocEntry, DocContent } from "../services/api";
 
-type HelpTab = "overview" | "wrappee" | "api" | "troubleshoot" | "faq" | "docs";
+type HelpTab = "overview" | "wrappee" | "praise" | "api" | "troubleshoot" | "faq" | "docs";
 
 const TABS: { id: HelpTab; name: string; desc: string }[] = [
   { id: "overview", name: "Overview", desc: "What this app is" },
   { id: "wrappee", name: "opencode", desc: "The wrapped agent CLI" },
+  { id: "praise", name: "Why opencode", desc: "The FOSS case" },
   { id: "api", name: "API & Ports", desc: "Endpoints, env, restart" },
   { id: "troubleshoot", name: "Troubleshoot", desc: "Symptom to fix" },
   { id: "faq", name: "FAQ", desc: "Asked questions" },
@@ -108,6 +109,44 @@ const FIXES: { symptom: string; cause: string; fix: string }[] = [
     symptom: "RAG endpoints 503 / RAGUnavailableError",
     cause: "fastembed / lancedb / pyarrow missing or RAG disabled.",
     fix: "uv sync --extra rag. First index downloads the embedding model (slow once).",
+  },
+];
+
+const PRAISE_ROWS: { tool: string; license: string; surface: string; models: string; note: string }[] = [
+  {
+    tool: "opencode",
+    license: "MIT, 100% open",
+    surface: "Terminal TUI, desktop app, IDE",
+    models: "75+ providers, BYOK, local, free Zen",
+    note: "No lock-in: point it at anything, audit everything.",
+  },
+  {
+    tool: "Claude Code",
+    license: "Closed (Anthropic)",
+    surface: "Terminal CLI",
+    models: "Anthropic only",
+    note: "Superb autonomy and reasoning - at the price of single-vendor dependence.",
+  },
+  {
+    tool: "Cursor",
+    license: "Closed (proprietary)",
+    surface: "VS Code fork, editor-first",
+    models: "Bundled subscription",
+    note: "Lowest-friction GUI editing; your workflow lives inside their product.",
+  },
+  {
+    tool: "Cline",
+    license: "MIT, open like us",
+    surface: "VS Code / JetBrains extension",
+    models: "BYOK, model-agnostic",
+    note: "Fellow FOSS, honestly built - but IDE-bound, approval-heavy, and chatty on simple tasks.",
+  },
+  {
+    tool: "Antigravity",
+    license: "Closed (Google)",
+    surface: "Agentic IDE",
+    models: "Gemini-centric",
+    note: "Google's walled garden: polished, Gemini-tuned, and opaque by design.",
   },
 ];
 
@@ -395,6 +434,90 @@ export function Help() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === "praise" && (
+        <div className="max-w-4xl text-sm leading-relaxed">
+          <p className="text-zinc-200 text-base mb-4">
+            opencode is the only fully open agentic IDE worth its keep: MIT-licensed to the last line, terminal-native,
+            model-agnostic, and loved at a scale no competitor touches. Everything this server does - every run, every
+            session, the entire eternal depot - exists because opencode keeps your work in the open instead of a vendor
+            cloud.
+          </p>
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">History</h2>
+          <div className="text-zinc-300 mb-6">
+            <p>
+              Built by the SST (Serverless Stack) team, launched publicly in 2025 as a terminal-native coding agent: a
+              fast TUI that reads your repo, edits files, runs commands, and talks to any model provider. The team has
+              since rebranded to Anomaly, shipped a ground-up 2.0 rewrite in 2026, and expanded from the terminal to a
+              desktop app and IDE surfaces - while keeping the whole thing MIT-licensed. Repository:
+              github.com/sst/opencode (now under the anomalyco org), site at opencode.ai.
+            </p>
+          </div>
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">By the numbers</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="bg-surface-light border border-surface-border rounded-xl p-4">
+              <div className="text-lg text-zinc-100 font-bold">200k+</div>
+              <div className="text-xs text-zinc-500 mt-1">
+                GitHub stars, late 2026 (opencode.ai) - the most-starred open coding agent
+              </div>
+            </div>
+            <div className="bg-surface-light border border-surface-border rounded-xl p-4">
+              <div className="text-lg text-zinc-100 font-bold">950+</div>
+              <div className="text-xs text-zinc-500 mt-1">Contributors building it in the open</div>
+            </div>
+            <div className="bg-surface-light border border-surface-border rounded-xl p-4">
+              <div className="text-lg text-zinc-100 font-bold">75+</div>
+              <div className="text-xs text-zinc-500 mt-1">
+                Model providers, plus local models and free Zen gateway tiers
+              </div>
+            </div>
+            <div className="bg-surface-light border border-surface-border rounded-xl p-4">
+              <div className="text-lg text-zinc-100 font-bold">MIT</div>
+              <div className="text-xs text-zinc-500 mt-1">
+                Every line auditable, forkable, self-hostable - no telemetry trapdoor
+              </div>
+            </div>
+          </div>
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Community and reception</h2>
+          <div className="text-zinc-300 mb-6">
+            <p>
+              The reception has been emphatic: the press spent 2026 competing to call it the closest open analogue to
+              Claude Code, the hottest open-source terminal agent, and the tool that outgrew Cursor - all without a
+              marketing budget or a paid tier anyone had to buy. Around the code sits a real ecosystem: hundreds of
+              contributors, parallel-session and share-link workflows, a console and model gateway, community schools
+              and guides, and an MCP interface that tools like this server build on.
+            </p>
+          </div>
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Against the field</h2>
+          <div className="bg-surface-light border border-surface-border rounded-xl overflow-hidden mb-6">
+            <div className="hidden md:grid md:grid-cols-[110px_130px_1fr_1fr_1.4fr] gap-3 px-4 py-2 border-b border-zinc-700 text-xs text-zinc-500 uppercase tracking-wider">
+              <span>Tool</span>
+              <span>License</span>
+              <span>Surface</span>
+              <span>Models</span>
+              <span>Verdict</span>
+            </div>
+            {PRAISE_ROWS.map((r) => (
+              <div
+                key={r.tool}
+                className="grid md:grid-cols-[110px_130px_1fr_1fr_1.4fr] gap-1 md:gap-3 px-4 py-2.5 border-b border-zinc-800/60 last:border-0 text-sm"
+              >
+                <span className="text-zinc-100 font-medium">{r.tool}</span>
+                <span className="text-zinc-400 text-xs pt-0.5">{r.license}</span>
+                <span className="text-zinc-400 text-xs pt-0.5">{r.surface}</span>
+                <span className="text-zinc-400 text-xs pt-0.5">{r.models}</span>
+                <span className="text-zinc-500 text-xs pt-0.5">{r.note}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-zinc-500 text-xs">
+            Cline gets honest credit: fellow MIT FOSS and a fine IDE companion - it just lives inside someone
+            else&apos;s editor while opencode owns the whole stack. The closed trio get honesty too: Claude Code reasons
+            superbly, Cursor edits smoothly, Antigravity polishes relentlessly - and all three keep your agent, your
+            history, and your leverage. opencode gives you the agent and keeps nothing.
+          </p>
         </div>
       )}
 
