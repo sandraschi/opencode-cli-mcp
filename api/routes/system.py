@@ -69,7 +69,7 @@ async def shutdown():
 async def system_info():
     cpu = _get_cpu_percent()
     mem = _get_memory()
-    gpu = _get_gpu_name()
+    gpu = await asyncio.to_thread(_get_gpu_name)
     return {
         "success": True,
         "data": {
@@ -223,7 +223,7 @@ async def llm_onboarding():
         except Exception as e:
             logger.debug("[system] onboarding probe :%d failed: %s", port, e)
             running[str(port)] = False
-    gpu = _get_gpu_name()
+    gpu = await asyncio.to_thread(_get_gpu_name)
     if running.get("11434"):
         recommended = "ollama"
     elif running.get("1234"):

@@ -7,6 +7,7 @@ under the mcp section.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
 import subprocess
@@ -123,7 +124,7 @@ async def opencode_mcpb_install(
         }
 
     if src_path.is_file() and src_path.suffix == ".mcpb":
-        manifest = _read_manifest_from_mcpb(src_path)
+        manifest = await asyncio.to_thread(_read_manifest_from_mcpb, src_path)
     elif src_path.is_dir():
         manifest = _read_manifest_from_dir(src_path)
     else:
