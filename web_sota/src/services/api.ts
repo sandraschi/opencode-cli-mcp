@@ -169,6 +169,9 @@ export interface DepotSession {
   tokens_input?: number | null;
   tokens_output?: number | null;
   archived: boolean;
+  starred?: boolean;
+  tags?: string[];
+  note?: string;
   time_created_display?: string | null;
   time_updated_display?: string | null;
   time_archived_display?: string | null;
@@ -252,6 +255,7 @@ export interface DepotSearchResult {
   timestamp: string;
   snippet: string;
   score?: number;
+  starred?: boolean;
 }
 
 export interface RagStatus {
@@ -492,6 +496,39 @@ export const api = {
     fetchJson<{ success: boolean; message: string; data: { removed: number } }>(
       `/depot/sessions/${encodeURIComponent(id)}/share`,
       { method: "DELETE" },
+    ),
+
+  starSession: (id: string, starred: boolean) =>
+    fetchJson<{ success: boolean; message: string; data: { session_id: string; starred: boolean; tags: string[] } }>(
+      `/depot/sessions/${encodeURIComponent(id)}/star`,
+      { method: "POST", body: JSON.stringify({ starred }) },
+    ),
+  addSessionTags: (id: string, tags: string[]) =>
+    fetchJson<{ success: boolean; message: string; data: { tags: string[] } }>(
+      `/depot/sessions/${encodeURIComponent(id)}/tags`,
+      { method: "POST", body: JSON.stringify({ tags }) },
+    ),
+  removeSessionTag: (id: string, tag: string) =>
+    fetchJson<{ success: boolean; message: string; data: { tags: string[] } }>(
+      `/depot/sessions/${encodeURIComponent(id)}/tags?tag=${encodeURIComponent(tag)}`,
+      { method: "DELETE" },
+    ),
+  depotTags: () =>
+    fetchJson<{
+      success: boolean;
+      data: { tags: Array<{ tag: string; count: number }>; stats: Record<string, unknown> };
+    }>("/depot/tags"),
+  exportSession: (id: string, format: "md" | "html" | "docx") =>
+    fetchJson<{ success: boolean; message: string; data: { path: string; format: string; bytes: number } }>(
+      `/depot/sessions/${encodeURIComponent(id)}/export?format=${format}`,
+      undefined,
+      180000,
+    ),
+  sendSessionToMemops: (id: string, tags: string[]) =>
+    fetchJson<{ success: boolean; message: string; data: { path: string; next_step: string } }>(
+      `/depot/sessions/${encodeURIComponent(id)}/memops`,
+      { method: "POST", body: JSON.stringify({ tags }) },
+      120000,
     ),
 
   startRun: (body: { prompt: string; project?: string; format?: string; wait?: boolean; timeout?: number }) =>

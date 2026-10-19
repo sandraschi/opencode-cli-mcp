@@ -11,6 +11,7 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Star,
   Trash2,
 } from "lucide-react";
 import { api, type DepotSession, type Session, type SessionMessage } from "../services/api";
@@ -30,10 +31,12 @@ interface SessionFilters {
   status: "all" | "active" | "archived";
   search: string;
   project: string;
-  sort: "updated" | "created" | "title" | "cost" | "tokens";
+  sort: "updated" | "created" | "title" | "cost" | "tokens" | "starred";
   timeframe: number | null;
   dateFrom: string;
   dateTo: string;
+  starred: "all" | "only" | "none";
+  tag: string;
 }
 
 type SessionView = "list" | "grid";
@@ -108,7 +111,11 @@ export function Sessions() {
     timeframe: null,
     dateFrom: "",
     dateTo: "",
+    starred: "all",
+    tag: "",
   });
+  const [tagOptions, setTagOptions] = useState<Array<{ tag: string; count: number }>>([]);
+  const [tagDraft, setTagDraft] = useState("");
   const [view, setView] = useState<SessionView>("list");
   const [selected, setSelected] = useState<string | null>(null);
   const [sessionDetail, setSessionDetail] = useState<Session | null>(null);
@@ -140,6 +147,9 @@ export function Sessions() {
         } else if (filters.timeframe) {
           params.set("timeframe_days", String(filters.timeframe));
         }
+        if (filters.starred === "only") params.set("starred", "true");
+        if (filters.starred === "none") params.set("starred", "false");
+        if (filters.tag) params.set("tag", filters.tag);
         const res = await api.depotList(params.toString());
         setSessions(res.data.sessions);
         setTotal(res.data.total);
@@ -158,12 +168,81 @@ export function Sessions() {
       filters.timeframe,
       filters.dateFrom,
       filters.dateTo,
+      filters.starred,
+      filters.tag,
     ],
   );
+
+  const loadTags = useCallback(async () => {
+    try {
+      const res = await api.depotTags();
+      setTagOptions(res.data.tags);
+    } catch {
+      setTagOptions([]);
+    }
+  }, []);
 
   useEffect(() => {
     load(0);
   }, [load]);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
+
+  const refreshRowMeta = async (id: string) => {
+    await load(offset);
+    void loadTags();
+    if (selected === id) void viewSession(id);
+  };
+
+  const toggleStar = async (s: DepotSession) => {
+    try {
+      await api.starSession(s.id, !s.starred);
+      await refreshRowMeta(s.id);
+    } catch (e) {
+      setNotice(`Star failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const addTag = async (s: DepotSession) => {
+    const value = tagDraft.trim();
+    if (!value) return;
+    try {
+      await api.addSessionTags(s.id, [value]);
+      setTagDraft("");
+      await refreshRowMeta(s.id);
+    } catch (e) {
+      setNotice(`Tag failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const removeTag = async (s: DepotSession, tag: string) => {
+    try {
+      await api.removeSessionTag(s.id, tag);
+      await refreshRowMeta(s.id);
+    } catch (e) {
+      setNotice(`Untag failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const exportSession = async (s: DepotSession, format: "md" | "html" | "docx") => {
+    try {
+      const res = await api.exportSession(s.id, format);
+      setNotice(`Exported ${format.toUpperCase()} -> ${res.data.path}`);
+    } catch (e) {
+      setNotice(`Export failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const sendToMemops = async (s: DepotSession) => {
+    try {
+      const res = await api.sendSessionToMemops(s.id, s.tags ?? []);
+      setNotice(`memops: ${res.data.path} - ${res.data.next_step}`);
+    } catch (e) {
+      setNotice(`memops failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
 
   const loadMessages = useCallback(async (id: string) => {
     setMessagesLoading(true);
@@ -323,6 +402,11 @@ export function Sessions() {
     </button>
   );
 
+  const selectedRow = useMemo(
+    () => sessions.find((s) => s.id === (sessionDetail?.id ?? selected)) ?? null,
+    [sessions, sessionDetail, selected],
+  );
+
   return (
     <div data-testid="sessions-page">
       <div className="flex items-center justify-between mb-4">
@@ -396,6 +480,7 @@ export function Sessions() {
           <option value="title">Title A-Z</option>
           <option value="cost">Highest cost</option>
           <option value="tokens">Most tokens</option>
+          <option value="starred">Favourites first</option>
         </select>
         <select
           value={filters.dateFrom || filters.dateTo ? "custom" : (filters.timeframe ?? 0)}
@@ -456,6 +541,35 @@ export function Sessions() {
           aria-label="Filter by project"
           className="bg-zinc-800 border border-zinc-700 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:border-accent/50"
         />
+        <button
+          type="button"
+          onClick={() => setFilters((f) => ({ ...f, starred: f.starred === "only" ? "all" : "only" }))}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs border transition-colors ${
+            filters.starred === "only"
+              ? "border-amber-500/60 bg-amber-500/15 text-amber-300"
+              : "border-zinc-700 text-zinc-400 hover:text-zinc-200"
+          }`}
+          data-testid="sessions-starred-filter"
+          aria-pressed={filters.starred === "only"}
+          title="Show favourites only"
+        >
+          <Star className={`w-3.5 h-3.5 ${filters.starred === "only" ? "fill-amber-400 text-amber-400" : ""}`} />
+          Favourites
+        </button>
+        <select
+          value={filters.tag}
+          onChange={(e) => setFilters((f) => ({ ...f, tag: e.target.value }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          data-testid="sessions-tag-filter"
+          aria-label="Filter by tag"
+        >
+          <option value="">All tags</option>
+          {tagOptions.map((t) => (
+            <option key={t.tag} value={t.tag}>
+              {t.tag} ({t.count})
+            </option>
+          ))}
+        </select>
       </div>
 
       {notice && (
@@ -504,6 +618,22 @@ export function Sessions() {
                   <span className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
+                      data-testid={`session-star-${s.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void toggleStar(s);
+                      }}
+                      className={`p-1.5 rounded-md transition-colors hover:bg-zinc-800 ${
+                        s.starred ? "text-amber-400" : "text-zinc-500 hover:text-amber-400"
+                      }`}
+                      title={s.starred ? "Remove from favourites" : "Add to favourites"}
+                      aria-label={`${s.starred ? "Unstar" : "Star"} session ${s.id}`}
+                      aria-pressed={Boolean(s.starred)}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${s.starred ? "fill-amber-400" : ""}`} />
+                    </button>
+                    <button
+                      type="button"
                       data-testid={`session-rename-${s.id}`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -534,6 +664,18 @@ export function Sessions() {
                   </span>
                 </div>
                 {s.title && <div className="text-xs text-zinc-600 font-mono mt-0.5 truncate">{s.id}</div>}
+                {Boolean(s.tags?.length) && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {(s.tags ?? []).map((t) => (
+                      <span
+                        key={t}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-sky-900/50 text-sky-300 border border-sky-800/60"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                   {s.archived && (
                     <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-300">
@@ -608,6 +750,82 @@ export function Sessions() {
                     )}
                   </div>
                 </div>
+
+                {selectedRow && (
+                  <div
+                    className="mb-3 pb-3 border-b border-surface-border/60 flex flex-wrap items-center gap-2"
+                    data-testid="session-curation"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => void toggleStar(selectedRow)}
+                      data-testid="session-detail-star"
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs border transition-colors ${
+                        selectedRow.starred
+                          ? "border-amber-500/60 bg-amber-500/15 text-amber-300"
+                          : "border-zinc-700 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                      aria-pressed={Boolean(selectedRow.starred)}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${selectedRow.starred ? "fill-amber-400" : ""}`} />
+                      {selectedRow.starred ? "Favourite" : "Star"}
+                    </button>
+                    {(selectedRow.tags ?? []).map((t) => (
+                      <span
+                        key={t}
+                        className="flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-sky-900/50 text-sky-300 border border-sky-800/60"
+                      >
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() => void removeTag(selectedRow, t)}
+                          className="hover:text-red-300"
+                          aria-label={`Remove tag ${t}`}
+                          title={`Remove tag ${t}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void addTag(selectedRow);
+                        }
+                      }}
+                      placeholder="add tag + Enter"
+                      data-testid="session-tag-input"
+                      aria-label="Add a tag"
+                      className="w-40 bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+                    />
+                    <span className="flex-1" />
+                    {(["md", "html", "docx"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => void exportSession(selectedRow, fmt)}
+                        data-testid={`session-export-${fmt}`}
+                        className="px-2 py-1.5 rounded-md text-[11px] uppercase bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+                        title={`Save as ${fmt.toUpperCase()}`}
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => void sendToMemops(selectedRow)}
+                      data-testid="session-memops"
+                      className="px-2 py-1.5 rounded-md text-[11px] bg-emerald-900/50 hover:bg-emerald-800/60 text-emerald-300 border border-emerald-800/60 transition-colors"
+                      title="Write a frontmatter note into the advanced-memory inbox"
+                    >
+                      → memops
+                    </button>
+                  </div>
+                )}
 
                 {detailTab === "overview" && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">

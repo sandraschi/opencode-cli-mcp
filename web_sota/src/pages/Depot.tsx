@@ -18,6 +18,7 @@ import {
   Coins,
   Eye,
   Sparkles,
+  Star,
   Wand2,
   FileCode2,
   Share2,
@@ -39,10 +40,12 @@ interface Filters {
   search: string;
   searchMode: "title" | "transcript" | "semantic" | "code";
   timeframe: number | null;
-  sort: "updated" | "created" | "title" | "cost" | "tokens";
+  sort: "updated" | "created" | "title" | "cost" | "tokens" | "starred";
   project: string;
   dateFrom: string;
   dateTo: string;
+  starred: "all" | "only" | "none";
+  tag: string;
 }
 
 type DepotView = "list" | "grid";
@@ -61,8 +64,12 @@ export function Depot() {
     project: "",
     dateFrom: "",
     dateTo: "",
+    starred: "all",
+    tag: "",
   });
   const [view, setView] = useState<DepotView>("list");
+  const [tagOptions, setTagOptions] = useState<Array<{ tag: string; count: number }>>([]);
+  const [tagDraft, setTagDraft] = useState("");
   const [transcriptResults, setTranscriptResults] = useState<
     Array<{ session_id: string; title: string; snippet: string; timestamp: string; archived: boolean; score?: number }>
   >([]);
@@ -73,6 +80,7 @@ export function Depot() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DepotSession | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -103,6 +111,9 @@ export function Depot() {
         } else if (filters.timeframe) {
           params.set("timeframe_days", String(filters.timeframe));
         }
+        if (filters.starred === "only") params.set("starred", "true");
+        if (filters.starred === "none") params.set("starred", "false");
+        if (filters.tag) params.set("tag", filters.tag);
         const d = await api.depotList(params.toString());
         setSessions(d.data.sessions);
         setTotal(d.data.total);
@@ -122,6 +133,8 @@ export function Depot() {
       filters.project,
       filters.dateFrom,
       filters.dateTo,
+      filters.starred,
+      filters.tag,
     ],
   );
 
@@ -147,7 +160,67 @@ export function Depot() {
     load();
     loadStats();
     loadRagStatus();
+    void (async () => {
+      try {
+        const d = await api.depotTags();
+        setTagOptions(d.data.tags);
+      } catch {
+        setTagOptions([]);
+      }
+    })();
   }, [load, loadStats, loadRagStatus]);
+
+  const toggleStar = async (s: { id: string; starred?: boolean }) => {
+    try {
+      await api.starSession(s.id, !s.starred);
+      await load(offset);
+    } catch (e) {
+      setError(`Star failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const addTag = async (id: string) => {
+    const value = tagDraft.trim();
+    if (!value) return;
+    try {
+      await api.addSessionTags(id, [value]);
+      setTagDraft("");
+      await load(offset);
+      const d = await api.depotTags();
+      setTagOptions(d.data.tags);
+    } catch (e) {
+      setError(`Tag failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const removeTag = async (id: string, tag: string) => {
+    try {
+      await api.removeSessionTag(id, tag);
+      await load(offset);
+    } catch (e) {
+      setError(`Untag failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const exportSession = async (id: string, fmt: "md" | "html" | "docx") => {
+    try {
+      const res = await api.exportSession(id, fmt);
+      setError("");
+      setNotice(`Exported ${fmt.toUpperCase()} -> ${res.data.path}`);
+    } catch (e) {
+      setError(`Export failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
+
+  const sendToMemops = async (id: string, tags: string[]) => {
+    try {
+      const res = await api.sendSessionToMemops(id, tags);
+      setError("");
+      setNotice(`memops: ${res.data.path} - ${res.data.next_step}`);
+    } catch (e) {
+      setError(`memops failed: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+  };
 
   const runTranscriptSearch = useCallback(
     async (q: string) => {
@@ -483,6 +556,35 @@ export function Depot() {
           <option value="title">Title A-Z</option>
           <option value="cost">Highest cost</option>
           <option value="tokens">Most tokens</option>
+          <option value="starred">Favourites first</option>
+        </select>
+        <button
+          type="button"
+          onClick={() => setFilters((f) => ({ ...f, starred: f.starred === "only" ? "all" : "only" }))}
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs border transition-colors ${
+            filters.starred === "only"
+              ? "border-amber-500/60 bg-amber-500/15 text-amber-300"
+              : "border-zinc-700 text-zinc-400 hover:text-zinc-200"
+          }`}
+          data-testid="depot-starred-filter"
+          aria-pressed={filters.starred === "only"}
+          title="Show favourites only"
+        >
+          <Star className={`w-3.5 h-3.5 ${filters.starred === "only" ? "fill-amber-400 text-amber-400" : ""}`} />
+        </button>
+        <select
+          value={filters.tag}
+          onChange={(e) => setFilters((f) => ({ ...f, tag: e.target.value }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          data-testid="depot-tag-filter"
+          aria-label="Filter by tag"
+        >
+          <option value="">All tags</option>
+          {tagOptions.map((t) => (
+            <option key={t.tag} value={t.tag}>
+              {t.tag} ({t.count})
+            </option>
+          ))}
         </select>
         <input
           type="text"
@@ -665,6 +767,15 @@ export function Depot() {
 
       {error && (
         <div className="mb-4 p-3 bg-red-900/30 border border-red-800 rounded-lg text-sm text-red-400">{error}</div>
+      )}
+
+      {notice && (
+        <div
+          className="mb-4 p-3 bg-emerald-900/20 border border-emerald-800 rounded-lg text-xs text-emerald-300 font-mono break-all"
+          data-testid="depot-notice"
+        >
+          {notice}
+        </div>
       )}
 
       {loading ? (
@@ -857,6 +968,18 @@ export function Depot() {
                     </div>
                   )}
                   <p className="text-xs text-zinc-500 font-mono mt-0.5">{s.id}</p>
+                  {Boolean(s.tags?.length) && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(s.tags ?? []).map((t) => (
+                        <span
+                          key={t}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-sky-900/50 text-sky-300 border border-sky-800/60"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-xs text-zinc-600 mt-0.5 truncate">{s.directory || s.project_id}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-zinc-500">
                     {s.agent && <span>agent: {s.agent}</span>}
@@ -866,6 +989,17 @@ export function Depot() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => void toggleStar(s)}
+                    className={`p-1.5 transition-colors ${s.starred ? "text-amber-400" : "text-zinc-500 hover:text-amber-400"}`}
+                    title={s.starred ? "Remove from favourites" : "Add to favourites"}
+                    aria-label={`${s.starred ? "Unstar" : "Star"} ${s.id}`}
+                    aria-pressed={Boolean(s.starred)}
+                    data-testid={`depot-star-${s.id}`}
+                  >
+                    <Star className={`w-4 h-4 ${s.starred ? "fill-amber-400" : ""}`} />
+                  </button>
                   <button
                     type="button"
                     onClick={() => viewSession(s.id)}
@@ -960,6 +1094,61 @@ export function Depot() {
                       <span className="text-zinc-600 block">Slug</span>
                       {detail.slug || "-"}
                     </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-3" data-testid={`depot-curation-${s.id}`}>
+                    {(s.tags ?? []).map((t) => (
+                      <span
+                        key={t}
+                        className="flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-sky-900/50 text-sky-300 border border-sky-800/60"
+                      >
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() => void removeTag(s.id, t)}
+                          className="hover:text-red-300"
+                          aria-label={`Remove tag ${t}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void addTag(s.id);
+                        }
+                      }}
+                      placeholder="add tag + Enter"
+                      data-testid={`depot-tag-input-${s.id}`}
+                      aria-label="Add a tag"
+                      className="w-36 bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1 text-xs focus:outline-none focus:border-accent/50"
+                    />
+                    <span className="flex-1" />
+                    {(["md", "html", "docx"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => void exportSession(s.id, fmt)}
+                        data-testid={`depot-export-${fmt}-${s.id}`}
+                        className="px-2 py-1 rounded text-[10px] uppercase bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                        title={`Save as ${fmt.toUpperCase()}`}
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => void sendToMemops(s.id, s.tags ?? [])}
+                      data-testid={`depot-memops-${s.id}`}
+                      className="px-2 py-1 rounded text-[10px] bg-emerald-900/50 hover:bg-emerald-800/60 text-emerald-300 border border-emerald-800/60"
+                      title="Write a frontmatter note into the advanced-memory inbox"
+                    >
+                      → memops
+                    </button>
                   </div>
                   <div className="mt-3" data-testid="depot-share-box">
                     <div className="flex items-center gap-2 mb-1.5">
