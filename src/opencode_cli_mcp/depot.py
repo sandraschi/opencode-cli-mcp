@@ -291,21 +291,60 @@ def get_session_transcript(session_id: str, *, limit: int = 200, db_path: Path |
         conn.close()
 
 
+def _centered_snippet(text: str, query: str, width: int = 300) -> str:
+    """Snippet centered on the first case-insensitive match, ~width chars.
+
+    "Show me that chat snippet" is only useful when the keyword is visible -
+    a head-300 cut of a long part usually buries it. Falls back to head
+    truncation when the query is not found (defensive; LIKE matched it).
+    """
+    if len(text) <= width:
+        return text
+    idx = text.lower().find(query.lower())
+    if idx < 0:
+        return text[:width] + "..."
+    half = width // 2
+    start = max(0, idx - half)
+    end = min(len(text), start + width)
+    start = max(0, end - width)  # re-anchor when clamped at the tail
+    snippet = text[start:end]
+    if start > 0:
+        snippet = "..." + snippet
+    if end < len(text):
+        snippet = snippet + "..."
+    return snippet
+
+
 def search_transcripts(
     query: str,
     *,
     limit: int = 20,
     include_archived: bool = True,
+    timeframe_days: int | None = None,
+    project: str | None = None,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     """Full-text search across message parts (JSON $.text) and session titles.
 
     Uses SQLite LIKE on json_extract - FTS5 is overkill for a single-user
     depot and LIKE is fast enough at this scale (thousands of sessions).
+
+    ``timeframe_days`` restricts to parts written within the last N days
+    ("last week we talked about X"). ``project`` matches session directory
+    or project_id as a substring (same predicate as list_sessions).
     """
     conn = _connect(db_path, read_only=True)
     try:
         archived_clause = "" if include_archived else "AND s.time_archived IS NULL"
+        params: list[Any] = [f"%{query}%"]
+        timeframe_clause = ""
+        if timeframe_days and timeframe_days > 0:
+            timeframe_clause = "AND p.time_created > ?"
+            params.append(int(datetime.now(UTC).timestamp() * 1000) - timeframe_days * 86_400_000)
+        project_clause = ""
+        if project:
+            project_clause = "AND (s.directory LIKE ? OR s.project_id LIKE ?)"
+            params.extend([f"%{project}%", f"%{project}%"])
         rows = conn.execute(
             f"""
             SELECT s.id AS session_id, s.title, s.time_archived, s.directory, s.agent,
@@ -315,10 +354,12 @@ def search_transcripts(
             WHERE (json_extract(p.data, '$.type') = 'text'
                    AND json_extract(p.data, '$.text') LIKE ?)
                   {archived_clause}
+                  {timeframe_clause}
+                  {project_clause}
             ORDER BY p.time_created DESC
             LIMIT ?
             """,
-            [f"%{query}%", limit],
+            [*params, limit],
         ).fetchall()
 
         results = []
@@ -328,7 +369,6 @@ def search_transcripts(
                 text = json.loads(r["part_data"]).get("text", "")
             except (json.JSONDecodeError, AttributeError):
                 text = ""
-            snippet = text[:300] + "..." if len(text) > 300 else text
             results.append(
                 {
                     "session_id": r["session_id"],
@@ -337,10 +377,19 @@ def search_transcripts(
                     "directory": r["directory"],
                     "agent": r["agent"],
                     "timestamp": _fmt_ts(r["part_ts"]),
-                    "snippet": snippet,
+                    "snippet": _centered_snippet(text, query),
                 }
             )
-        return {"results": results, "count": len(results), "query": query}
+        return {
+            "results": results,
+            "count": len(results),
+            "query": query,
+            "filters": {
+                "include_archived": include_archived,
+                "timeframe_days": timeframe_days,
+                "project": project,
+            },
+        }
     finally:
         conn.close()
 

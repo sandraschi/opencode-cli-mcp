@@ -62,6 +62,8 @@ async def opencode_depot(
                 " archive: hide from active list. unarchive: restore (missing in opencode UI)."
                 " rename: set title. delete: permanently remove (cascades messages)."
                 " search: full-text across transcripts and titles (wayback find)."
+                " search filters: query + optional timeframe_days (last N days),"
+                " project (directory/project_id substring), include_archived."
                 " rag: semantic search over indexed transcripts (needs rag extras)."
                 " rag_index: index new sessions for semantic search (text + code)."
                 " rag_status: index state + availability."
@@ -82,6 +84,11 @@ async def opencode_depot(
         str | None,
         Field(description="File path substring (code): only rows whose path contains this"),
     ] = None,
+    timeframe_days: Annotated[
+        int | None,
+        Field(description="Search only: parts written within the last N days (e.g. 7 = last week)", ge=1),
+    ] = None,
+    include_archived: Annotated[bool, Field(description="Search: include archived sessions")] = True,
     status: Annotated[
         Literal["all", "active", "archived"],
         Field(description="Status filter (list): all, active, or archived"),
@@ -112,6 +119,7 @@ async def opencode_depot(
     opencode_depot(action="list", status="archived", limit=20)
     opencode_depot(action="unarchive", session_id="sess_01")
     opencode_depot(action="search", query="power limit")
+    opencode_depot(action="search", query="vienna", project="chitchat", timeframe_days=7)
     opencode_depot(action="rag", query="what did we decide about the power limit")
     opencode_depot(action="code", path_filter="auth_utils.py")
     opencode_depot(action="code", query="extracted the auth module", path_filter="src")
@@ -121,7 +129,20 @@ async def opencode_depot(
 
     try:
         return await _dispatch(
-            action, session_id, title, query, path_filter, status, project, agent, search, sort, limit, offset
+            action,
+            session_id,
+            title,
+            query,
+            path_filter,
+            status,
+            project,
+            agent,
+            search,
+            sort,
+            limit,
+            offset,
+            timeframe_days,
+            include_archived,
         )
     except depot.DepotError as e:
         return _wrap(action, False, str(e), {})
@@ -144,6 +165,8 @@ async def _dispatch(
     sort: str,
     limit: int,
     offset: int,
+    timeframe_days: int | None,
+    include_archived: bool,
 ) -> dict:
     if action == "list":
         page = depot.list_sessions(
@@ -159,8 +182,17 @@ async def _dispatch(
     if action == "search":
         if not query:
             return _missing(action, "query")
-        result = depot.search_transcripts(query, limit=limit)
-        return _wrap(action, True, f"Found {result['count']} transcript matches for '{query}'", result)
+        result = depot.search_transcripts(
+            query, limit=limit, include_archived=include_archived, timeframe_days=timeframe_days, project=project
+        )
+        scope = "".join(
+            [
+                f" in project '{project}'" if project else "",
+                f" from the last {timeframe_days}d" if timeframe_days else "",
+                "" if include_archived else " (active only)",
+            ]
+        )
+        return _wrap(action, True, f"Found {result['count']} transcript matches for '{query}'{scope}", result)
 
     if action == "rag":
         if not query:

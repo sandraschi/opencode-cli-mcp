@@ -194,6 +194,56 @@ def test_search_transcripts(depot_db):
     assert depot.search_transcripts("nonexistent")["count"] == 0
 
 
+def _insert_part(depot_db, part_id, msg_id, session_id, text, age_ms):
+    """Add a text part of a given age (ms before now) to the fixture DB."""
+    now = int(datetime.now(UTC).timestamp() * 1000)
+    ts = now - age_ms
+    conn = sqlite3.connect(depot_db)
+    conn.execute(
+        "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?,?,?,?,?)",
+        (msg_id, session_id, ts, ts, json.dumps({"role": "user"})),
+    )
+    conn.execute(
+        "INSERT INTO part (id, message_id, session_id, time_created, time_updated, data) VALUES (?,?,?,?,?,?)",
+        (part_id, msg_id, session_id, ts, ts, json.dumps({"type": "text", "text": text})),
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_search_timeframe_filter(depot_db):
+    _insert_part(depot_db, "part_old", "msg_old", "sess_active", "vienna trip notes", 10 * 86_400_000)
+    _insert_part(depot_db, "part_new", "msg_new", "sess_active", "vienna meetup plan", 1_000)
+    assert depot.search_transcripts("vienna")["count"] == 2
+    week = depot.search_transcripts("vienna", timeframe_days=7)
+    assert week["count"] == 1
+    assert week["results"][0]["snippet"] == "vienna meetup plan"
+
+
+def test_search_project_filter(depot_db):
+    _insert_part(depot_db, "part_a", "msg_a", "sess_arch", "vienna office", 1_000)
+    assert depot.search_transcripts("vienna", project="arxiv")["count"] == 1
+    assert depot.search_transcripts("vienna", project="opencode-cli")["count"] == 0
+    assert depot.search_transcripts("vienna", project="chitchat")["count"] == 0
+
+
+def test_search_exclude_archived(depot_db):
+    _insert_part(depot_db, "part_a", "msg_a", "sess_arch", "vienna office", 1_000)
+    assert depot.search_transcripts("vienna")["count"] == 1  # archived included by default
+    assert depot.search_transcripts("vienna", include_archived=False)["count"] == 0
+
+
+def test_search_centered_snippet(depot_db):
+    filler = "lorem ipsum dolor sit amet " * 30  # ~800 chars before the keyword
+    _insert_part(depot_db, "part_long", "msg_long", "sess_active", filler + "vienna at the very end", 1_000)
+    result = depot.search_transcripts("vienna")
+    assert result["count"] == 1
+    snippet = result["results"][0]["snippet"]
+    assert "vienna" in snippet
+    assert snippet.startswith("...")
+    assert len(snippet) <= 310
+
+
 def test_archive_unarchive(depot_db):
     assert depot.archive_session("sess_active")
     active = depot.get_session("sess_active")
@@ -299,6 +349,17 @@ async def test_tool_search(depot_db):
     result = await opencode_depot(action="search", query="4090")
     assert result["success"] is True
     assert result["data"]["count"] == 1
+
+
+@pytest.mark.asyncio()
+async def test_tool_search_filters(depot_db):
+    result = await opencode_depot(action="search", query="4090", project="opencode-cli", timeframe_days=7)
+    assert result["success"] is True
+    assert result["data"]["count"] == 1
+    assert "opencode-cli" in result["message"]
+    result2 = await opencode_depot(action="search", query="4090", project="chitchat", timeframe_days=7)
+    assert result2["success"] is True
+    assert result2["data"]["count"] == 0
 
 
 @pytest.mark.asyncio()
