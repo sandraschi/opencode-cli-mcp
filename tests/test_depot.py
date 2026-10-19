@@ -311,6 +311,54 @@ def test_search_date_range(depot_db):
     assert wide["count"] == 2
 
 
+@pytest.fixture()
+def curated_db(depot_db, tmp_path, monkeypatch):
+    """Isolate the meta sidecar (stars/tags) for depot integration tests."""
+    from opencode_cli_mcp import meta
+
+    meta_path = tmp_path / "meta.db"
+    monkeypatch.setenv(meta.META_DB_ENV, str(meta_path))
+    meta.set_star("sess_active", True)
+    meta.add_tags("sess_arch", ["neuro"])
+    return depot_db
+
+
+def test_list_enriches_and_filters_stars(curated_db):
+    page = depot.list_sessions()
+    by_id = {s["id"]: s for s in page["sessions"]}
+    assert by_id["sess_active"]["starred"] is True
+    assert by_id["sess_active"]["tags"] == []
+    assert by_id["sess_arch"]["starred"] is False
+    assert by_id["sess_arch"]["tags"] == ["neuro"]
+
+    starred = depot.list_sessions(starred=True)
+    assert [s["id"] for s in starred["sessions"]] == ["sess_active"]
+    unstarred = depot.list_sessions(starred=False)
+    assert [s["id"] for s in unstarred["sessions"]] == ["sess_arch"]
+    tagged = depot.list_sessions(tag="neuro")
+    assert [s["id"] for s in tagged["sessions"]] == ["sess_arch"]
+    assert depot.list_sessions(tag="missing")["total"] == 0
+
+
+def test_list_sort_starred_first(curated_db):
+    page = depot.list_sessions(sort="starred")
+    assert page["sessions"][0]["id"] == "sess_active"
+
+
+def test_search_starred_boost(curated_db):
+    # sess_arch is older but tagged; sess_active is starred and older than
+    # nothing. Star + recency should beat a plain recent hit in tie cases.
+    _insert_part(curated_db, "p_old_arch", "m_old_arch", "sess_arch", "vienna notes", 5 * 86_400_000)
+    _insert_part(curated_db, "p_new", "m_new", "sess_active", "vienna plan", 1_000)
+    hits = depot.search_transcripts("vienna")
+    assert hits["count"] == 2
+    assert {h["session_id"] for h in hits["results"]} == {"sess_active", "sess_arch"}
+    starred_hits = [h for h in hits["results"] if h["starred"]]
+    assert starred_hits and starred_hits[0]["session_id"] == "sess_active"
+    assert depot.search_transcripts("vienna", starred=True)["count"] == 1
+    assert depot.search_transcripts("vienna", tag="neuro")["count"] == 1
+
+
 def test_archive_unarchive(depot_db):
     assert depot.archive_session("sess_active")
     active = depot.get_session("sess_active")

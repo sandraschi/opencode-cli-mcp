@@ -152,6 +152,10 @@ def session_ids(*, starred: bool | None = None, tag: str | None = None, db_path:
 
     ``starred=None`` means "no star constraint"; ``tag=None`` means no tag
     constraint. A starred=True + tag="x" query requires BOTH.
+
+    There is no ``starred=False`` here: the sidecar only knows sessions that
+    were starred or tagged, so it cannot enumerate the unstarred universe.
+    Callers wanting "unstarred" exclude :func:`session_ids` ``(starred=True)``.
     """
     clauses: list[str] = []
     params: list[Any] = []

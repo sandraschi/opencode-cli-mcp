@@ -204,6 +204,8 @@ def list_sessions(
     timeframe_days: int | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    starred: bool | None = None,
+    tag: str | None = None,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     """List sessions from the depot with filters. Returns page + totals.
@@ -212,6 +214,11 @@ def list_sessions(
     (for "what did I work on 3 weeks ago" style browsing). ``date_from`` /
     ``date_to`` (YYYY-MM-DD, inclusive, on time_updated) select an explicit
     range and take precedence over ``timeframe_days``.
+
+    ``starred`` / ``tag`` filter on the curation sidecar (see
+    :mod:`opencode_cli_mcp.meta`): True = only starred, False = only
+    unstarred, None = no constraint. Every returned session always carries
+    ``starred`` and ``tags`` so the UI needs no extra round-trip.
     """
     clauses: list[str] = []
     params: list[Any] = []
@@ -228,6 +235,29 @@ def list_sessions(
     if search:
         clauses.append("title LIKE ?")
         params.append(f"%{search}%")
+    if starred is not None or tag:
+        from opencode_cli_mcp import meta as meta_store
+
+        if starred is False:
+            # The sidecar cannot enumerate the unstarred universe, so invert:
+            # resolve the tag (if any) here, then exclude starred ids.
+            excluded = set(meta_store.session_ids(starred=True))
+            curated = [i for i in meta_store.session_ids(tag=tag)] if tag else []
+            curated = [i for i in curated if i not in excluded]
+            if curated:
+                clauses.append(f"id IN ({','.join('?' * len(curated))})")
+                params.extend(curated)
+            elif tag:
+                return {"sessions": [], "total": 0, "limit": limit, "offset": offset, "next_offset": None}
+            elif excluded:
+                clauses.append(f"id NOT IN ({','.join('?' * len(excluded))})")
+                params.extend(excluded)
+        else:
+            curated = meta_store.session_ids(starred=starred, tag=tag)
+            if not curated:
+                return {"sessions": [], "total": 0, "limit": limit, "offset": offset, "next_offset": None}
+            clauses.append(f"id IN ({','.join('?' * len(curated))})")
+            params.extend(curated)
     from_ms = _date_bound(date_from, False)
     to_ms = _date_bound(date_to, True)
     if from_ms is not None:
@@ -260,6 +290,18 @@ def list_sessions(
         conn.close()
 
     sessions = [_row_to_session(r) for r in rows]
+    if sessions:
+        from opencode_cli_mcp import meta as meta_store
+
+        curation = meta_store.get_many([s["id"] for s in sessions])
+        for s in sessions:
+            m = curation.get(s["id"]) or {}
+            s["starred"] = bool(m.get("starred"))
+            s["tags"] = list(m.get("tags") or [])
+            s["note"] = m.get("note") or ""
+    if sort == "starred":
+        # Stable: within each group the SQL order (newest first) survives.
+        sessions.sort(key=lambda s: not s.get("starred"))
     return {
         "sessions": sessions,
         "total": total,
@@ -344,11 +386,36 @@ def _centered_snippet(text: str, query: str, width: int = 300) -> str:
     return snippet
 
 
-def _rank_score(text_ts_ms: int | None, title: str, directory: str, query: str, project: str | None) -> float:
-    """Rank a transcript hit: recency + exact-project + title match.
+def _empty_search(query, include_archived, timeframe_days, project, date_from, date_to, starred, tag) -> dict[str, Any]:
+    """Shared empty envelope for a curation filter that matches no session."""
+    return {
+        "results": [],
+        "count": 0,
+        "query": query,
+        "filters": {
+            "include_archived": include_archived,
+            "timeframe_days": timeframe_days,
+            "project": project,
+            "date_from": date_from,
+            "date_to": date_to,
+            "starred": starred,
+            "tag": tag,
+        },
+    }
+
+
+def _rank_score(
+    text_ts_ms: int | None,
+    title: str,
+    directory: str,
+    query: str,
+    project: str | None,
+    starred: bool = False,
+) -> float:
+    """Rank a transcript hit: recency + exact-project + title match + star.
 
     LIKE search returns newest-first, which buries the right chat when the
-    current session mentions the keyword a lot. Score (all 0..~1.8):
+    current session mentions the keyword a lot. Score (all 0..~2.3):
 
     - recency ``1 / (1 + age_days)`` — a 6-day-old hit scores ~0.14, an
       hour-old one ~0.96. Dominant signal, but not the only one.
@@ -357,6 +424,8 @@ def _rank_score(text_ts_ms: int | None, title: str, directory: str, query: str, 
       substring siblings (``.../chitchat-archive``).
     - title match ``+0.3`` — query in the session title means the whole
       session was about it, not a passing mention in one part.
+    - starred ``+0.5`` — favourites are what you keep coming back to; the
+      boost outranks ~2 weeks of recency without hiding fresh hits entirely.
 
     Ranking re-orders the filtered page (SQL still applies LIMIT first),
     so it never widens the result set - it only fixes the order.
@@ -370,6 +439,8 @@ def _rank_score(text_ts_ms: int | None, title: str, directory: str, query: str, 
             score += 0.5
     if query.lower() in (title or "").lower():
         score += 0.3
+    if starred:
+        score += 0.5
     return round(score, 4)
 
 
@@ -382,6 +453,8 @@ def search_transcripts(
     project: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    starred: bool | None = None,
+    tag: str | None = None,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     """Full-text search across message parts (JSON $.text) and session titles.
@@ -394,9 +467,29 @@ def search_transcripts(
     or project_id as a substring (same predicate as list_sessions).
     ``date_from`` / ``date_to`` (YYYY-MM-DD, inclusive, on part time)
     select an explicit range and take precedence over ``timeframe_days``.
-    Results are ranked by recency + exact-project + title match (see
-    _rank_score) rather than pure newest-first.
+    ``starred`` / ``tag`` filter on the curation sidecar and starred hits
+    rank higher. Results are ranked by recency + exact-project + title
+    match (see _rank_score) rather than pure newest-first.
     """
+    from opencode_cli_mcp import meta as meta_store
+
+    # Always resolve stars: they drive both the displayed flag and the score
+    # boost, not just the filter.
+    starred_ids: set[str] = set(meta_store.session_ids(starred=True))
+    if starred is not None or tag:
+        if starred is False:
+            curated = [i for i in (meta_store.session_ids(tag=tag) if tag else []) if i not in starred_ids]
+            if tag and not curated:
+                return _empty_search(query, include_archived, timeframe_days, project, date_from, date_to, starred, tag)
+        elif starred is True:
+            curated = meta_store.session_ids(starred=True, tag=tag)
+        else:
+            curated = meta_store.session_ids(tag=tag)
+        if not curated:
+            return _empty_search(query, include_archived, timeframe_days, project, date_from, date_to, starred, tag)
+        filter_ids = set(curated)
+    else:
+        filter_ids = None
     conn = _connect(db_path, read_only=True)
     try:
         archived_clause = "" if include_archived else "AND s.time_archived IS NULL"
@@ -417,6 +510,10 @@ def search_transcripts(
         if project:
             project_clause = "AND (s.directory LIKE ? OR s.project_id LIKE ?)"
             params.extend([f"%{project}%", f"%{project}%"])
+        curation_clause = ""
+        if filter_ids is not None:
+            curation_clause = f"AND s.id IN ({','.join('?' * len(filter_ids))})"
+            params.extend(filter_ids)
         rows = conn.execute(
             f"""
             SELECT s.id AS session_id, s.title, s.time_archived, s.directory, s.agent,
@@ -428,6 +525,7 @@ def search_transcripts(
                   {archived_clause}
                   {timeframe_clause}
                   {project_clause}
+                  {curation_clause}
             ORDER BY p.time_created DESC
             LIMIT ?
             """,
@@ -441,6 +539,7 @@ def search_transcripts(
                 text = json.loads(r["part_data"]).get("text", "")
             except (json.JSONDecodeError, AttributeError):
                 text = ""
+            is_starred = r["session_id"] in starred_ids and starred is not False
             results.append(
                 {
                     "session_id": r["session_id"],
@@ -450,7 +549,8 @@ def search_transcripts(
                     "agent": r["agent"],
                     "timestamp": _fmt_ts(r["part_ts"]),
                     "snippet": _centered_snippet(text, query),
-                    "score": _rank_score(r["part_ts"], r["title"], r["directory"], query, project),
+                    "starred": is_starred,
+                    "score": _rank_score(r["part_ts"], r["title"], r["directory"], query, project, is_starred),
                 }
             )
         # Stable sort: equal scores keep the SQL newest-first order.
@@ -465,6 +565,8 @@ def search_transcripts(
                 "project": project,
                 "date_from": date_from,
                 "date_to": date_to,
+                "starred": starred,
+                "tag": tag,
             },
         }
     finally:

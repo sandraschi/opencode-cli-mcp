@@ -49,6 +49,11 @@ async def opencode_depot(
             "delete",
             "search",
             "stats",
+            "star",
+            "unstar",
+            "tag_add",
+            "tag_remove",
+            "tags",
             "rag",
             "rag_index",
             "rag_status",
@@ -63,7 +68,11 @@ async def opencode_depot(
                 " rename: set title. delete: permanently remove (cascades messages)."
                 " search: full-text across transcripts and titles (wayback find)."
                 " search filters: query + optional timeframe_days (last N days),"
-                " project (directory/project_id substring), include_archived."
+                " project (directory/project_id substring), include_archived,"
+                " starred (true = only favourites), tag."
+                " star / unstar: toggle a favourite (sidecar db, never touches opencode.db)."
+                " tag_add / tag_remove: attach/detach tags (tags param, comma-separated)."
+                " tags: list every tag with usage counts."
                 " rag: semantic search over indexed transcripts (needs rag extras)."
                 " rag_index: index new sessions for semantic search (text + code)."
                 " rag_status: index state + availability."
@@ -97,6 +106,15 @@ async def opencode_depot(
         Field(description="Search/list: explicit range end YYYY-MM-DD (takes precedence over timeframe_days)"),
     ] = None,
     include_archived: Annotated[bool, Field(description="Search: include archived sessions")] = True,
+    starred: Annotated[
+        bool | None,
+        Field(description="List/search: true = only favourites, false = only unstarred, null = no constraint"),
+    ] = None,
+    tag: Annotated[str | None, Field(description="List/search: only sessions carrying this tag")] = None,
+    tags: Annotated[
+        str | None,
+        Field(description="tag_add/tag_remove: comma-separated tags, e.g. 'neuro, vienna'"),
+    ] = None,
     status: Annotated[
         Literal["all", "active", "archived"],
         Field(description="Status filter (list): all, active, or archived"),
@@ -105,8 +123,8 @@ async def opencode_depot(
     agent: Annotated[str | None, Field(description="Agent name filter (list)")] = None,
     search: Annotated[str | None, Field(description="Title substring filter (list)")] = None,
     sort: Annotated[
-        Literal["updated", "created", "archived", "cost", "tokens", "title"],
-        Field(description="Sort order (list)"),
+        Literal["updated", "created", "archived", "cost", "tokens", "title", "starred"],
+        Field(description="Sort order (list); 'starred' puts favourites first"),
     ] = "updated",
     limit: Annotated[int, Field(description="Page size (list/search/rag/code)", ge=1, le=200)] = 50,
     offset: Annotated[int, Field(description="Page offset (list)", ge=0)] = 0,
@@ -153,6 +171,9 @@ async def opencode_depot(
             include_archived,
             date_from,
             date_to,
+            starred,
+            tag,
+            tags,
         )
     except depot.DepotError as e:
         return _wrap(action, False, str(e), {})
@@ -179,6 +200,9 @@ async def _dispatch(
     include_archived: bool,
     date_from: str | None,
     date_to: str | None,
+    starred: bool | None,
+    tag: str | None,
+    tags: str | None,
 ) -> dict:
     if action == "list":
         page = depot.list_sessions(
@@ -192,6 +216,8 @@ async def _dispatch(
             timeframe_days=timeframe_days,
             date_from=date_from,
             date_to=date_to,
+            starred=starred,
+            tag=tag,
         )
         return _wrap(
             action,
@@ -211,6 +237,8 @@ async def _dispatch(
             project=project,
             date_from=date_from,
             date_to=date_to,
+            starred=starred,
+            tag=tag,
         )
         scope = "".join(
             [
@@ -253,8 +281,44 @@ async def _dispatch(
     if action == "stats":
         return _wrap(action, True, "Depot statistics", depot.depot_stats())
 
+    if action == "tags":
+        from opencode_cli_mcp import meta as meta_store
+
+        return _wrap(
+            action,
+            True,
+            f"{len(meta_store.tags_with_counts())} tags",
+            {"tags": meta_store.tags_with_counts(), "stats": meta_store.stats()},
+        )
+
     if not session_id:
         return _missing(action, "session_id")
+
+    if action in ("star", "unstar"):
+        from opencode_cli_mcp import meta as meta_store
+
+        want = action == "star"
+        result = meta_store.set_star(session_id, want)
+        return _wrap(
+            action,
+            True,
+            f"{'Starred' if want else 'Unstarred'} session {session_id}",
+            {**result, **meta_store.get(session_id)},
+        )
+
+    if action in ("tag_add", "tag_remove"):
+        from opencode_cli_mcp import meta as meta_store
+
+        requested = [t for t in (tags or "").split(",") if t.strip()]
+        if not requested:
+            return _missing(action, "tags")
+        if action == "tag_add":
+            result = meta_store.add_tags(session_id, requested)
+            msg = f"Added {len(result['added'])} tag(s) to {session_id}"
+        else:
+            result = meta_store.remove_tags(session_id, requested)
+            msg = f"Removed {len(result['removed'])} tag(s) from {session_id}"
+        return _wrap(action, True, msg, result)
 
     if action == "get":
         session = depot.get_session(session_id)

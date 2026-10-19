@@ -30,6 +30,8 @@ async def depot_list(
     timeframe_days: int | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    starred: bool | None = None,
+    tag: str | None = None,
 ):
     try:
         # Sync sqlite over an 11 GB opencode.db blocks the event loop for
@@ -48,6 +50,8 @@ async def depot_list(
             timeframe_days=timeframe_days,
             date_from=date_from,
             date_to=date_to,
+            starred=starred,
+            tag=tag,
         )
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -84,6 +88,8 @@ async def depot_search(
     project: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    starred: bool | None = None,
+    tag: str | None = None,
 ):
     try:
         data = await asyncio.to_thread(
@@ -95,6 +101,8 @@ async def depot_search(
             project=project,
             date_from=date_from,
             date_to=date_to,
+            starred=starred,
+            tag=tag,
         )
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -181,6 +189,60 @@ async def depot_share(session_id: str):
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"success": True, "message": f"Shared '{session_id}'", "data": data}
+
+
+@router.post("/sessions/{session_id}/star")
+async def depot_star(session_id: str, body: dict | None = None):
+    """Star/unstar a session. Body {"starred": false} un-stars (default true).
+
+    Curation lives in the meta sidecar DB - opencode.db is never written.
+    """
+    from opencode_cli_mcp import meta as meta_store
+
+    starred = True if body is None else bool(body.get("starred", True))
+    data = await asyncio.to_thread(meta_store.set_star, session_id, starred)
+    return {
+        "success": True,
+        "message": f"{'Starred' if starred else 'Unstarred'} '{session_id}'",
+        "data": {**data, **meta_store.get(session_id)},
+    }
+
+
+@router.post("/sessions/{session_id}/tags")
+async def depot_tag_add(session_id: str, body: dict):
+    """Add tags: body {"tags": ["neuro", "vienna"]} or {"tags": "neuro,vienna"}."""
+    from opencode_cli_mcp import meta as meta_store
+
+    raw = body.get("tags")
+    tags = raw if isinstance(raw, list) else str(raw or "").split(",")
+    cleaned = [str(t) for t in tags if str(t).strip()]
+    if not cleaned:
+        raise HTTPException(status_code=422, detail="tags required")
+    data = await asyncio.to_thread(meta_store.add_tags, session_id, cleaned)
+    return {"success": True, "message": f"Tagged '{session_id}'", "data": data}
+
+
+@router.delete("/sessions/{session_id}/tags")
+async def depot_tag_remove(session_id: str, tag: str):
+    """Remove one tag (query param, repeated calls for several)."""
+    from opencode_cli_mcp import meta as meta_store
+
+    if not tag.strip():
+        raise HTTPException(status_code=422, detail="tag required")
+    data = await asyncio.to_thread(meta_store.remove_tags, session_id, [tag])
+    return {"success": True, "message": f"Removed tag from '{session_id}'", "data": data}
+
+
+@router.get("/tags")
+async def depot_tags():
+    """All tags with usage counts, plus favourite totals."""
+    from opencode_cli_mcp import meta as meta_store
+
+    return {
+        "success": True,
+        "message": "Tags",
+        "data": {"tags": meta_store.tags_with_counts(), "stats": meta_store.stats()},
+    }
 
 
 @router.get("/sessions/{session_id}/share")
