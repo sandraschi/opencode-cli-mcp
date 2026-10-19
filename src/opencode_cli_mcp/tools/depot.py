@@ -8,6 +8,7 @@ and semantic RAG search over indexed transcripts.
 """
 
 import asyncio
+from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import Field
@@ -54,6 +55,8 @@ async def opencode_depot(
             "tag_add",
             "tag_remove",
             "tags",
+            "export",
+            "memops",
             "rag",
             "rag_index",
             "rag_status",
@@ -73,6 +76,8 @@ async def opencode_depot(
                 " star / unstar: toggle a favourite (sidecar db, never touches opencode.db)."
                 " tag_add / tag_remove: attach/detach tags (tags param, comma-separated)."
                 " tags: list every tag with usage counts."
+                " export: write md/html/docx to out_path (docx needs LibreOffice)."
+                " memops: drop a frontmatter note into the advanced-memory inbox."
                 " rag: semantic search over indexed transcripts (needs rag extras)."
                 " rag_index: index new sessions for semantic search (text + code)."
                 " rag_status: index state + availability."
@@ -115,6 +120,11 @@ async def opencode_depot(
         str | None,
         Field(description="tag_add/tag_remove: comma-separated tags, e.g. 'neuro, vienna'"),
     ] = None,
+    format: Annotated[
+        Literal["md", "html", "docx"],
+        Field(description="export: output format (docx requires LibreOffice installed)"),
+    ] = "md",
+    out_path: Annotated[str | None, Field(description="export: destination file (default ~/Downloads)")] = None,
     status: Annotated[
         Literal["all", "active", "archived"],
         Field(description="Status filter (list): all, active, or archived"),
@@ -151,6 +161,11 @@ async def opencode_depot(
     opencode_depot(action="code", query="extracted the auth module", path_filter="src")
     opencode_depot(action="rag_index")
     opencode_depot(action="stats")
+    opencode_depot(action="star", session_id="sess_01")
+    opencode_depot(action="tag_add", session_id="sess_01", tags="neuro, vienna")
+    opencode_depot(action="list", starred=True, sort="starred")
+    opencode_depot(action="export", session_id="sess_01", format="docx")
+    opencode_depot(action="memops", session_id="sess_01", tags="neuro")
     """
 
     try:
@@ -174,6 +189,8 @@ async def opencode_depot(
             starred,
             tag,
             tags,
+            format,
+            out_path,
         )
     except depot.DepotError as e:
         return _wrap(action, False, str(e), {})
@@ -203,6 +220,8 @@ async def _dispatch(
     starred: bool | None,
     tag: str | None,
     tags: str | None,
+    format: str,
+    out_path: str | None,
 ) -> dict:
     if action == "list":
         page = depot.list_sessions(
@@ -319,6 +338,23 @@ async def _dispatch(
             result = meta_store.remove_tags(session_id, requested)
             msg = f"Removed {len(result['removed'])} tag(s) from {session_id}"
         return _wrap(action, True, msg, result)
+
+    if action in ("export", "memops"):
+        from opencode_cli_mcp import exporters
+
+        requested_tags = [t for t in (tags or "").split(",") if t.strip()]
+        try:
+            if action == "memops":
+                data = exporters.send_to_memops(session_id, tags=requested_tags)
+                msg = f"Note written to memops inbox: {data['path']}"
+            else:
+                data = exporters.export_transcript(
+                    session_id, format, out_path=Path(out_path) if out_path else None, tags=requested_tags
+                )
+                msg = f"Exported {data['format']} to {data['path']}"
+        except exporters.ExportError as e:
+            return _wrap(action, False, str(e), {"session_id": session_id})
+        return _wrap(action, True, msg, data)
 
     if action == "get":
         session = depot.get_session(session_id)

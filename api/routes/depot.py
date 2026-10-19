@@ -7,6 +7,7 @@ flags and write through the depot module's narrow update path.
 """
 
 import asyncio
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
@@ -243,6 +244,35 @@ async def depot_tags():
         "message": "Tags",
         "data": {"tags": meta_store.tags_with_counts(), "stats": meta_store.stats()},
     }
+
+
+@router.get("/sessions/{session_id}/export")
+async def depot_export(session_id: str, format: str = "md", out_path: str | None = None):
+    """Export one session as md / html / docx (docx needs LibreOffice)."""
+    from opencode_cli_mcp import exporters
+
+    try:
+        data = await asyncio.to_thread(
+            exporters.export_transcript, session_id, format, out_path=Path(out_path) if out_path else None
+        )
+    except exporters.ExportError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "message": f"Exported to {data['path']}", "data": data}
+
+
+@router.post("/sessions/{session_id}/memops")
+async def depot_memops(session_id: str, body: dict | None = None):
+    """Drop a frontmatter note into the advanced-memory inbox."""
+    from opencode_cli_mcp import exporters
+
+    raw = (body or {}).get("tags")
+    tags = raw if isinstance(raw, list) else str(raw or "").split(",")
+    cleaned = [str(t) for t in tags if str(t).strip()]
+    try:
+        data = await asyncio.to_thread(exporters.send_to_memops, session_id, tags=cleaned)
+    except exporters.ExportError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "message": "Note written to memops inbox", "data": data}
 
 
 @router.get("/sessions/{session_id}/share")
