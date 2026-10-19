@@ -27,6 +27,21 @@ from opencode_cli_mcp.server import mcp_app as mcp_http_app
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "10951"))
 
+
+def _bind_host() -> str:
+    """Bind address for the unified backend.
+
+    Default is loopback on purpose: this API has no authentication (CORS /
+    LAN-trust model), so an accidental 0.0.0.0 would publish session delete,
+    file export and agent-run endpoints to the whole network. ``BIND_LAN=1``
+    is the explicit opt-in for iPad/Tailscale use; pair it with a firewall
+    rule scoped to the Tailscale CGNAT range (see docs/CONFIGURATION.md).
+    """
+    if os.environ.get("BIND_LAN", "").strip().lower() in ("1", "true", "yes", "on"):
+        return os.environ.get("BIND_HOST", "0.0.0.0")
+    return os.environ.get("BIND_HOST", "127.0.0.1")
+
+
 _allow_origin_regex = r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$"
 
 
@@ -162,7 +177,7 @@ app.mount("/", mcp_http_app)
 def main():
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=BACKEND_PORT)
+    uvicorn.run(app, host=_bind_host(), port=BACKEND_PORT)
 
 
 if __name__ == "__main__":

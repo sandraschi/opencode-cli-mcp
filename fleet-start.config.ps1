@@ -8,6 +8,10 @@
     WebRoot      = 'web_sota'
     Backend = @{
         Kind          = 'uvicorn'
+        # Loopback by default (no auth on this API). Set FLEET_BIND_HOST=0.0.0.0
+        # for iPad/Tailscale access and add a firewall rule scoped to
+        # 100.64.0.0/10 - see docs/CONFIGURATION.md.
+        Host          = $(if ($env:FLEET_BIND_HOST) { $env:FLEET_BIND_HOST } else { '127.0.0.1' })
         # Unified app: REST /api/* + FastMCP /mcp on the same port (api/main.py
         # mounts opencode_cli_mcp.server:http_app at /mcp with its lifespan).
         # NEVER point uvicorn at opencode_cli_mcp.server:app: that is the raw
