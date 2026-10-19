@@ -177,6 +177,20 @@ def test_list_pagination(depot_db):
     assert page2["next_offset"] is None
 
 
+def test_list_date_range(depot_db):
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    page = depot.list_sessions(date_from=today)
+    assert page["total"] == 1
+    assert page["sessions"][0]["id"] == "sess_active"
+    old = depot.list_sessions(date_to=today)
+    # sess_arch (2 days ago) is inside, sess_active (today) too - both match
+    assert old["total"] == 2
+    ancient = depot.list_sessions(date_from="2030-01-01")
+    assert ancient["total"] == 0
+    # Invalid dates degrade to no filter, never an error.
+    assert depot.list_sessions(date_from="not-a-date")["total"] == 2
+
+
 def test_get_session(depot_db):
     s = depot.get_session("sess_active")
     assert s is not None
@@ -284,6 +298,17 @@ def test_search_ranking_exact_project(depot_db):
     assert result["count"] == 2
     # Newer sibling loses to exact dir-name match (0.2 + 0.5 > 0.5).
     assert result["results"][0]["session_id"] == "sess_exact"
+
+
+def test_search_date_range(depot_db):
+    _insert_part(depot_db, "part_old", "msg_old", "sess_active", "vienna old", 10 * 86_400_000)
+    _insert_part(depot_db, "part_new", "msg_new", "sess_active", "vienna new", 1_000)
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    assert depot.search_transcripts("vienna", date_from=today)["count"] == 1
+    assert depot.search_transcripts("vienna", date_from="2030-01-01")["count"] == 0
+    # Explicit dates beat timeframe_days.
+    wide = depot.search_transcripts("vienna", timeframe_days=3, date_from="2020-01-01")
+    assert wide["count"] == 2
 
 
 def test_archive_unarchive(depot_db):

@@ -251,6 +251,7 @@ export interface DepotSearchResult {
   agent: string;
   timestamp: string;
   snippet: string;
+  score?: number;
 }
 
 export interface RagStatus {
@@ -438,12 +439,22 @@ export const api = {
       undefined,
       30000,
     ),
-  depotSearch: (q: string, limit = 20) =>
-    fetchJson<{ success: boolean; message: string; data: { results: DepotSearchResult[]; count: number } }>(
-      `/depot/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  depotSearch: (
+    q: string,
+    limit = 20,
+    opts: { timeframe_days?: number; project?: string; date_from?: string; date_to?: string } = {},
+  ) => {
+    const params = new URLSearchParams({ q, limit: String(limit) });
+    if (opts.timeframe_days) params.set("timeframe_days", String(opts.timeframe_days));
+    if (opts.project?.trim()) params.set("project", opts.project.trim());
+    if (opts.date_from) params.set("date_from", opts.date_from);
+    if (opts.date_to) params.set("date_to", opts.date_to);
+    return fetchJson<{ success: boolean; message: string; data: { results: DepotSearchResult[]; count: number } }>(
+      `/depot/search?${params.toString()}`,
       undefined,
       60000,
-    ),
+    );
+  },
   depotStats: () =>
     fetchJson<{ success: boolean; message: string; data: DepotStats }>("/depot/stats", undefined, 60000),
   depotUsage: (days: number) =>

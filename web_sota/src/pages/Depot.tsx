@@ -8,6 +8,8 @@ import {
   Loader2,
   Search,
   FileText,
+  LayoutGrid,
+  List,
   Pencil,
   Trash2,
   ChevronLeft,
@@ -37,16 +39,32 @@ interface Filters {
   search: string;
   searchMode: "title" | "transcript" | "semantic" | "code";
   timeframe: number | null;
+  sort: "updated" | "created" | "title" | "cost" | "tokens";
+  project: string;
+  dateFrom: string;
+  dateTo: string;
 }
+
+type DepotView = "list" | "grid";
 
 export function Depot() {
   const [sessions, setSessions] = useState<DepotSession[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [stats, setStats] = useState<DepotStats | null>(null);
-  const [filters, setFilters] = useState<Filters>({ status: "all", search: "", searchMode: "title", timeframe: null });
+  const [filters, setFilters] = useState<Filters>({
+    status: "all",
+    search: "",
+    searchMode: "title",
+    timeframe: null,
+    sort: "updated",
+    project: "",
+    dateFrom: "",
+    dateTo: "",
+  });
+  const [view, setView] = useState<DepotView>("list");
   const [transcriptResults, setTranscriptResults] = useState<
-    Array<{ session_id: string; title: string; snippet: string; timestamp: string; archived: boolean }>
+    Array<{ session_id: string; title: string; snippet: string; timestamp: string; archived: boolean; score?: number }>
   >([]);
   const [semanticResults, setSemanticResults] = useState<RagSearchResult[]>([]);
   const [codeResults, setCodeResults] = useState<CodeSearchResult[]>([]);
@@ -71,10 +89,20 @@ export function Depot() {
       setLoading(true);
       setError("");
       try {
-        const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset), sort: "updated" });
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          offset: String(nextOffset),
+          sort: filters.sort,
+        });
         if (filters.status !== "all") params.set("status", filters.status);
         if (filters.search.trim() && filters.searchMode === "title") params.set("search", filters.search.trim());
-        if (filters.timeframe) params.set("timeframe_days", String(filters.timeframe));
+        if (filters.project.trim()) params.set("project", filters.project.trim());
+        if (filters.dateFrom || filters.dateTo) {
+          if (filters.dateFrom) params.set("date_from", filters.dateFrom);
+          if (filters.dateTo) params.set("date_to", filters.dateTo);
+        } else if (filters.timeframe) {
+          params.set("timeframe_days", String(filters.timeframe));
+        }
         const d = await api.depotList(params.toString());
         setSessions(d.data.sessions);
         setTotal(d.data.total);
@@ -85,7 +113,16 @@ export function Depot() {
         setLoading(false);
       }
     },
-    [filters.status, filters.search, filters.searchMode, filters.timeframe],
+    [
+      filters.status,
+      filters.search,
+      filters.searchMode,
+      filters.timeframe,
+      filters.sort,
+      filters.project,
+      filters.dateFrom,
+      filters.dateTo,
+    ],
   );
 
   const loadStats = useCallback(async () => {
@@ -112,21 +149,31 @@ export function Depot() {
     loadRagStatus();
   }, [load, loadStats, loadRagStatus]);
 
-  const runTranscriptSearch = useCallback(async (q: string) => {
-    setSearching(true);
-    setError("");
-    try {
-      const d = await api.depotSearch(q);
-      setTranscriptResults(d.data.results);
-      setTotal(d.data.count);
-      setOffset(0);
-    } catch (e) {
-      setError(`Search failed: ${e instanceof Error ? e.message : "unknown"}`);
-      setTranscriptResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
+  const runTranscriptSearch = useCallback(
+    async (q: string) => {
+      setSearching(true);
+      setError("");
+      try {
+        const d = await api.depotSearch(q, 50, {
+          project: filters.project.trim() || undefined,
+          ...(filters.dateFrom || filters.dateTo
+            ? { date_from: filters.dateFrom || undefined, date_to: filters.dateTo || undefined }
+            : filters.timeframe
+              ? { timeframe_days: filters.timeframe }
+              : {}),
+        });
+        setTranscriptResults(d.data.results);
+        setTotal(d.data.count);
+        setOffset(0);
+      } catch (e) {
+        setError(`Search failed: ${e instanceof Error ? e.message : "unknown"}`);
+        setTranscriptResults([]);
+      } finally {
+        setSearching(false);
+      }
+    },
+    [filters.project, filters.timeframe, filters.dateFrom, filters.dateTo],
+  );
 
   const runSemanticSearch = useCallback(async (q: string) => {
     setSearching(true);
@@ -406,6 +453,46 @@ export function Depot() {
           <option value="90">Last 90 days</option>
           <option value="365">Last year</option>
         </select>
+        <input
+          type="date"
+          value={filters.dateFrom}
+          onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value, timeframe: null }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-accent/50"
+          data-testid="depot-date-from"
+          aria-label="From date"
+          title="From date (overrides preset)"
+        />
+        <input
+          type="date"
+          value={filters.dateTo}
+          onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value, timeframe: null }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-accent/50"
+          data-testid="depot-date-to"
+          aria-label="To date"
+          title="To date (overrides preset)"
+        />
+        <select
+          value={filters.sort}
+          onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as Filters["sort"] }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          data-testid="depot-sort"
+          aria-label="Sort sessions"
+        >
+          <option value="updated">Recently updated</option>
+          <option value="created">Recently created</option>
+          <option value="title">Title A-Z</option>
+          <option value="cost">Highest cost</option>
+          <option value="tokens">Most tokens</option>
+        </select>
+        <input
+          type="text"
+          value={filters.project}
+          onChange={(e) => setFilters((f) => ({ ...f, project: e.target.value }))}
+          placeholder="Project / directory..."
+          data-testid="depot-project"
+          aria-label="Filter by project"
+          className="w-44 bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+        />
         <div className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 rounded-md px-1 py-0.5">
           <button
             type="button"
@@ -478,6 +565,32 @@ export function Depot() {
           />
         )}
         {searching && <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-500" />}
+        <span className="flex-1" />
+        <fieldset className="flex items-center rounded-md overflow-hidden border border-zinc-700">
+          <legend className="sr-only">View</legend>
+          <button
+            type="button"
+            data-testid="depot-view-list"
+            onClick={() => setView("list")}
+            className={`p-1.5 transition-colors ${view === "list" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}`}
+            title="List view"
+            aria-label="List view"
+            aria-pressed={view === "list"}
+          >
+            <List className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            data-testid="depot-view-grid"
+            onClick={() => setView("grid")}
+            className={`p-1.5 transition-colors ${view === "grid" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}`}
+            title="Grid view"
+            aria-label="Grid view"
+            aria-pressed={view === "grid"}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </button>
+        </fieldset>
         <span className="text-xs text-zinc-500">
           {inTranscriptMode
             ? `${transcriptResults.length} transcript matches`
@@ -577,6 +690,14 @@ export function Depot() {
                 <div className="flex items-center gap-2 mb-1.5">
                   <FileText className="w-3.5 h-3.5 text-accent" />
                   <span className="font-mono text-xs text-zinc-200">{r.title || r.session_id}</span>
+                  {typeof r.score === "number" && (
+                    <span
+                      className="text-[10px] text-zinc-500 uppercase tracking-wider"
+                      title="Rank: recency + exact-project + title match"
+                    >
+                      {(r.score * 100).toFixed(0)}%
+                    </span>
+                  )}
                   {r.archived && (
                     <span className="text-[10px] uppercase tracking-wider text-amber-400 bg-amber-900/30 rounded px-1.5 py-0.5">
                       archived
@@ -690,7 +811,7 @@ export function Depot() {
           <p>No sessions match the current filter.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className={view === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-2" : "space-y-2"}>
           {sessions.map((s) => (
             <motion.div
               key={s.id}

@@ -4,6 +4,8 @@ import {
   Download,
   ExternalLink,
   FileText,
+  LayoutGrid,
+  List,
   ListTree,
   MessageSquareText,
   Pencil,
@@ -11,7 +13,7 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { api, type Session, type SessionMessage } from "../services/api";
+import { api, type DepotSession, type Session, type SessionMessage } from "../services/api";
 
 type DetailTab = "overview" | "transcript" | "diff";
 
@@ -21,6 +23,20 @@ interface DiffShape {
   deleted?: string[];
   [key: string]: unknown;
 }
+
+const PAGE_SIZE = 25;
+
+interface SessionFilters {
+  status: "all" | "active" | "archived";
+  search: string;
+  project: string;
+  sort: "updated" | "created" | "title" | "cost" | "tokens";
+  timeframe: number | null;
+  dateFrom: string;
+  dateTo: string;
+}
+
+type SessionView = "list" | "grid";
 
 function msgText(msg: SessionMessage): string {
   const parts = msg.parts ?? [];
@@ -76,8 +92,24 @@ function exportTranscript(title: string, sessionId: string, messages: SessionMes
 }
 
 export function Sessions() {
-  const [sessions, setSessions] = useState<Session[]>([]);
+  // List rows come from the offline depot (/depot/sessions): full history,
+  // filters, sort, pagination. The old live-serve list only showed the serve
+  // instance's project-scoped slice (e.g. 4 stale sessions). Detail actions
+  // (transcript/diff/rename/delete) still go through live serve when up.
+  const [sessions, setSessions] = useState<DepotSession[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<SessionFilters>({
+    status: "all",
+    search: "",
+    project: "",
+    sort: "updated",
+    timeframe: null,
+    dateFrom: "",
+    dateTo: "",
+  });
+  const [view, setView] = useState<SessionView>("list");
   const [selected, setSelected] = useState<string | null>(null);
   const [sessionDetail, setSessionDetail] = useState<Session | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -90,20 +122,47 @@ export function Sessions() {
   const [diff, setDiff] = useState<DiffShape | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.listSessions();
-      setSessions(res.data.sessions);
-    } catch {
-      // backend down - keep last list; empty state covers first load
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (nextOffset = 0) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          offset: String(nextOffset),
+          sort: filters.sort,
+        });
+        if (filters.status !== "all") params.set("status", filters.status);
+        if (filters.search.trim()) params.set("search", filters.search.trim());
+        if (filters.project.trim()) params.set("project", filters.project.trim());
+        if (filters.dateFrom || filters.dateTo) {
+          if (filters.dateFrom) params.set("date_from", filters.dateFrom);
+          if (filters.dateTo) params.set("date_to", filters.dateTo);
+        } else if (filters.timeframe) {
+          params.set("timeframe_days", String(filters.timeframe));
+        }
+        const res = await api.depotList(params.toString());
+        setSessions(res.data.sessions);
+        setTotal(res.data.total);
+        setOffset(nextOffset);
+      } catch {
+        // backend down - keep last list; empty state covers first load
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      filters.status,
+      filters.search,
+      filters.project,
+      filters.sort,
+      filters.timeframe,
+      filters.dateFrom,
+      filters.dateTo,
+    ],
+  );
 
   useEffect(() => {
-    load();
+    load(0);
   }, [load]);
 
   const loadMessages = useCallback(async (id: string) => {
@@ -150,7 +209,7 @@ export function Sessions() {
     if (tab === "diff" && diff === null && selected) loadDiff(selected);
   };
 
-  const renameSession = async (s: Session) => {
+  const renameSession = async (s: { id: string; title?: string | null }) => {
     const title = window.prompt(`Rename session ${s.id}`, s.title ?? "");
     if (title === null || !title.trim()) return;
     setBusyId(s.id);
@@ -167,7 +226,7 @@ export function Sessions() {
     }
   };
 
-  const deleteSession = async (s: Session) => {
+  const deleteSession = async (s: { id: string; title?: string | null }) => {
     if (
       !window.confirm(
         `Permanently delete session '${s.title || s.id}'? All messages and file diffs cascade. No recovery.`,
@@ -266,19 +325,137 @@ export function Sessions() {
 
   return (
     <div data-testid="sessions-page">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Sessions</h1>
-        <button
-          type="button"
-          data-testid="sessions-refresh"
-          onClick={load}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
-          title="Refresh sessions"
-          aria-label="Refresh sessions"
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold">Sessions</h1>
+          <p className="text-sm text-zinc-500 mt-1" data-testid="sessions-count">
+            {total} sessions · offline depot
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <fieldset className="flex items-center rounded-lg overflow-hidden border border-zinc-700">
+            <legend className="sr-only">View</legend>
+            <button
+              type="button"
+              data-testid="sessions-view-list"
+              onClick={() => setView("list")}
+              className={`p-2 transition-colors ${view === "list" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}`}
+              title="List view"
+              aria-label="List view"
+              aria-pressed={view === "list"}
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              data-testid="sessions-view-grid"
+              onClick={() => setView("grid")}
+              className={`p-2 transition-colors ${view === "grid" ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}`}
+              title="Grid view"
+              aria-label="Grid view"
+              aria-pressed={view === "grid"}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </fieldset>
+          <button
+            type="button"
+            data-testid="sessions-refresh"
+            onClick={() => load(offset)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+            title="Refresh sessions"
+            aria-label="Refresh sessions"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4 px-3 py-2 bg-surface-light border border-surface-border rounded-lg">
+        <select
+          value={filters.status}
+          onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as SessionFilters["status"] }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          data-testid="sessions-status-filter"
+          aria-label="Filter by archive status"
         >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
+          <option value="all">All sessions</option>
+          <option value="active">Active</option>
+          <option value="archived">Archived</option>
+        </select>
+        <select
+          value={filters.sort}
+          onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SessionFilters["sort"] }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          data-testid="sessions-sort"
+          aria-label="Sort sessions"
+        >
+          <option value="updated">Recently updated</option>
+          <option value="created">Recently created</option>
+          <option value="title">Title A-Z</option>
+          <option value="cost">Highest cost</option>
+          <option value="tokens">Most tokens</option>
+        </select>
+        <select
+          value={filters.dateFrom || filters.dateTo ? "custom" : (filters.timeframe ?? 0)}
+          onChange={(e) =>
+            setFilters((f) =>
+              e.target.value === "custom"
+                ? { ...f }
+                : { ...f, timeframe: e.target.value === "0" ? null : Number(e.target.value), dateFrom: "", dateTo: "" },
+            )
+          }
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          data-testid="sessions-timeframe"
+          aria-label="Time range"
+        >
+          <option value="0">All time</option>
+          <option value="1">Last 24 hours</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="custom">Custom range</option>
+        </select>
+        <input
+          type="date"
+          value={filters.dateFrom}
+          onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value, timeframe: null }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-accent/50"
+          data-testid="sessions-date-from"
+          aria-label="From date"
+          title="From date (overrides preset)"
+        />
+        <input
+          type="date"
+          value={filters.dateTo}
+          onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value, timeframe: null }))}
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-accent/50"
+          data-testid="sessions-date-to"
+          aria-label="To date"
+          title="To date (overrides preset)"
+        />
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+          <input
+            type="text"
+            value={filters.search}
+            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+            placeholder="Title contains..."
+            data-testid="sessions-search"
+            aria-label="Search titles"
+            className="bg-zinc-800 border border-zinc-700 rounded-md pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+          />
+        </div>
+        <input
+          type="text"
+          value={filters.project}
+          onChange={(e) => setFilters((f) => ({ ...f, project: e.target.value }))}
+          placeholder="Project / directory..."
+          data-testid="sessions-project"
+          aria-label="Filter by project"
+          className="bg-zinc-800 border border-zinc-700 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:border-accent/50"
+        />
       </div>
 
       {notice && (
@@ -293,10 +470,18 @@ export function Sessions() {
       {loading ? (
         <div className="text-zinc-500">Loading sessions...</div>
       ) : sessions.length === 0 ? (
-        <div className="text-zinc-500">No active sessions. Run an agent first.</div>
+        <div className="text-zinc-500" data-testid="sessions-empty">
+          No sessions match these filters. Try widening the time range or clearing the search.
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <div className="space-y-2 lg:col-span-2">
+          <div
+            className={
+              view === "grid"
+                ? "lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 content-start"
+                : "space-y-2 lg:col-span-2"
+            }
+          >
             {sessions.map((s) => (
               <motion.div
                 key={s.id}
@@ -349,8 +534,47 @@ export function Sessions() {
                   </span>
                 </div>
                 {s.title && <div className="text-xs text-zinc-600 font-mono mt-0.5 truncate">{s.id}</div>}
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  {s.archived && (
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-300">
+                      archived
+                    </span>
+                  )}
+                  {s.agent && <span className="text-[10px] text-zinc-500">agent: {s.agent}</span>}
+                  {s.time_updated_display && (
+                    <span className="text-[10px] text-zinc-600">{s.time_updated_display}</span>
+                  )}
+                </div>
+                {s.directory && view === "list" && (
+                  <div className="text-[11px] text-zinc-600 font-mono mt-0.5 truncate" title={s.directory}>
+                    {s.directory}
+                  </div>
+                )}
               </motion.div>
             ))}
+            <div className="flex items-center justify-between pt-2" data-testid="sessions-pagination">
+              <button
+                type="button"
+                data-testid="sessions-prev"
+                disabled={offset === 0}
+                onClick={() => load(Math.max(0, offset - PAGE_SIZE))}
+                className="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Prev
+              </button>
+              <span className="text-xs text-zinc-500">
+                {total === 0 ? "0" : `${offset + 1}–${offset + sessions.length}`} of {total}
+              </span>
+              <button
+                type="button"
+                data-testid="sessions-next"
+                disabled={offset + PAGE_SIZE >= total}
+                onClick={() => load(offset + PAGE_SIZE)}
+                className="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
 
           <div

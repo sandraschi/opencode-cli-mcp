@@ -162,6 +162,23 @@ def _fmt_ts(ms: int | None) -> str | None:
         return None
 
 
+def _date_bound(date_str: str | None, end_of_day: bool) -> int | None:
+    """YYYY-MM-DD → ms epoch (UTC), start or end of day. None when blank/invalid.
+
+    Invalid input yields None (no filter) rather than an error - date inputs
+    come from UI pickers and tool params where a 500/400 on a typo helps
+    nobody. Explicit dates take precedence over timeframe_days.
+    """
+    if not date_str or not str(date_str).strip():
+        return None
+    try:
+        day = datetime.strptime(str(date_str).strip(), "%Y-%m-%d").replace(tzinfo=UTC)
+    except ValueError:
+        return None
+    ms = int(day.timestamp() * 1000)
+    return ms + 86_400_000 - 1 if end_of_day else ms
+
+
 def _row_to_session(row: sqlite3.Row) -> dict[str, Any]:
     s: dict[str, Any] = {}
     for col in _SESSION_COLUMNS:
@@ -185,12 +202,16 @@ def list_sessions(
     offset: int = 0,
     sort: str = "updated",
     timeframe_days: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     """List sessions from the depot with filters. Returns page + totals.
 
     ``timeframe_days`` restricts to sessions updated within the last N days
-    (for "what did I work on 3 weeks ago" style browsing).
+    (for "what did I work on 3 weeks ago" style browsing). ``date_from`` /
+    ``date_to`` (YYYY-MM-DD, inclusive, on time_updated) select an explicit
+    range and take precedence over ``timeframe_days``.
     """
     clauses: list[str] = []
     params: list[Any] = []
@@ -207,7 +228,15 @@ def list_sessions(
     if search:
         clauses.append("title LIKE ?")
         params.append(f"%{search}%")
-    if timeframe_days and timeframe_days > 0:
+    from_ms = _date_bound(date_from, False)
+    to_ms = _date_bound(date_to, True)
+    if from_ms is not None:
+        clauses.append("time_updated >= ?")
+        params.append(from_ms)
+    if to_ms is not None:
+        clauses.append("time_updated <= ?")
+        params.append(to_ms)
+    if from_ms is None and to_ms is None and timeframe_days and timeframe_days > 0:
         clauses.append("time_updated > ?")
         params.append(int(datetime.now(UTC).timestamp() * 1000) - timeframe_days * 86_400_000)
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
@@ -351,6 +380,8 @@ def search_transcripts(
     include_archived: bool = True,
     timeframe_days: int | None = None,
     project: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     """Full-text search across message parts (JSON $.text) and session titles.
@@ -361,6 +392,8 @@ def search_transcripts(
     ``timeframe_days`` restricts to parts written within the last N days
     ("last week we talked about X"). ``project`` matches session directory
     or project_id as a substring (same predicate as list_sessions).
+    ``date_from`` / ``date_to`` (YYYY-MM-DD, inclusive, on part time)
+    select an explicit range and take precedence over ``timeframe_days``.
     Results are ranked by recency + exact-project + title match (see
     _rank_score) rather than pure newest-first.
     """
@@ -368,9 +401,17 @@ def search_transcripts(
     try:
         archived_clause = "" if include_archived else "AND s.time_archived IS NULL"
         params: list[Any] = [f"%{query}%"]
+        from_ms = _date_bound(date_from, False)
+        to_ms = _date_bound(date_to, True)
         timeframe_clause = ""
-        if timeframe_days and timeframe_days > 0:
-            timeframe_clause = "AND p.time_created > ?"
+        if from_ms is not None:
+            timeframe_clause += "AND p.time_created >= ? "
+            params.append(from_ms)
+        if to_ms is not None:
+            timeframe_clause += "AND p.time_created <= ? "
+            params.append(to_ms)
+        if from_ms is None and to_ms is None and timeframe_days and timeframe_days > 0:
+            timeframe_clause += "AND p.time_created > ? "
             params.append(int(datetime.now(UTC).timestamp() * 1000) - timeframe_days * 86_400_000)
         project_clause = ""
         if project:
@@ -422,6 +463,8 @@ def search_transcripts(
                 "include_archived": include_archived,
                 "timeframe_days": timeframe_days,
                 "project": project,
+                "date_from": date_from,
+                "date_to": date_to,
             },
         }
     finally:

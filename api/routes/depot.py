@@ -28,6 +28,8 @@ async def depot_list(
     offset: int = 0,
     sort: str = "updated",
     timeframe_days: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ):
     try:
         # Sync sqlite over an 11 GB opencode.db blocks the event loop for
@@ -44,6 +46,8 @@ async def depot_list(
             offset=max(offset, 0),
             sort=sort,
             timeframe_days=timeframe_days,
+            date_from=date_from,
+            date_to=date_to,
         )
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -78,6 +82,8 @@ async def depot_search(
     include_archived: bool = True,
     timeframe_days: int | None = None,
     project: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ):
     try:
         data = await asyncio.to_thread(
@@ -87,6 +93,8 @@ async def depot_search(
             include_archived=include_archived,
             timeframe_days=timeframe_days,
             project=project,
+            date_from=date_from,
+            date_to=date_to,
         )
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))

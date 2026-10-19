@@ -86,7 +86,15 @@ async def opencode_depot(
     ] = None,
     timeframe_days: Annotated[
         int | None,
-        Field(description="Search only: parts written within the last N days (e.g. 7 = last week)", ge=1),
+        Field(description="Search/list: parts/sessions from the last N days (e.g. 7 = last week)", ge=1),
+    ] = None,
+    date_from: Annotated[
+        str | None,
+        Field(description="Search/list: explicit range start YYYY-MM-DD (takes precedence over timeframe_days)"),
+    ] = None,
+    date_to: Annotated[
+        str | None,
+        Field(description="Search/list: explicit range end YYYY-MM-DD (takes precedence over timeframe_days)"),
     ] = None,
     include_archived: Annotated[bool, Field(description="Search: include archived sessions")] = True,
     status: Annotated[
@@ -143,6 +151,8 @@ async def opencode_depot(
             offset,
             timeframe_days,
             include_archived,
+            date_from,
+            date_to,
         )
     except depot.DepotError as e:
         return _wrap(action, False, str(e), {})
@@ -167,10 +177,21 @@ async def _dispatch(
     offset: int,
     timeframe_days: int | None,
     include_archived: bool,
+    date_from: str | None,
+    date_to: str | None,
 ) -> dict:
     if action == "list":
         page = depot.list_sessions(
-            status=status, project=project, agent=agent, search=search, limit=limit, offset=offset, sort=sort
+            status=status,
+            project=project,
+            agent=agent,
+            search=search,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            timeframe_days=timeframe_days,
+            date_from=date_from,
+            date_to=date_to,
         )
         return _wrap(
             action,
@@ -183,12 +204,20 @@ async def _dispatch(
         if not query:
             return _missing(action, "query")
         result = depot.search_transcripts(
-            query, limit=limit, include_archived=include_archived, timeframe_days=timeframe_days, project=project
+            query,
+            limit=limit,
+            include_archived=include_archived,
+            timeframe_days=timeframe_days,
+            project=project,
+            date_from=date_from,
+            date_to=date_to,
         )
         scope = "".join(
             [
                 f" in project '{project}'" if project else "",
-                f" from the last {timeframe_days}d" if timeframe_days else "",
+                f" from {date_from} to {date_to}"
+                if date_from or date_to
+                else (f" from the last {timeframe_days}d" if timeframe_days else ""),
                 "" if include_archived else " (active only)",
             ]
         )
