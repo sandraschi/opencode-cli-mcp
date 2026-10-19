@@ -315,6 +315,35 @@ def _centered_snippet(text: str, query: str, width: int = 300) -> str:
     return snippet
 
 
+def _rank_score(text_ts_ms: int | None, title: str, directory: str, query: str, project: str | None) -> float:
+    """Rank a transcript hit: recency + exact-project + title match.
+
+    LIKE search returns newest-first, which buries the right chat when the
+    current session mentions the keyword a lot. Score (all 0..~1.8):
+
+    - recency ``1 / (1 + age_days)`` — a 6-day-old hit scores ~0.14, an
+      hour-old one ~0.96. Dominant signal, but not the only one.
+    - exact-project ``+0.5`` — when a ``project`` filter is set, a session
+      whose directory *basename* equals it (``.../chitchat``) outranks
+      substring siblings (``.../chitchat-archive``).
+    - title match ``+0.3`` — query in the session title means the whole
+      session was about it, not a passing mention in one part.
+
+    Ranking re-orders the filtered page (SQL still applies LIMIT first),
+    so it never widens the result set - it only fixes the order.
+    """
+    now_ms = int(datetime.now(UTC).timestamp() * 1000)
+    age_days = max(0.0, ((now_ms - (text_ts_ms or now_ms)) / 86_400_000))
+    score = 1.0 / (1.0 + age_days)
+    if project:
+        basename = (directory or "").replace("\\", "/").rsplit("/", 1)[-1].lower()
+        if basename == project.lower():
+            score += 0.5
+    if query.lower() in (title or "").lower():
+        score += 0.3
+    return round(score, 4)
+
+
 def search_transcripts(
     query: str,
     *,
@@ -332,6 +361,8 @@ def search_transcripts(
     ``timeframe_days`` restricts to parts written within the last N days
     ("last week we talked about X"). ``project`` matches session directory
     or project_id as a substring (same predicate as list_sessions).
+    Results are ranked by recency + exact-project + title match (see
+    _rank_score) rather than pure newest-first.
     """
     conn = _connect(db_path, read_only=True)
     try:
@@ -378,8 +409,11 @@ def search_transcripts(
                     "agent": r["agent"],
                     "timestamp": _fmt_ts(r["part_ts"]),
                     "snippet": _centered_snippet(text, query),
+                    "score": _rank_score(r["part_ts"], r["title"], r["directory"], query, project),
                 }
             )
+        # Stable sort: equal scores keep the SQL newest-first order.
+        results.sort(key=lambda h: -h["score"])
         return {
             "results": results,
             "count": len(results),

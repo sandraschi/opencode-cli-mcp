@@ -244,6 +244,48 @@ def test_search_centered_snippet(depot_db):
     assert len(snippet) <= 310
 
 
+def _insert_session(depot_db, session_id, title, directory, age_ms):
+    now = int(datetime.now(UTC).timestamp() * 1000)
+    ts = now - age_ms
+    conn = sqlite3.connect(depot_db)
+    conn.execute(
+        "INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated, "
+        "agent, model, cost, tokens_input, tokens_output) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (session_id, "proj_b", "sx", directory, title, "1.0.0", ts, ts, "build", "m", 0.0, 0, 0),
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_search_ranking_recency(depot_db):
+    _insert_part(depot_db, "part_old", "msg_old", "sess_active", "vienna old", 6 * 86_400_000)
+    _insert_part(depot_db, "part_new", "msg_new", "sess_active", "vienna new", 1_000)
+    result = depot.search_transcripts("vienna")
+    assert [h["snippet"] for h in result["results"]] == ["vienna new", "vienna old"]
+    assert result["results"][0]["score"] > result["results"][1]["score"]
+
+
+def test_search_ranking_title_boost(depot_db):
+    _insert_part(depot_db, "part_plain", "msg_plain", "sess_active", "vienna passing mention", 6 * 86_400_000)
+    _insert_session(depot_db, "sess_chit", "vienna planning", r"D:\Dev\repos\chitchat", 5 * 86_400_000)
+    _insert_part(depot_db, "part_chit", "msg_chit", "sess_chit", "vienna is great", 5 * 86_400_000)
+    result = depot.search_transcripts("vienna")
+    assert result["count"] == 2
+    # Older session wins via title match (0.167 + 0.3 > 0.143).
+    assert result["results"][0]["session_id"] == "sess_chit"
+
+
+def test_search_ranking_exact_project(depot_db):
+    _insert_session(depot_db, "sess_exact", "notes", r"D:\Dev\repos\chitchat", 4 * 86_400_000)
+    _insert_part(depot_db, "part_exact", "msg_exact", "sess_exact", "vienna exact", 4 * 86_400_000)
+    _insert_session(depot_db, "sess_sib", "notes", r"D:\Dev\repos\chitchat-archive", 86_400_000)
+    _insert_part(depot_db, "part_sib", "msg_sib", "sess_sib", "vienna sibling", 86_400_000)
+    result = depot.search_transcripts("vienna", project="chitchat")
+    assert result["count"] == 2
+    # Newer sibling loses to exact dir-name match (0.2 + 0.5 > 0.5).
+    assert result["results"][0]["session_id"] == "sess_exact"
+
+
 def test_archive_unarchive(depot_db):
     assert depot.archive_session("sess_active")
     active = depot.get_session("sess_active")

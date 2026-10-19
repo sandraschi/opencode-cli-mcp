@@ -72,10 +72,21 @@ async def depot_transcript(session_id: str, limit: int = 200):
 
 
 @router.get("/search")
-async def depot_search(q: str, limit: int = 20, include_archived: bool = True):
+async def depot_search(
+    q: str,
+    limit: int = 20,
+    include_archived: bool = True,
+    timeframe_days: int | None = None,
+    project: str | None = None,
+):
     try:
         data = await asyncio.to_thread(
-            d.search_transcripts, q, limit=min(max(limit, 1), 100), include_archived=include_archived
+            d.search_transcripts,
+            q,
+            limit=min(max(limit, 1), 100),
+            include_archived=include_archived,
+            timeframe_days=timeframe_days,
+            project=project,
         )
     except d.DepotError as e:
         raise HTTPException(status_code=404, detail=str(e))
