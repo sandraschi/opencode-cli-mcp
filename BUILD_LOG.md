@@ -34,6 +34,19 @@ at 20:11 was checked with a direct HTTP call to
 **Also in this build:** CUA sidebar enumeration retries once after 4s; the first
 paint after install occasionally had no links yet and failed the nav walk.
 
+**Follow-up (same day, no app change):** the three items previously listed as
+"known, not fixed" are closed:
+- `pyright` is clean repo-wide (was 41 errors). Fixes were type-only: `cfg()`
+  returns `Any`, `fatal`/`phase_fail` are `NoReturn`, `pywinauto` is an `Any`
+  sentinel, a `mod.__file__` guard, `_utf8_stdout()` via `getattr`, and
+  `assert table is not None` in the RAG/share tests.
+- Uninstaller check polls registry + install dir for up to 25s instead of one
+  2s sample, because NSIS returns before deletion finishes. It now reports
+  "registry + install dir gone" on a clean uninstall.
+- `mcpb/pack.ps1` emits `{repo}-{version}.mcpb` (no `v`) per the release
+  contract; the manual rename after every pack is gone. Same fix applied to
+  `mcp-central-docs/templates/mcpb-pack.ps1` so new repos inherit it.
+
 ---
 
 ## 0.2.10 - 2026-10-21
@@ -90,16 +103,10 @@ navigated, backend up, uninstall exit 0. One caveat: backend-receipt proof
 reports `true` but is skipped - this repo has no request-log endpoint yet, so
 it is a vacuous pass, not evidence. Everything else is real.
 
-**Known, not fixed**
+**Known, not fixed at 0.2.10:** pyright (41 errors), the uninstaller's
+"may still be registered" warning, and the `v`-prefixed mcpb filename.
+All three were fixed the same day - see the 0.2.11 follow-up note above.
 
-- `pyright` has 41 pre-existing errors in `mcpb/verify_pack.py`,
-  `scripts/cua-*.py`, `sidebar/sidebar_client.py`, `tests/test_rag.py`,
-  `tests/test_share.py`. None in `src/` or `api/`.
-- Uninstaller logs "App may still be registered" after exit 0; the install
-  directory is removed, so this is a registry-key check worth revisiting.
-- `mcpb/pack.ps1` names its output with a `v` prefix, which the release gate
-  rejects; renamed after packing. The script is fleet-shared - fix belongs in
-  the template.
 
 **Provenance note:** both artifacts were built from a clean tree at
 `1ec6c50`. The only commits after that are this log and the `.gitignore`

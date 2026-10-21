@@ -88,11 +88,15 @@ def test_page_path_validation(share_env: Path):
 def test_unshare_flows(share_env: Path):
     first = sh.create_share("sess_01", base=share_env)
     second = sh.create_share("sess_01", base=share_env)
-    assert sh.session_share("sess_01", base=share_env)["token"] in (first["token"], second["token"])
+    current = sh.session_share("sess_01", base=share_env)
+    assert current is not None
+    assert current["token"] in (first["token"], second["token"])
     assert len(sh.list_shares(base=share_env)) == 2
     assert sh.unshare_token(first["token"], base=share_env) is True
     assert sh.unshare_token(first["token"], base=share_env) is False
-    assert sh.session_share("sess_01", base=share_env)["token"] == second["token"]
+    remaining = sh.session_share("sess_01", base=share_env)
+    assert remaining is not None
+    assert remaining["token"] == second["token"]
     assert sh.unshare_session("sess_01", base=share_env) == 1
     assert sh.list_shares(base=share_env) == []
     assert sh.session_share("sess_01", base=share_env) is None

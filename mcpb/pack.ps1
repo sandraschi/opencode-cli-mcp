@@ -192,7 +192,10 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 # itself calls it, shown in its "Archive Contents" summary), not the detected
 # source package name - they can differ (e.g. manifest name "bookmarks-mcp"
 # vs. package "browser_bookmarks_tools").
-$OutFile = Join-Path $OutDir "$($manifest.name)-v$($manifest.version).mcpb"
+# Release contract (RELEASE_TIERS.md): {repo}-{version}.mcpb, where version is
+# the tag without its leading "v". An earlier build emitted "-v0.2.10.mcpb",
+# which check-release-gate.ps1 rejects, forcing a manual rename every release.
+$OutFile = Join-Path $OutDir "$($manifest.name)-$($manifest.version).mcpb"
 if (Test-Path $OutFile) { Remove-Item -Force $OutFile }
 bunx @anthropic-ai/mcpb pack $McpbDir $OutFile
 if ($LASTEXITCODE -ne 0) { throw 'mcpb pack failed' }

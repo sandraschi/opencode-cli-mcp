@@ -227,6 +227,7 @@ def test_reindex_updated_session_no_duplicates(rag_env):
     # per-part chunk counts (each part body capped at MAX_PART_CHARS), not the
     # old chunks + new chunks.
     table = rag._open_table()
+    assert table is not None
     ids = [row["chunk_id"] for row in table.to_arrow().to_pylist()]
     assert len(ids) == len(set(ids)), "duplicate chunks after re-index"
     expected = len(rag._split_chunks(LONG_TEXT[: rag.MAX_PART_CHARS])) + len(
@@ -251,6 +252,7 @@ def test_code_index_extracts_patch_and_edit(rag_env):
     assert st["indexed_code"] > 0, "no code rows indexed"
 
     table = rag._open_code_table()
+    assert table is not None
     rows = table.to_arrow().to_pylist()
     kinds = {r["kind"] for r in rows}
     assert kinds == {"patch", "edit"}, f"expected patch+edit rows, got {kinds}"
@@ -285,7 +287,9 @@ def test_code_reindex_no_duplicates(rag_env):
     """Re-indexing an updated session must not duplicate code rows."""
     tmp_path, db_path = rag_env
     rag.index_new_sessions()
-    before = rag._open_code_table().count_rows()
+    code_table = rag._open_code_table()
+    assert code_table is not None
+    before = code_table.count_rows()
 
     conn = sqlite3.connect(db_path)
     now = int(datetime.now(UTC).timestamp() * 1000)
@@ -305,6 +309,7 @@ def test_code_reindex_no_duplicates(rag_env):
     report = rag.index_new_sessions()
     assert report["indexed_sessions"] == 1
     table = rag._open_code_table()
+    assert table is not None
     rows = table.to_arrow().to_pylist()
     ids = [r["chunk_id"] for r in rows]
     assert len(ids) == len(set(ids)), "duplicate code rows after re-index"
@@ -315,7 +320,9 @@ def test_code_reindex_no_duplicates(rag_env):
 def test_reindex_code_all_backfills(rag_env):
     """reindex_code_all rebuilds the code table even when the watermark is advanced."""
     rag.index_new_sessions()
-    assert rag._open_code_table().count_rows() == 3  # 1 edit + 2 patches
+    code_table = rag._open_code_table()
+    assert code_table is not None
+    assert code_table.count_rows() == 3  # 1 edit + 2 patches
 
     # Delete the code table to simulate an install where it was never built
     # (e.g. before the code-index feature shipped).
