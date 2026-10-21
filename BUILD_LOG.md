@@ -5,48 +5,71 @@ Kept in-repo (not in mcd) because the useful detail is repo-specific.
 
 ---
 
-## 0.2.10 - 2026-10-21 (release prep)
+## 0.2.10 - 2026-10-21
 
 **Artifacts**
 
-| Artifact | Size | Built from |
-|----------|------|------------|
-| `dist/opencode-cli-mcp-0.2.10.mcpb` | 106.3 KB (33 files, 314.9 KB unpacked) | `mcpb/pack.ps1` @ `1fdd796` |
-| `dist/opencode-cli-mcp-0.2.10-setup.exe` | 12.93 MB | `native/build.ps1` (cargo release, 2m46s) |
+| Artifact | Size | Source |
+|----------|------|--------|
+| `dist/opencode-cli-mcp-0.2.10.mcpb` | 108.0 KB | `mcpb/pack.ps1`, packed last |
+| `dist/opencode-cli-mcp-0.2.10-setup.exe` | 116.8 MB | `native/build.ps1` (cargo 1m08s, PyInstaller ~90s) |
 
-Both built from a clean tree; versions agree across `pyproject.toml`,
-`native/tauri.conf.json`, `mcpb/manifest.json` (0.2.10).
+Installer SHA256: `6649e3bbcee68e3a93bb11c25f84bc55fe93fcba3d01c06b456bf8ecc546796`
+(that is the exact file CUA tested). Versions agree across `pyproject.toml`,
+`native/tauri.conf.json` and `mcpb/manifest.json` (0.2.10).
 
-**Problems found and fixed**
+**Blockers found and fixed**
 
-1. **`mcpb/pack.ps1` names its output with a `v` prefix** (`opencode-cli-mcp-v0.2.10.mcpb`),
-   which `check-release-gate.ps1` rejects (contract: `{repo}-{version}.mcpb`, version without
-   `v`). Renamed in `dist/` after packing. The pack script itself is a fleet-standard file -
-   not edited here; if this bites again, the naming belongs in the shared template.
-2. **Stale artifact present:** `dist/` held a `v0.2.10.mcpb` built before the 2026-10-19
-   changes (starring/tags/export/memops). Rebuilt from the current tree before renaming.
-3. **README failed three release-gate checks** (build/clone steps present, no Releases link,
-   no `setup.exe` mention). Quick Start rewritten as installer-first; dev setup now only
-   points at `docs/DEVELOPMENT.md`.
-4. **`scripts/cua-smoke.py` was v13**, below the gate's required `CUA_SMOKE_VERSION >= 15`.
-   A perfect run would still have been rejected. Replaced with the v15 template from
-   `mcp-central-docs/templates/tauri-native/scripts/` (adds `cua-result.json` output and
-   sidebar-discovered nav pages).
-5. **`just cua-nsis-test` did not exist** although the release docs reference it. Added the
-   recipe + `scripts/just/cua-nsis-test.ps1` from the same template.
+1. **PyInstaller was not a project dependency.** `uv run pyinstaller` therefore
+   ran a standalone copy whose interpreter could not see `.venv`, so Analysis
+   reported `missing module named fastapi/uvicorn` and produced a 10.7 MB
+   bundle that died at the first import. Fixed by declaring `pyinstaller` in
+   the dev group and building with `.venv\Scripts\python.exe -m PyInstaller`
+   in `native/build.ps1`. The working backend is 114 MB.
+2. **The spec stripped every `.dist-info`.** Libraries that read their own
+   metadata at import then crashed one after another: `pydantic` probing
+   `email_validator`, then `opentelemetry` entry points. Both surfaced as
+   opaque `StopIteration` tracebacks. Fixed by keeping metadata (the few MB
+   is cheaper than whack-a-mole) and adding real `uvicorn` hiddenimports.
+3. **`services/api.ts` hardcoded `/api`.** In the Tauri asset protocol a
+   relative request returns `index.html`, so every depot/backup/usage page
+   failed with `Unexpected token '<'`. It now imports the Tauri-aware root
+   from `lib/api.ts` and rejects non-JSON responses explicitly.
+4. **CUA tooling was missing from the venv** (`pytesseract`), so every page
+   OCR'd empty and a good build failed. Declared `pywinauto`, `pytesseract`
+   and `pillow` in the dev group.
+5. **The CUA fail-keyword list matched bare `404`.** A backup filename
+   (`opencode-db-20261019-111404-...sqlite3`) tripped it. Now matches
+   `404 not found` / `404 error`.
+6. **`scripts/cua-smoke.py` was v13**, below the gate's `>= 15` floor; synced
+   to the template and added the missing `just cua-nsis-test` recipe.
+7. **README failed three gate checks** (build steps, no Releases link, no
+   `setup.exe`); rewritten installer-first.
 
-**Gates**
+**Tool surface in this build**
 
-- `ruff` / `ruff format` / `biome` / `tsc` / `vite build`: clean.
-- `pytest`: 192 passed, coverage 61.7% (gate 30%).
-- `check-release-gate.ps1 -Local`: all checks pass except CUA (needs an interactive run).
-- `pyright`: 41 errors, all pre-existing in `mcpb/verify_pack.py`, `scripts/cua-*.py`,
-  `sidebar/sidebar_client.py`, `tests/test_rag.py`, `tests/test_share.py`; none in `src/`
-  or `api/`. Not fixed in this build (separate cleanup).
-- CUA-NSIS: **not yet run at the time of writing** - must pass on this exact installer
-  before the GitHub release is created.
+`opencode_runs start` gained `model`, `agent`, `variant`, `thinking`, `auto`,
+`session_id` / `continue_session` / `fork` and `files` - without them every run
+used the default model and unattended runs stalled on permission prompts.
 
-**Notes**
+**CUA-NSIS**
 
-- The installer is unsigned. README states the SmartScreen "More info -> Run anyway" step.
-- 0.2.10 deliberately keeps the 15 legacy atomic tool aliases; their removal is 0.3.0.
+12/12 phases, `all_passed: true`, `pywinauto: true`, 17/17 sidebar pages
+navigated, backend up, uninstall exit 0. One caveat: backend-receipt proof
+reports `true` but is skipped - this repo has no request-log endpoint yet, so
+it is a vacuous pass, not evidence. Everything else is real.
+
+**Known, not fixed**
+
+- `pyright` has 41 pre-existing errors in `mcpb/verify_pack.py`,
+  `scripts/cua-*.py`, `sidebar/sidebar_client.py`, `tests/test_rag.py`,
+  `tests/test_share.py`. None in `src/` or `api/`.
+- Uninstaller logs "App may still be registered" after exit 0; the install
+  directory is removed, so this is a registry-key check worth revisiting.
+- `mcpb/pack.ps1` names its output with a `v` prefix, which the release gate
+  rejects; renamed after packing. The script is fleet-shared - fix belongs in
+  the template.
+
+**Provenance note:** both artifacts were built from a clean tree at
+`1ec6c50`. The only commits after that are this log and the `.gitignore`
+entry, neither of which enters the bundles.

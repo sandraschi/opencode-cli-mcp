@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.2.10 - 2026-10-21
+
+First release since 0.2.3. Includes everything in the Unreleased sections
+below, plus the changes that closed this release:
+
+### Added
+- `opencode_runs start` takes `model`, `agent`, `variant`, `thinking`, `auto`,
+  `session_id` / `continue_session` / `fork`, and `files` attachments. Before
+  this every run used opencode's default model and unattended runs stalled on
+  permission prompts.
+- Depot favourites: `star`/`unstar`, `tag_add`/`tag_remove`/`tags` on
+  `opencode_depot`, backed by a sidecar DB (`~/.local/share/opencode-cli-mcp/meta.db`)
+  that never writes `opencode.db`. Starred hits rank higher.
+- `export` (md / html / docx via LibreOffice) and `memops` (frontmatter note
+  into the advanced-memory inbox) depot actions, plus REST equivalents.
+- Sessions and History pages: favourites filter, tag dropdown, tags-first sort,
+  batch-free tag editor, export and memops buttons, grid/list toggle.
+- `BIND_LAN` / `FLEET_BIND_HOST` for iPad over Tailscale, with CGNAT-scoped
+  firewall guidance in `docs/CONFIGURATION.md`.
+
+### Fixed
+- The 0.2.10 installer's frozen backend was dead on arrival: PyInstaller ran
+  from a standalone interpreter (no fastapi/uvicorn) and the spec stripped
+  `.dist-info`, crashing pydantic and opentelemetry on metadata lookups. See
+  `BUILD_LOG.md`.
+- Packaged webapp called a relative `/api` inside Tauri and received
+  `index.html`; every depot/backup/usage page showed "Unexpected token '<'".
+
+### Release artifacts
+- `opencode-cli-mcp-0.2.10.mcpb` (108 KB)
+- `opencode-cli-mcp-0.2.10-setup.exe` (116.8 MB, unsigned - SmartScreen needs
+  "More info -> Run anyway"). CUA-NSIS 12/12 on this exact installer.
+
+---
+
 ## Unreleased - 2026-10-06 (serve-offline false alarms + event-loop wedge)
 
 ### Fixed
