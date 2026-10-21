@@ -52,7 +52,17 @@ if (Test-Path $specFile) {
             Write-Host "  Patched fastmcp metadata fallback" -ForegroundColor Yellow
         }
     }
-    uv run pyinstaller "$specFile" --clean --noconfirm
+    # Build with the VENV interpreter, not `uv run pyinstaller`: if PyInstaller
+    # is not installed in .venv, uv resolves a standalone copy whose Python
+    # cannot see this project's site-packages. Analysis then reports
+    # "missing module named fastapi/uvicorn" and ships a bundle that crashes
+    # on first import (seen 2026-10-21). pyinstaller is a dev dependency now.
+    $venvPy = Join-Path $Root '.venv\Scripts\python.exe'
+    if (Test-Path $venvPy) {
+        & $venvPy -m PyInstaller "$specFile" --clean --noconfirm
+    } else {
+        uv run python -m PyInstaller "$specFile" --clean --noconfirm
+    }
     if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
     Pop-Location
 } else {

@@ -66,4 +66,19 @@ dev = [
     "pre-commit>=4.0.0",
     "pytest-cov>=7.1.0",
     "pyright>=1.1.411",
+    # Frozen-backend builds. MUST be a project dependency: `uv run pyinstaller`
+    # with PyInstaller absent from the venv silently resolves a standalone
+    # PyInstaller whose interpreter cannot see this project's site-packages,
+    # so Analysis reports "missing module named fastapi/uvicorn" and ships a
+    # bundle that dies on first import (seen 2026-10-21, 0.2.10 build).
+    "pyinstaller>=6.21",
+    # CUA-NSIS smoke test (just cua-nsis-test) drives real windows. It is a
+    # release prerequisite, so keep it installable from the dev group instead
+    # of an ad-hoc `pip install` that the next `uv sync` silently removes.
+    "pywinauto>=0.6.9",
+    # OCR for the CUA nav walk. Without these the smoke test reads every page
+    # as empty and fails a perfectly good build (2026-10-21). Tesseract binary
+    # itself is a system install (C:\Program Files\Tesseract-OCR).
+    "pytesseract>=0.3.13",
+    "pillow>=10.0",
 ]
