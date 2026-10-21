@@ -33,6 +33,7 @@ import urllib.error
 import urllib.request
 from contextlib import suppress
 from pathlib import Path
+from typing import Any, NoReturn
 
 CUA_WEBAPP_TEST_VERSION = 2
 DEFAULT_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cua-nsis-config.json")
@@ -60,7 +61,7 @@ def load_config(path=None):
         return json.load(f)
 
 
-def cfg(key, default=""):
+def cfg(key, default: Any = "") -> Any:
     return _CONFIG.get(key, default)
 
 
@@ -81,7 +82,7 @@ def log(msg):
     print(f"  [cua-webapp] {msg}", flush=True)
 
 
-def fatal(msg):
+def fatal(msg) -> NoReturn:
     print(f"  [cua-webapp] FATAL: {msg}", flush=True)
     sys.exit(1)
 

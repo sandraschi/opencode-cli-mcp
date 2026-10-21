@@ -47,6 +47,8 @@ def check_import(stage_dir: str, entry_module_or_file: str, package_name: str) -
     else:
         mod = importlib.import_module(entry_module_or_file)
 
+    if not mod.__file__:
+        raise SystemExit(f"FAIL import: {package_name} has no __file__ (namespace package?)")
     origin = Path(mod.__file__).resolve()
     if stage not in origin.parents:
         raise SystemExit(f"FAIL import: {package_name} resolved to {origin}, not under {stage}")

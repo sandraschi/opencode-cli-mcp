@@ -35,6 +35,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from typing import Any, NoReturn
 
 # ── Config ────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ def _check_version():
             )
 
 
-def cfg(key: str, default=""):
+def cfg(key: str, default: Any = "") -> Any:
     return _CONFIG.get(key, default)
 
 
@@ -127,10 +128,12 @@ def log_warn(msg: str):
 
 # ── Direct pywinauto (no pywinauto-mcp dependency) ─────────────────
 
+pywinauto: Any = None
 try:
-    import pywinauto
+    import pywinauto as _pywinauto
     import pywinauto.findwindows
 
+    pywinauto = _pywinauto
     _HAS_PYWAUTO = True
 except ImportError:
     _HAS_PYWAUTO = False
@@ -283,12 +286,12 @@ class PhaseFailed(Exception):
     """Non-fatal phase failure - script continues to uninstall."""
 
 
-def fatal(msg: str):
+def fatal(msg: str) -> NoReturn:
     print(f"  [cua] FATAL: {msg}", flush=True)
     sys.exit(1)
 
 
-def phase_fail(msg: str):
+def phase_fail(msg: str) -> NoReturn:
     print(f"  [cua] PHASE FAIL: {msg}", flush=True)
     raise PhaseFailed(msg)
 
@@ -793,22 +796,36 @@ def uninstall():
         return
     r = subprocess.run([uninstaller, "/S"], capture_output=True, timeout=60)
     log(f"Uninstaller exited with code {r.returncode}")
-    time.sleep(2)
-    remaining = subprocess.run(
-        [
-            "powershell",
-            "-NoProfile",
-            "-Command",
-            f"Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' -ErrorAction SilentlyContinue | Where-Object {{ $_.DisplayName -like '{REGISTRY_FILTER}' }}",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=15,
-    )
-    if remaining.stdout.strip():
+    # NSIS copies itself to %TEMP% and the launcher returns before deletion
+    # finishes, so a single 2s-then-check produced a false "may still be
+    # registered" warning on otherwise clean uninstalls. Poll both signals.
+    deadline = time.time() + 25
+    registered = dir_present = True
+    while time.time() < deadline:
+        registered = bool(
+            subprocess.run(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    f"Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' "
+                    f"-ErrorAction SilentlyContinue | Where-Object {{ $_.DisplayName -like '{REGISTRY_FILTER}' }}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            ).stdout.strip()
+        )
+        dir_present = os.path.exists(INSTALL_DIR)
+        if not registered and not dir_present:
+            break
+        time.sleep(1)
+    if registered:
         log("WARNING: App may still be registered")
+    elif dir_present:
+        log(f"WARNING: install dir still present: {INSTALL_DIR}")
     else:
-        log("Clean: app uninstalled")
+        log("Clean: app uninstalled (registry + install dir gone)")
 
 
 # ── Main ──────────────────────────────────────────────────────────────
@@ -828,7 +845,8 @@ def _write_result(output_dir, installer, phase_results, passed, failed, fatal_fa
         h = hashlib.sha256()
         with open(installer, "rb") as fh:
             for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-                h.update(chunk)
+                if isinstance(chunk, bytes):
+                    h.update(chunk)
         sha, size = h.hexdigest(), os.path.getsize(installer)
     proof = any(p["name"] == "Backend-receipt proof" and p["ok"] for p in phase_results)
     result = {
@@ -874,7 +892,7 @@ def main():
         _capture_nav_baseline()
         nav_click_through(args.output_dir)
 
-    _installer = {"path": None}
+    _installer: dict[str, str | None] = {"path": None}
 
     def _install_phase():
         _installer["path"] = args.installer or find_installer()

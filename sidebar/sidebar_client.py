@@ -16,6 +16,17 @@ from datetime import datetime
 from opencode_cli_mcp import depot as d
 
 
+def _utf8_stdout() -> None:
+    """Reconfigure stdout to UTF-8 when the stream supports it.
+
+    TextIO (the declared type of sys.stdout) has no reconfigure();
+    TextIOWrapper does. getattr keeps both runtime and type checker honest.
+    """
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfigure):
+        reconfigure(encoding="utf-8", errors="replace")
+
+
 def _short_model(m) -> str:
     try:
         mj = json.loads(m) if isinstance(m, str) else (m or {})
@@ -72,13 +83,13 @@ def cmd_preview(sid: str, limit: int):
         wrapped.extend(textwrap.wrap(ln, width=88)[:3])
         if len(wrapped) >= 14:
             break
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    _utf8_stdout()
     print(sid + "\t" + " // ".join(wrapped[:14])[:1500])
 
 
 def cmd_previews():
     data = d.list_sessions(status="active", limit=100, sort="updated")
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    _utf8_stdout()
     for s in data["sessions"]:
         sid = s.get("id", "")
         parts = d.get_session_transcript(sid, limit=400)
