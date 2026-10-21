@@ -4,6 +4,7 @@ import shutil
 from fastapi import APIRouter
 
 from api import logs as _logs
+from opencode_cli_mcp import request_log
 from opencode_cli_mcp.registry import (
     LEGACY_COUNT,
     PORTMANTEAU_COUNT,
@@ -12,7 +13,19 @@ from opencode_cli_mcp.registry import (
 
 router = APIRouter(tags=["capabilities"])
 
-SELF_VERSION = "0.2.10"
+SELF_VERSION = "0.2.11"
+
+
+@router.get("/v1/request-log")
+async def get_request_log(limit: int = 200):
+    """Recent HTTP requests + a cumulative count, read by the CUA smoke test.
+
+    Contract consumed by `scripts/cua-smoke.py` (REQUEST_LOG_PATH):
+    ``{"count": int, "requests": [...]}``. Count is process-lifetime and
+    monotonic, so a smoke test can diff it around the nav walk. Bounded to
+    the newest 500 entries; this is diagnostic evidence, not an audit log.
+    """
+    return request_log.snapshot(limit=min(max(limit, 1), 500))
 
 
 @router.get("/capabilities")

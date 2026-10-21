@@ -5,6 +5,7 @@
     "backend_process_names": ["opencode-cli-mcp-native", "opencode-cli-mcp-backend"],
     "backend_port": 10951,
     "health_path": "/api/v1/health",
+    "request_log_path": "/api/v1/request-log",
     "diagnostics_path": "/api/v1/diagnostics",
     "feature_smoke_path": "/api/v1/system/info",
     "window_title_re": "Opencode Cli MCP",

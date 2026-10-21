@@ -22,7 +22,7 @@ from api.routes.settings import router as settings_router
 from api.routes.skills import router as skills_router
 from api.routes.system import router as system_router
 from api.routes.tools import router as tools_router
-from opencode_cli_mcp import backup
+from opencode_cli_mcp import backup, request_log
 from opencode_cli_mcp.server import mcp_app as mcp_http_app
 
 BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "10951"))
@@ -83,7 +83,7 @@ async def _lifespan(app):
 
 app = FastAPI(
     title="opencode-cli-mcp API",
-    version="0.2.10",
+    version="0.2.11",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=_lifespan,
@@ -103,6 +103,45 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class _RequestLogMiddleware:
+    """Record completed HTTP requests for the CUA backend-receipt phase.
+
+    A page can render its title while every fetch fails, so OCR alone cannot
+    prove the webview's data calls landed. The smoke test compares
+    /api/v1/request-log's count before and after the nav walk. The log
+    endpoint itself is exempt, otherwise polling it would be its own evidence.
+    """
+
+    def __init__(self, app):  # noqa: ANN001 - ASGI callable
+        self.app = app
+
+    async def __call__(self, scope, receive, send):  # noqa: ANN001
+        if scope.get("type") != "http" or request_log.is_exempt(scope.get("path", "")):
+            await self.app(scope, receive, send)
+            return
+        started = time.perf_counter()
+        status = 500
+
+        async def _send(message):  # noqa: ANN001
+            nonlocal status
+            if message.get("type") == "http.response.start":
+                status = int(message.get("status", 500))
+            await send(message)
+
+        try:
+            await self.app(scope, receive, _send)
+        finally:
+            request_log.record(
+                scope.get("method"),
+                scope.get("path"),
+                status,
+                round((time.perf_counter() - started) * 1000, 1),
+            )
+
+
+app.add_middleware(_RequestLogMiddleware)
 
 
 @app.middleware("http")
