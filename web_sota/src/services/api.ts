@@ -1,4 +1,12 @@
-const API_BASE = "/api";
+// Tauri serves the SPA from the asset protocol, where a relative "/api/..."
+// request hits the SPA fallback and returns index.html - the symptom was
+// "Unexpected token '<', "<!DOCTYPE"... is not valid JSON" on every
+// depot-backed page in the 0.2.10 installer. lib/api.ts already resolves
+// the right root (absolute inside Tauri, same-origin in a browser), so use
+// it instead of hardcoding.
+import { API_BASE as API_ROOT } from "../lib/api";
+
+const API_BASE = `${API_ROOT}/api`;
 const FETCH_TIMEOUT = 15000;
 
 async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs: number = FETCH_TIMEOUT): Promise<T> {
@@ -12,6 +20,13 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs: number =
     });
     if (!res.ok) {
       throw new Error(`API error: ${res.status} ${res.statusText}`);
+    }
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("json")) {
+      // Do not let a HTML/asset response masquerade as a JSON parse crash.
+      throw new Error(
+        `API returned ${contentType || "unknown content-type"} instead of JSON for ${url} - wrong API base?`,
+      );
     }
     return res.json();
   } finally {
