@@ -31,29 +31,23 @@ MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode se
 | **Manage opencode** | `opencode_system(...)` — status, providers, project, MCP pulse, config drift |
 | **Desktop sidebar** | `sidebar/opencode-sidebar.ahk` (AHK v2 companion, outside the `.mcpb`) — docked session list, palette jump, right-click rename/archive/delete, hover previews. See [docs/SIDEBAR.md](docs/SIDEBAR.md) |
 
-## Quick Start
+## Install
 
-```powershell
-git clone https://github.com/sandraschi/opencode-cli-mcp
-cd opencode-cli-mcp
-just
-```
+**Download:** [opencode-cli-mcp-0.2.10-setup.exe](https://github.com/sandraschi/opencode-cli-mcp/releases/latest/download/opencode-cli-mcp-0.2.10-setup.exe) - installs the desktop app and its embedded backend in one step (Windows, current user, no admin).
 
-This opens an interactive dashboard showing all available commands. Run `just bootstrap` to install dependencies, then `just serve` to start.
+> The installer is unsigned, so SmartScreen will warn. Click **More info → Run anyway**.
 
-### Manual Setup
+All releases, older versions, and the `.mcpb` bundle: [Releases](https://github.com/sandraschi/opencode-cli-mcp/releases).
 
-If you don't have `just` installed:
-### Prerequisites
-- `opencode` CLI: `npm i -g opencode-ai`
-- Python 3.12+
-- Node.js 18+
-### Run Everything
-.\start.ps1
-Starts: opencode serve (`:4097`) + unified backend (`:10951`, REST `/api/*` + MCP `/mcp` on one port) + Vite frontend (`:10950`).
-### MCP Server Only
-uv run -m opencode_cli_mcp.server
-Configure in Claude Desktop / Cursor / Windsurf (see [Integration Guide](docs/integration-guide.md)).
+| You want | Use |
+|----------|-----|
+| Desktop app + backend | `opencode-cli-mcp-0.2.10-setup.exe` above |
+| MCP server inside Claude Desktop only | `opencode-cli-mcp-0.2.10.mcpb` from [Releases](https://github.com/sandraschi/opencode-cli-mcp/releases) |
+| Manual setup, prerequisites, troubleshooting | [INSTALL.md](INSTALL.md) |
+| Development setup and build recipes | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
+
+Every path needs the `opencode` CLI installed (`npm i -g opencode-ai`).
+
 
 ## MCP Tools
 

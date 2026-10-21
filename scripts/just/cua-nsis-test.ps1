@@ -9,3 +9,6 @@ if (Test-Path ".venv\Scripts\python.exe") {
     & py scripts/cua-smoke.py
 }
 exit $LASTEXITCODE
+
+# Sync detailed report to reports and mcd if exists
+$date = Get-Date -Format 'yyyy-MM-dd'; $repo = Split-Path -Leaf $repoRoot; $md = Join-Path $repoRoot "reports/cua-$repo-$date.md"; if (Test-Path $md) { Copy-Item $md "D:/Dev/repos/mcp-central-docs/reports/" -Force; Write-Host "Synced $md to mcd" }

@@ -108,6 +108,13 @@ build-web:
 build-native:
 	$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; Set-Location '{{justfile_directory()}}\native'; powershell.exe -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
 
+# CUA-NSIS smoke test: install -> launch -> nav walk -> uninstall.
+# Interactive Windows session only (drives a real desktop); writes
+# cua-reports/cua-result.json, which the release gate requires.
+# Needs pywinauto in the venv: uv pip install pywinauto
+cua-nsis-test:
+	powershell.exe -NoProfile -File '{{justfile_directory()}}\scripts\just\cua-nsis-test.ps1'
+
 
 # Bootstrap: install dev deps + pre-commit hook + webapp deps
 bootstrap:
