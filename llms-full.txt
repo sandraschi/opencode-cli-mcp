@@ -1,6 +1,6 @@
 # opencode-cli-mcp - Full Context
 
-**Version:** 0.2.10
+**Version:** 0.2.11
 **FastMCP:** 3.4.4+
 **Python:** 3.12+
 **License:** MIT
