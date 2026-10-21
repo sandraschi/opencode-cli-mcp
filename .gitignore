@@ -65,3 +65,5 @@ data/
 
 # TypeScript build cache
 web_sota/tsconfig.tsbuildinfo
+
+cua-reports/
