@@ -5,6 +5,37 @@ Kept in-repo (not in mcd) because the useful detail is repo-specific.
 
 ---
 
+## 0.2.11 - 2026-10-21
+
+**Purpose:** close the one vacuous gate check. 0.2.10's CUA run reported
+`backend_receipt_proof: true` because the repo had no request-log endpoint -
+the phase skips on 404 and still marks itself passed. That is exactly the
+false-positive class the phase exists to prevent, so it got a real endpoint.
+
+**Change:** `GET /api/v1/request-log` -> `{count, requests[]}` fed by an ASGI
+middleware (method, path, status, duration; newest 500; process-lifetime).
+The endpoint exempts itself so polling cannot be its own evidence.
+
+**Result:** CUA 12/12 on the exact installer, and the receipt phase now reports
+**48 requests logged during the 17-page nav walk** - real webview traffic, not a
+skip. That also independently confirms the 0.2.10 Tauri API-base fix.
+
+**Artifacts:** `opencode-cli-mcp-0.2.11-setup.exe` 116.8 MB,
+`opencode-cli-mcp-0.2.11.mcpb` 109.1 KB.
+
+**Build incident worth remembering:** the first 0.2.11 installer embedded a
+backend built before the endpoint existed (source was right; the frozen exe was
+stale), so CUA legitimately got 404 and the dashboard showed "Backend
+unreachable". Lesson: after touching backend routes, verify the *embedded*
+binary answers the new route - not just that the source tests pass. The rebuild
+at 20:11 was checked with a direct HTTP call to
+`native/resources/opencode-cli-mcp-backend.exe` before installing.
+
+**Also in this build:** CUA sidebar enumeration retries once after 4s; the first
+paint after install occasionally had no links yet and failed the nav walk.
+
+---
+
 ## 0.2.10 - 2026-10-21
 
 **Artifacts**

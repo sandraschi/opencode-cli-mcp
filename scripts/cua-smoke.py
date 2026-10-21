@@ -614,6 +614,13 @@ def nav_click_through(output_dir: str):
     w = pywinauto.Application(backend="uia").connect(handle=handle).window(handle=handle)
     labels = [label for label, _el in _sidebar_links(w)]
     if not labels:
+        # First paint after install can still be the skeleton: give the
+        # webview one more settle window before declaring the sidebar
+        # missing (seen once on the 0.2.11 build, 2026-10-21).
+        log("No sidebar links yet; retrying after 4s...")
+        time.sleep(4)
+        labels = [label for label, _el in _sidebar_links(w)]
+    if not labels:
         phase_fail("no sidebar links discovered (icon-only collapsed sidebar, or nav is not <a> links)")
     log(f"Discovered {len(labels)} sidebar pages: {', '.join(labels)}")
     if cfg("nav_routes"):
