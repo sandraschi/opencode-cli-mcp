@@ -5,7 +5,7 @@ Every tool returns `{success, message, data}`.
 
 | Tool | Purpose | Key actions |
 |------|---------|-------------|
-| `opencode_runs` | Delegate work to opencode agents | `start` (prompt, wait flag → job_id), `status`, `list`, `cancel` |
+| `opencode_runs` | Delegate work to opencode agents | `start` (prompt; `model` provider/model, `agent`, `variant`, `thinking`, `auto` for unattended runs, `session_id` / `continue_session` / `fork` to iterate, `files` attachments; wait flag → job_id), `status`, `list`, `cancel` |
 | `opencode_sessions` | Live session CRUD over `opencode serve` | `list`, `get`, `messages`, `send`, `diff`, `rename`, `delete`, `export`, `share` / `unshare` (unlisted pages, offline-capable) |
 | `opencode_depot` | Eternal memory over `opencode.db` (works offline) | `list`, `get`, `search` (LIKE over message JSON, ranked: recency + exact-project + title + star; filters `query`/`project`/`timeframe_days`/`date_from`/`date_to`/`starred`/`tag`/`include_archived`), `star` / `unstar`, `tag_add` / `tag_remove` / `tags`, `export` (md/html/docx), `memops` (frontmatter note -> advanced-memory inbox), `rag` / `rag_index` / `rag_status`, `archive`, `unarchive`, `rename`, `delete`, `stats` |
 | `opencode_backups` | Depot + config safety | `create`, `list`, `prune`, `restore` (guarded while serve runs), `status` |

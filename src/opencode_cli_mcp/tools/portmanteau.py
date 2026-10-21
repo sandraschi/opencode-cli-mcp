@@ -53,6 +53,34 @@ async def opencode_runs(
     output_format: Annotated[Literal["text", "json"], Field(description="Output format (start)")] = "text",
     wait: Annotated[bool, Field(description="Block until done (start; default false = fire-and-forget)")] = False,
     timeout: Annotated[int, Field(description="Max seconds for the run (start)", ge=1, le=86400)] = 300,
+    model: Annotated[
+        str | None,
+        Field(description="Model as provider/model, e.g. 'deepseek/deepseek-flash' (start). Default: opencode's"),
+    ] = None,
+    agent: Annotated[str | None, Field(description="opencode agent name, e.g. 'build' or 'plan' (start)")] = None,
+    variant: Annotated[
+        str | None, Field(description="Provider reasoning variant, e.g. 'high', 'max', 'minimal' (start)")
+    ] = None,
+    thinking: Annotated[bool, Field(description="Include thinking blocks in output (start)")] = False,
+    auto: Annotated[
+        bool,
+        Field(
+            description=(
+                "Auto-approve permissions not explicitly denied (start, opencode --auto). "
+                "Needed for unattended runs; without it a prompt stalls the run."
+            )
+        ),
+    ] = False,
+    session_id: Annotated[str | None, Field(description="Continue this session instead of a new one (start)")] = None,
+    continue_session: Annotated[
+        bool, Field(description="Continue the most recent session (start; ignored when session_id is set)")
+    ] = False,
+    fork: Annotated[
+        bool, Field(description="Fork before continuing; requires session_id or continue_session (start)")
+    ] = False,
+    files: Annotated[
+        list[str] | None, Field(description="Files to attach to the message (start). Must exist on disk.")
+    ] = None,
     limit: Annotated[int, Field(description="Page size (list)", ge=1, le=100)] = 20,
     offset: Annotated[int, Field(description="Page offset (list)", ge=0)] = 0,
 ) -> dict:
@@ -64,6 +92,8 @@ async def opencode_runs(
 
     ## Examples
     opencode_runs(action="start", prompt="Refactor main.py", wait=False)
+    opencode_runs(action="start", prompt="Fix tests", model="deepseek/deepseek-flash", agent="build", auto=True)
+    opencode_runs(action="start", prompt="Continue", session_id="ses_123", fork=True)
     opencode_runs(action="status", job_id="abc123")
     opencode_runs(action="list", limit=20, offset=0)
     """
@@ -72,7 +102,20 @@ async def opencode_runs(
         if not prompt:
             return _missing("start", "prompt")
         return await opencode_run_agent(
-            prompt=prompt, project=project, format=output_format, wait=wait, timeout=timeout
+            prompt=prompt,
+            project=project,
+            format=output_format,
+            wait=wait,
+            timeout=timeout,
+            model=model,
+            agent=agent,
+            variant=variant,
+            thinking=thinking,
+            auto=auto,
+            session_id=session_id,
+            continue_session=continue_session,
+            fork=fork,
+            files=files,
         )
     if action == "status":
         if not job_id:
