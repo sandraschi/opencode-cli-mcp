@@ -499,7 +499,11 @@ def _verify_page_ocr(text: str, label: str, expected: str) -> bool:
     # on "Vllm :8000 Not found" -- a correct, expected status, not an error).
     # Use specific failure phrases instead.
     fail_keywords = [
-        "404",
+        # NOT bare "404": the Backups page renders filenames like
+        # opencode-db-20261019-111404-538573.sqlite3, whose timestamp contains
+        # "404" and failed a clean build (2026-10-21). Match error phrasing.
+        "404 not found",
+        "404 error",
         "page not found",
         "resource not found",
         "could not find",
