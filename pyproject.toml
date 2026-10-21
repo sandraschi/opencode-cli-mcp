@@ -1,6 +1,6 @@
 [project]
 name = "opencode-cli-mcp"
-version = "0.2.10"
+version = "0.2.11"
 description = "MCP server wrapping opencode CLI (opencode serve) for AI agent orchestration"
 authors = [{ name = "Sandra Schipal" }]
 requires-python = ">=3.12"
