@@ -33,7 +33,7 @@ MCP server wrapping [opencode](https://opencode.ai) CLI's HTTP API (`opencode se
 
 ## Install
 
-**Download:** [opencode-cli-mcp-0.2.10-setup.exe](https://github.com/sandraschi/opencode-cli-mcp/releases/latest/download/opencode-cli-mcp-0.2.10-setup.exe) - installs the desktop app and its embedded backend in one step (Windows, current user, no admin).
+**Download:** [opencode-cli-mcp-0.2.11-setup.exe](https://github.com/sandraschi/opencode-cli-mcp/releases/latest/download/opencode-cli-mcp-0.2.11-setup.exe) - installs the desktop app and its embedded backend in one step (Windows, current user, no admin).
 
 > The installer is unsigned, so SmartScreen will warn. Click **More info → Run anyway**.
 
@@ -41,8 +41,8 @@ All releases, older versions, and the `.mcpb` bundle: [Releases](https://github.
 
 | You want | Use |
 |----------|-----|
-| Desktop app + backend | `opencode-cli-mcp-0.2.10-setup.exe` above |
-| MCP server inside Claude Desktop only | `opencode-cli-mcp-0.2.10.mcpb` from [Releases](https://github.com/sandraschi/opencode-cli-mcp/releases) |
+| Desktop app + backend | `opencode-cli-mcp-0.2.11-setup.exe` above |
+| MCP server inside Claude Desktop only | `opencode-cli-mcp-0.2.11.mcpb` from [Releases](https://github.com/sandraschi/opencode-cli-mcp/releases) |
 | Manual setup, prerequisites, troubleshooting | [INSTALL.md](INSTALL.md) |
 | Development setup and build recipes | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 

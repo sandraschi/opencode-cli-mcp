@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.11 - 2026-10-21
+
+### Added
+- `GET /api/v1/request-log` plus an ASGI middleware that records every HTTP
+  request (method, path, status, duration) in a bounded in-memory ring, with a
+  cumulative count. This closes the last release-gate gap: CUA-NSIS's
+  backend-receipt phase previously reported a vacuous pass because no such
+  endpoint existed. It now measures real webview traffic during the nav walk.
+  The endpoint exempts itself so polling cannot inflate the evidence; state is
+  process-lifetime and intentionally not persisted.
+
+### Notes
+- 0.2.10 is superseded: its installer is functionally identical apart from this
+  diagnostic endpoint, but its backend-receipt proof was vacuous. Use 0.2.11.
+
 ## 0.2.10 - 2026-10-21
 
 First release since 0.2.3. Includes everything in the Unreleased sections
